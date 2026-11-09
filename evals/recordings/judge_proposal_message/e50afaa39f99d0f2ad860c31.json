@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,769), deposit (none). Budget compliance clearly stated ($147/head under $250 cap). Risk flagged: signing required agreement. Concise, scannable format perfect for mobile approval.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,769), deposit (none). Budget compliance clearly stated ($147/head under $250 cap). Risk flagged: requires signing dining agreement. Concise, actionable, perfect for mobile approval.\"\n}\n```",
  "inputTokens": 307,
- "outputTokens": 86,
+ "outputTokens": 87,
  "model": "claude-sonnet-4-5"
 }

@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,338), per-person cost, deposit ($260), and cancellation terms. Budget compliance noted ($134 vs $250 cap). Cuisine confirmed. Concise and scannable for quick mobile approval.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,338), per-person cost, deposit ($260), and cancellation terms. Notes it meets the steakhouse requirement and stays under budget cap. Concise and actionable for quick approval.\"\n}\n```",
  "inputTokens": 290,
- "outputTokens": 89,
+ "outputTokens": 86,
  "model": "claude-sonnet-4-5"
 }

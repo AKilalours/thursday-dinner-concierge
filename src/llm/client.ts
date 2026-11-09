@@ -107,6 +107,9 @@ export async function structured<T>(
       if (parsed.success) return { value: parsed.data, attempts: attempt, error: null, latencyMs: Date.now() - t0 };
       prompt = `${user}\n\nYour last answer did not match the schema: ${parsed.error.issues.slice(0, 3).map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}. Reply with JSON only.`;
     } catch (e) {
+      // Regression R9: an aborted fetch rejects with "This operation was aborted", not our "timed out" message,
+      // so a timeout used to be retried and cost twice the budget. Our own abort always means a timeout.
+      if (ctl.signal.aborted) return { value: null, attempts: attempt, error: `timed out after ${timeoutMs} ms`, latencyMs: Date.now() - t0 };
       const msg = e instanceof Error ? e.message : String(e);
       if (e instanceof NotRecorded || e instanceof ModelOff || /timed out|HTTP 4/.test(msg)) {
         return { value: null, attempts: attempt, error: msg, latencyMs: Date.now() - t0 };

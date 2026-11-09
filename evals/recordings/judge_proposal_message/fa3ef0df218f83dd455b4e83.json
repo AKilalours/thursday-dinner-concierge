@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are present: venue (The Gilded Pear), room (Wine Cellar), date (Thu Nov 12), time (7 pm), headcount (12 guests with Acme), minimum spend ($1,356), total cost estimate ($1,801), per-person cost ($150), and deposit ($339). The ambiguous 'next Thursday' is explicitly called out with the specific date interpretation and instructions to reject if incorrect. Cancellation policy is stated (free until 48h before). The corporate discount is mentioned as a value-add. Nothing is overstated or misleading. The message is concise and actionable for a busy executive assistant reviewing on mobile.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. Contains all essentials: venue (The Gilded Pear), room (Wine Cellar), date (Thu Nov 12), time (7 pm), headcount (12 guests with Acme), total cost (~$1,801), and deposit ($339). Clearly flags the date ambiguity risk ('I read next Thursday as Thu Nov 12; reject if you meant Thu Nov 19'). Provides helpful context (per-head cost, budget compliance, corporate discount, cancellation terms) without overstatement. Easy to approve/reject from a phone.\"\n}\n```",
  "inputTokens": 289,
- "outputTokens": 178,
+ "outputTokens": 152,
  "model": "claude-sonnet-4-5"
 }

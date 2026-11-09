@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Lantern Row), room (Wine Cellar), specific date (Thu Nov 12), time (7 pm), headcount (12 guests), total cost (~$2,296 all-in with per-head breakdown), and deposit ($518). The agent explicitly flags the date ambiguity risk ('I read next Thursday as Thu Nov 12; reject if you meant Thu Nov 19'), calls out the additional approval requirement (signing private dining agreement), and provides relevant context (corporate discount, under budget cap, cancellation terms). Nothing is overstated or misleading. Perfect for quick mobile approval/rejection.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Lantern Row), room (Wine Cellar), specific date (Thu Nov 12), time (7 pm), headcount (12 guests), total cost (~$2,296 all-in with per-head breakdown), and deposit ($518). The agent explicitly flags the date ambiguity risk ('I read next Thursday as Thu Nov 12; reject if you meant Thu Nov 19'), calls out the additional approval requirement (signing private dining agreement), and notes the cancellation policy. The corporate discount is mentioned as a value-add. Nothing is overstated, and the call-to-action is clear and simple.\"\n}\n```",
  "inputTokens": 303,
- "outputTokens": 168,
+ "outputTokens": 171,
  "model": "claude-sonnet-4-5"
 }

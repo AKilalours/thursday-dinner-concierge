@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, minimum spend ($1,038), estimated total ($1,402), per-person cost, deposit ($260), and cancellation policy. Budget compliance clearly stated ($88 vs $120 cap). Concise and scannable for quick mobile approval.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,402), per-person cost, deposit ($260), and cancellation policy. Budget compliance clearly stated ($88 vs $120 cap). Concise and actionable for quick mobile approval.\"\n}\n```",
  "inputTokens": 275,
- "outputTokens": 93,
+ "outputTokens": 86,
  "model": "claude-sonnet-4-5"
 }

@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Lantern Row), room (Main dining room), date (Tue Nov 24), time (7 pm), headcount (8 guests), total cost (~$1,055), and deposit ($205). The message efficiently includes helpful context (per-head cost, under budget cap, corporate discount savings, cancellation policy, cuisine match). Critically, it flags a risk that requires the approver's attention: signing the private dining agreement is bundled with approval. Nothing is overstated or misleading. Perfect for quick mobile approval.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Lantern Row), room (Main dining room), date (Tue Nov 24), time (7 pm), headcount (8 guests), total cost (~$1,055), and deposit ($205). The message efficiently includes helpful context (per-head cost, under budget cap, corporate discount savings, cancellation policy, cuisine match). Critically, it flags a risk that requires attention: approving will authorize signing a private dining agreement, which is a material assumption the executive should know about before approval. Nothing is overstated or misleading.\"\n}\n```",
  "inputTokens": 287,
- "outputTokens": 151,
+ "outputTokens": 153,
  "model": "claude-sonnet-4-5"
 }

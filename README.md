@@ -15,12 +15,14 @@
 <td align="center"><h3>47/47</h3>eval scenarios</td>
 <td align="center"><h3>0 / 2,013</h3>safety failures<br>in random worlds</td>
 <td align="center"><h3>89</h3>tests, incl.<br>real Postgres</td>
-<td align="center"><h3>8</h3>bugs caught →<br>permanent cases</td>
+<td align="center"><h3>9</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
 
 ```bash
 npm install && npm run demo
 ```
+
+**On the live site:** Live desk · Book (slide to approve) · Inbox lab · **Fix lab** (replay a real failure with Claude's recorded 1/5 verdict, see the fix, prove it) · **Tools** (call the typed capabilities yourself) · **Judgments** (drag thresholds, force a timeout, watch the fallback) · Controls · Evals · Memory · Spend. Press **▶ Tour** for a hands-free 47-second walkthrough.
 
 <details>
 <summary><b>How it works</b></summary>
@@ -76,6 +78,7 @@ flowchart LR
 | R6 | **Found by the first live Claude run:** the extraction prompt didn't name the schema keys, so Claude returned its own field names and every offer silently fell back to rules |
 | R7 | **Found by the LLM judge (1/5):** "japanese dinner" booked a Korean room; cuisine was a nudge, not a requirement. Now it books the cuisine or asks which constraint to relax |
 | R8 | **Found by the LLM judge (4/5):** two vegetarians were sent to the venue but never confirmed to the booker |
+| R9 | A model call that hit its timeout was retried, so a timeout cost twice the budget (an aborted fetch didn't say "timed out") |
 </details>
 
 <details>

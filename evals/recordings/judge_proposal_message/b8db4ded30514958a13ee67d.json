@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, costs (minimum, total, per-head), deposit. Ambiguous 'next Thursday' is explicitly flagged with both interpretations. Corporate discount noted. Cancellation policy stated. Concise, scannable format perfect for mobile approval.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, costs (minimum, total, per-head), deposit. Ambiguous 'next Thursday' flagged with specific dates. Budget compliance noted. Cancellation terms included. Corporate discount highlighted. Clear approve/reject instruction. Concise and scannable for mobile.\"\n}\n```",
  "inputTokens": 318,
- "outputTokens": 92,
+ "outputTokens": 96,
  "model": "claude-sonnet-4-5"
 }

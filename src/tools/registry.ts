@@ -22,6 +22,8 @@ export interface Ctx {
   trace: TraceEvent[];
   /** Optional live listener (the web playground animates events as they happen). */
   onEvent?: (e: TraceEvent) => void;
+  /** Re-enable a fixed bug, only to replay the original failure in the Fix lab. Never set in production paths. */
+  legacy?: { r7?: boolean; r8?: boolean };
 }
 
 export interface TraceEvent { at: string; agent: string; kind: string; text: string; data?: Record<string, unknown> }

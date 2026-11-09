@@ -8,8 +8,14 @@ import { SCENARIOS } from "../evals/scenarios.ts";
 import { approverFor, carefulApprover, runConcierge } from "../src/agents/concierge.ts";
 import type { Approver, RunResult } from "../src/agents/concierge.ts";
 import type { Company, Proposal } from "../src/domain/types.ts";
-import { injection, replyTriage } from "../src/judgments/judgments.ts";
+import { injection, replyTriage, smsConsent } from "../src/judgments/judgments.ts";
 import { ReplayLLM } from "../src/llm/client.ts";
+import type { LLM } from "../src/llm/client.ts";
+import { judgeMessage } from "../evals/judge.ts";
+import { call, ToolDenied } from "../src/tools/registry.ts";
+import type { Tool } from "../src/tools/registry.ts";
+import { book as bookTool, createProposal, notifyBooker, payDeposit, recordFact, sendVenueEmail } from "../src/tools/tools.ts";
+import { ZodError } from "zod";
 import { knowledge } from "../src/memory/supply.ts";
 import { extractRules } from "../src/parse/offer.ts";
 import { checkPolicy, estimate, perHeadFor } from "../src/policy/policy.ts";
@@ -520,6 +526,168 @@ function renderSpend() {
   $("#donut").innerHTML = `<circle cx="21" cy="21" r="15.9" fill="none" stroke="#efe6d8" stroke-width="6"/>${segs.join("")}`;
   $("#ledger").innerHTML = ledger.length ? ledger.slice(0, 8).map((r, i) => `<tr><td><span style="color:${pal[i % pal.length]}">●</span> ${esc(r.venue)}</td><td>${r.guests} guests</td><td><b>${usd(r.allIn)}</b></td><td style="color:var(--sage)">${r.saved ? `−${usd(r.saved)}` : ""}</td></tr>`).join("") + (ledger.length > 8 ? `<tr><td colspan="4" style="color:var(--dim)">+ ${ledger.length - 8} more</td></tr>` : "") : `<tr><td class="empty">Nothing booked yet.</td></tr>`;
 }
+
+// =====================================================================
+// FIX LAB: find the failure in a real conversation, fix it, prove the fix
+// =====================================================================
+const INCIDENTS = [
+  { id: "R7", title: "“Japanese dinner” booked a Korean room", text: "japanese dinner for 8 with Wayne Enterprises on 2026-11-24, private", reg: "p12", flag: { r7: true, r8: true },
+    diag: (r: RunResult) => { const v = venues.find((x) => x.id === r.chosenVenueId); return v ? `Asked for <b>Japanese</b>. Proposed <b>${esc(v.name)}</b>, which is <b>${esc(v.cuisine)}</b>. Cuisine was a +20 ranking nudge, not a requirement.` : "No venue proposed."; },
+    diff: ["- // cuisine only nudges the ranking", "- cuisine: req.cuisine && v.cuisine === req.cuisine ? 20 : 0,", "+ const cuisineRequired = !!req.cuisine && venues.some((v) => v.cuisine === req.cuisine);", "+ if (cuisineRequired && v.cuisine !== req.cuisine) continue;", "+ // none fits policy? ask the booker which constraint to relax"] },
+  { id: "R8", title: "Two vegetarians never confirmed to the booker", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", reg: "reg06", flag: { r7: true, r8: true },
+    diag: () => "Dietary needs went to the venue in the inquiry, but the proposal the booker approves never mentions them.",
+    diff: ["  + `Deposit ${deposit}; free cancellation until ${h} h before.`", "+ + (req.dietary.length ? ` Dietary needs sent to ${venue}: ${req.dietary}.` : \"\")", "+ + (req.cuisine ? ` ${cuisine}, as asked.` : \"\")"] },
+];
+let inc = 0;
+async function runFix(legacy: { r7?: boolean; r8?: boolean } | undefined, text: string) {
+  const store = new MemoryStore(); await store.init(venues);
+  const world = new VenueWorld(venues, () => "accept", "2026-11-09T15:00:00.000Z", 11);
+  const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm, venues, company: COMPANY, legacy,
+    approver: async (p, s) => carefulApprover(priya, { partySize: p.partySize, date: localDate(p.startsAt), privateRoom: false })(p, s) });
+  const msg = res.messagesToBooker.find((m) => /Reply approve or reject/.test(m)) ?? res.messagesToBooker.at(-1) ?? "";
+  const verdict = /Reply approve or reject/.test(msg) ? await judgeMessage(llm, text, msg) : null;
+  return { res, msg, verdict };
+}
+const judgeCard = (v: { score: number; reason: string } | null, pending: string) => v
+  ? `<div class="judge ${v.score >= 5 ? "ok" : v.score >= 3 ? "warn" : "bad"}"><div class="js">${v.score}<small>/5</small></div><div><div class="cs">Claude judge · recorded verdict</div><div>${esc(v.reason)}</div></div></div>`
+  : `<div class="judge mute"><div class="js">—</div><div><div class="cs">Claude judge</div><div>${pending}</div></div></div>`;
+function renderIncidents() {
+  $("#incList").innerHTML = INCIDENTS.map((x, i) => `<button class="${i === inc ? "on" : ""}" data-i="${i}"><span class="mono">${x.id}</span>${esc(x.title)}</button>`).join("");
+  $$<HTMLButtonElement>("#incList button").forEach((b) => b.onclick = () => { inc = Number(b.dataset.i); renderIncidents(); resetFix(); });
+}
+function resetFix() {
+  $$("#fixSteps span").forEach((s) => (s.className = "")); $("#fixOut").innerHTML = `<div class="req2">“${esc(INCIDENTS[inc].text)}”</div><p class="cs">Press Replay to rerun the original conversation on the pre-fix code path.</p>`;
+  $("#fixGo").textContent = "1 · Replay the failure ▶"; fixStep = 0;
+}
+let fixStep = 0;
+$("#fixGo").onclick = async () => {
+  const x = INCIDENTS[inc], steps = $$("#fixSteps span"), out = $("#fixOut"), btn = $<HTMLButtonElement>("#fixGo"); btn.disabled = true;
+  const mark = (i: number) => steps.forEach((s, j) => (s.className = j < i ? "ok" : j === i ? "on" : ""));
+  if (fixStep === 0) {
+    mark(0); const before = await runFix(x.flag, x.text);
+    out.innerHTML = `<div class="req2">“${esc(x.text)}”</div><div class="cs">Before the fix · proposal sent to the booker</div><div class="msg">${esc(before.msg)}</div>${judgeCard(before.verdict, "not judged")}`;
+    btn.textContent = "2 · Diagnose ▶";
+  } else if (fixStep === 1) {
+    mark(1); const before = await runFix(x.flag, x.text);
+    out.insertAdjacentHTML("beforeend", `<div class="diag"><div class="cs">Root cause</div>${x.diag(before.res)}</div><div class="diff">${x.diff.map((l) => `<div class="${l.startsWith("+") ? "add" : l.startsWith("-") ? "del" : ""}">${esc(l)}</div>`).join("")}</div>`);
+    btn.textContent = "3 · Rerun with the fix ▶";
+  } else if (fixStep === 2) {
+    mark(2); const after = await runFix(undefined, x.text);
+    out.insertAdjacentHTML("beforeend", `<div class="cs" style="margin-top:14px">After the fix · ${after.res.outcome.replace(/_/g, " ")}</div><div class="msg good">${esc(after.msg)}</div>${judgeCard(after.verdict, "This new message hasn't been through a live run yet. <code>npm run evals:live</code> records Claude's verdict.")}`);
+    btn.textContent = "4 · Prove it in the eval suite ▶";
+  } else {
+    mark(3); const r = await runScenario(scen(x.reg), llm), ok = r.checks.every((c) => c.pass);
+    out.insertAdjacentHTML("beforeend", `<div class="prove"><span class="tile ${ok ? "pass" : "fail"}">${x.reg}</span><div><b>${ok ? "Permanent eval case passes" : "Eval case fails"}</b><div class="cs">${r.checks.filter((c) => /cuisine|dietary|outcome/.test(c.name)).map((c) => `${c.pass ? "✓" : "✗"} ${c.name}`).join(" · ")}</div></div></div>`);
+    steps.forEach((s) => (s.className = "ok")); btn.textContent = "Replay again ↺"; fixStep = -1;
+  }
+  fixStep++; btn.disabled = false; out.scrollTop = out.scrollHeight;
+};
+renderIncidents(); resetFix();
+
+// =====================================================================
+// TOOLS: call the agent's typed capabilities yourself
+// =====================================================================
+const TOOLS = [sendVenueEmail, createProposal, bookTool, payDeposit, notifyBooker, recordFact] as unknown as Tool<unknown, unknown>[];
+const toolStore = new MemoryStore(); await toolStore.init(venues); toolStore.setNow("2026-11-09T15:00:00.000Z"); await toolStore.createRun({ id: "tools" });
+const toolWorld = new VenueWorld(venues, () => "accept", "2026-11-09T15:00:00.000Z", 11);
+let toolSel = 1, lastProposal = "", lastBooking = "";
+const EX: Record<string, () => unknown> = {
+  send_venue_email: () => ({ venueId: "ven_02", threadId: "thr_demo", kind: "inquiry", body: "Hello, could you host 12 guests privately on Thursday at 7pm?" }),
+  create_proposal: () => ({ runId: "tools", kind: "book", actorId: "usr_priya", principalId: "usr_dana", venueId: "ven_02", roomId: "ven_02_pdr", startsAt: "2026-11-13T00:00:00.000Z", endsAt: "2026-11-13T03:00:00.000Z", partySize: 12, amountCents: 180000, payeeId: null, requiredRoles: ["booker"], summary: "The Copper Fig, Wine Cellar, Thu 7 pm, 12 guests", expiresAt: "2026-11-11T00:00:00.000Z" }),
+  book: () => ({ proposalId: lastProposal || "prop_xxxx" }),
+  pay_deposit: () => ({ proposalId: lastProposal || "prop_xxxx", bookingId: lastBooking || "bk_xxxx", idempotencyKey: "deposit-1" }),
+  notify_booker: () => ({ text: "Your dinner at The Copper Fig is confirmed." }),
+  record_venue_fact: () => ({ venueId: "ven_02", roomId: "ven_02_pdr", kind: "room_capacity", value: 10, confidence: 0.85, sourceMessageId: "msg_demo" }),
+};
+function renderTools() {
+  $("#toolList").innerHTML = TOOLS.map((t, i) => `<button class="${i === toolSel ? "on" : ""}" data-i="${i}"><span class="mono">${t.name}</span>${t.consequential ? '<span class="pill r">moves money / books</span>' : '<span class="pill">safe</span>'}</button>`).join("");
+  $$<HTMLButtonElement>("#toolList button").forEach((b) => b.onclick = () => { toolSel = Number(b.dataset.i); renderTools(); });
+  const t = TOOLS[toolSel]; $("#toolDesc").textContent = t.description; $<HTMLTextAreaElement>("#toolIn").value = JSON.stringify(EX[t.name](), null, 2);
+}
+async function toolAudit() {
+  const log = await toolStore.auditLog("tools");
+  $("#toolAudit").innerHTML = log.slice().reverse().map((a) => `<li><span class="mono">${esc(a.action)}</span> by ${esc(a.actorId)} for ${esc(String(a.detail.onBehalfOf))}${a.detail.consequential ? ' <span class="pill r">consequential</span>' : ""}</li>`).join("") || `<li class="cs">No calls yet.</li>`;
+}
+$("#toolCall").onclick = async () => {
+  const t = TOOLS[toolSel], out = $("#toolOut"), actor = user($<HTMLSelectElement>("#toolActor").value);
+  let input: unknown; try { input = JSON.parse($<HTMLTextAreaElement>("#toolIn").value); } catch { out.innerHTML = `<div class="tres bad"><b>Not JSON</b></div>`; return; }
+  const ctxT = { store: toolStore, world: toolWorld, llm, company, venues, actor, principal: dana, runId: "tools", today: "2026-11-09", smsOptedOut: new Set<string>(), trace: [] };
+  const before = (await toolStore.auditLog("tools")).length;
+  try {
+    const r = await call(ctxT, "inspector", t as Tool<unknown, unknown>, input) as Record<string, unknown>;
+    if (r.proposalId) lastProposal = String(r.proposalId); if (r.bookingId) lastBooking = String(r.bookingId);
+    const replay = (await toolStore.auditLog("tools")).length === before;
+    out.innerHTML = `<div class="tres ok"><b>${replay ? "Same input → same result (idempotent replay, nothing ran twice)" : "Executed"}</b><pre>${esc(JSON.stringify(r, null, 2))}</pre></div>`;
+  } catch (e) {
+    const msg = e instanceof ZodError ? e.issues.map((i) => `${i.path.join(".") || "(input)"}: ${i.message}`).join("\n") : e instanceof ToolDenied ? e.message : e instanceof StoreError ? `${e.code.replace(/_/g, " ")}: ${e.message}` : String(e);
+    const kind = e instanceof ZodError ? "Rejected by the input schema" : e instanceof ToolDenied ? "Refused: not allowed to act for this person" : e instanceof StoreError ? "Refused by the database" : "Error";
+    out.innerHTML = `<div class="tres bad"><b>${kind}</b><pre>${esc(msg)}</pre></div>`;
+  }
+  void toolAudit();
+};
+$("#toolApprove").onclick = async () => {
+  if (!lastProposal) { $("#toolOut").innerHTML = `<div class="tres bad"><b>Create a proposal first.</b></div>`; return; }
+  try { const p = await toolStore.decide(lastProposal, priya.id, "booker", "approve"); $("#toolOut").innerHTML = `<div class="tres ok"><b>Priya approved ${esc(p.id)} from the booker app (separate role)</b><pre>status: ${p.status}</pre></div>`; }
+  catch (e) { $("#toolOut").innerHTML = `<div class="tres bad"><b>${e instanceof StoreError ? e.code.replace(/_/g, " ") : String(e)}</b></div>`; }
+};
+renderTools(); void toolAudit();
+
+// =====================================================================
+// JUDGMENTS: thresholds, timeout, fallback, rollout mode
+// =====================================================================
+const slowModel = (delayMs: number, label: string): LLM => ({
+  mode: "live",
+  complete: (_t, _s, _u, o) => new Promise((res, rej) => { const id = setTimeout(() => res({ text: JSON.stringify({ label, confidence: 0.97, reason: "stub model" }), inputTokens: 0, outputTokens: 0, model: "stub" }), delayMs); o?.signal?.addEventListener("abort", () => { clearTimeout(id); rej(new Error("aborted")); }); }),
+});
+const JPRESET: Record<string, string> = { "Clear offer": "Great news, the Wine Cellar is available Thursday. We take a 25% deposit.", "Vague": "Re: re: let me check with the chef and circle back", "Decline": "Unfortunately we're fully committed that night.", "STOP": "STOP", "please stop texting me": "please stop texting me" };
+async function judge() {
+  const text = $<HTMLTextAreaElement>("#jIn").value, kind = $<HTMLSelectElement>("#jKind").value, mode = $<HTMLSelectElement>("#jMode").value as "rules" | "shadow" | "live";
+  const delay = Number($<HTMLInputElement>("#jDelay").value), timeout = Number($<HTMLInputElement>("#jTimeout").value);
+  $("#jDelayV").textContent = `${delay} ms`; $("#jTimeoutV").textContent = `${timeout} ms`;
+  const model = slowModel(delay, kind === "triage" ? "offer" : "no_change");
+  const c = kind === "triage" ? replyTriage(model, mode) : smsConsent(model, mode);
+  const spec = c.spec as unknown as { thresholds: Record<string, number>; timeoutMs: number; labels: string[]; fallback: string };
+  spec.timeoutMs = timeout;
+  const key = kind === "triage" ? "offer" : "opt_out";
+  spec.thresholds[key] = Number($<HTMLInputElement>("#jThr").value) / 100; $("#jThrV").textContent = `${key} ≥ ${spec.thresholds[key].toFixed(2)}`;
+  $("#jVerdict").innerHTML = `<span class="spin"></span>`;
+  const t0 = performance.now(); const j = await c.classify(text); const ms = Math.round(performance.now() - t0);
+  const raw = (c.spec as unknown as { rules: (t: string) => { label: string; confidence: number; reason: string } }).rules(text);
+  $("#jVerdict").innerHTML = `<div class="big2">${esc(j.label.replace("_", " "))}</div><div class="cs">decided by <b>${j.decidedBy}</b> · ${ms} ms · ${esc(j.reason)}</div>${j.shadow ? `<div class="cs">shadow model said: <b>${"label" in j.shadow ? esc(j.shadow.label) : esc(j.shadow.error)}</b> (logged, not used)</div>` : ""}`;
+  $("#jBars").innerHTML = spec.labels.filter((l) => l !== spec.fallback || l === raw.label).map((l) => { const conf = l === raw.label ? raw.confidence : 0, thr = spec.thresholds[l] ?? 0;
+    return `<div class="jb"><span>${esc(l.replace("_", " "))}</span><div class="jt"><i style="width:${conf * 100}%" class="${conf >= thr && conf > 0 ? "pass" : ""}"></i><b style="left:${thr * 100}%"></b></div><span class="mono">${conf ? conf.toFixed(2) : ""}</span></div>`; }).join("");
+}
+$$<HTMLButtonElement>("#jPresets button").forEach((b) => b.onclick = () => { $<HTMLTextAreaElement>("#jIn").value = JPRESET[b.textContent!]; $<HTMLSelectElement>("#jKind").value = /stop/i.test(b.textContent!) ? "consent" : "triage"; void judge(); });
+["#jIn", "#jKind", "#jMode", "#jDelay", "#jTimeout", "#jThr"].forEach((id) => $(id).addEventListener("input", () => void judge()));
+void judge();
+
+// =====================================================================
+// TOUR: a hands-free walkthrough for a live call
+// =====================================================================
+let touring = false;
+const say = (n: string, t: string) => (window as unknown as { caption: (n: string, t: string) => void }).caption(n, t);
+async function tour() {
+  if (touring) { touring = false; return; }
+  touring = true; $("#tourBtn").textContent = "■ Stop tour";
+  const step = async (n: string, t: string, page: string, fn: () => Promise<void>) => { if (!touring) return; say(n, t); go(page); await fn(); };
+  await step("01 · LIVE DESK", "Requests move from one sentence to a confirmed table.", "desk", async () => { await sleep(9000); });
+  await step("02 · BOOK", "You type it. You approve it. It books and pays.", "book", async () => {
+    $<HTMLButtonElement>("#bSpeed button[data-s='4']").click(); $<HTMLButtonElement>("#go button").click();
+    for (let i = 0; i < 200 && !$(".slide"); i++) await sleep(100); await sleep(900); ($(".slide") as HTMLElement | null)?.click(); for (let i = 0; i < 100 && !$(".ticket"); i++) await sleep(100); await sleep(2000);
+  });
+  await step("03 · FIX LAB", "Find the failure in a real conversation. Fix it. Prove it.", "fix", async () => { for (let i = 0; i < 4 && touring; i++) { $<HTMLButtonElement>("#fixGo").click(); await sleep(2300); } });
+  await step("04 · TOOLS", "Typed tools: bad input rejected, unapproved booking refused.", "tools", async () => {
+    $<HTMLButtonElement>("#toolList button[data-i='1']").click(); await sleep(500); $<HTMLButtonElement>("#toolCall").click(); await sleep(1300);
+    $<HTMLButtonElement>("#toolList button[data-i='2']").click(); await sleep(500); $<HTMLButtonElement>("#toolCall").click(); await sleep(1600);
+    $<HTMLButtonElement>("#toolApprove").click(); await sleep(1200); $<HTMLButtonElement>("#toolCall").click(); await sleep(1600);
+  });
+  await step("05 · JUDGMENTS", "Thresholds, a timeout and a safe fallback.", "judg", async () => { $<HTMLSelectElement>("#jMode").value = "live"; $<HTMLInputElement>("#jTimeout").value = "500"; $<HTMLInputElement>("#jDelay").value = "1500"; void judge(); await sleep(2500); });
+  await step("06 · CONTROLS", "Six safety controls, enforced by Postgres.", "controls", async () => { $<HTMLButtonElement>("#runAll").click(); await sleep(3500); });
+  await step("07 · EVALS", "The CI suite in your browser. Real Claude outputs.", "evals", async () => { $<HTMLButtonElement>("#runEvals").click(); for (let i = 0; i < 300 && !$("#sPass").textContent!.startsWith("47/"); i++) await sleep(100); await sleep(1200); });
+  await step("08 · SPEND", "Policy is code. Drag it and the city changes.", "spend", async () => { for (const v of [180, 140, 300]) { const s = $<HTMLInputElement>("#cap"); s.value = String(v); s.dispatchEvent(new Event("input")); await sleep(900); } });
+  say("", ""); touring = false; $("#tourBtn").textContent = "▶ Tour";
+}
+$("#tourBtn").onclick = () => void tour();
 
 // ---------- start ----------
 if (!new URLSearchParams(location.search).has("still")) void deskLoop();

@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($758), per-person cost, deposit (none), cancellation terms. Clearly states cost is under budget cap. Appropriately flags the private dining agreement requirement as a risk/assumption that needs approval authorization. Concise and scannable for mobile.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($758), per-person cost, deposit (none), cancellation terms. Clearly flags the private dining agreement requirement as a risk/assumption that needs approval. Concise, accurate, actionable for busy exec.\"\n}\n```",
  "inputTokens": 295,
- "outputTokens": 96,
+ "outputTokens": 88,
  "model": "claude-sonnet-4-5"
 }

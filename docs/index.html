@@ -14,9 +14,9 @@ button{font:inherit;cursor:pointer;color:inherit}
 header{position:sticky;top:0;z-index:5;background:#f6f1e8ee;backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .bar{max-width:1280px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .logo{font:800 20px Fraunces,Georgia,serif;color:var(--wine2);letter-spacing:-.3px;display:flex;align-items:center;gap:10px}
-.logo i{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--gold),var(--brass) 60%,#7a5714);box-shadow:0 0 0 3px #b8862b33;display:inline-block}
+.logo small{display:block;font:500 11px Inter;color:var(--dim);letter-spacing:0;margin-top:1px}.logo small a{color:var(--wine)}.logo i{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--gold),var(--brass) 60%,#7a5714);box-shadow:0 0 0 3px #b8862b33;display:inline-block}
 .tabs{display:flex;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:4px;overflow-x:auto;max-width:100%}
-.tabs button{border:0;background:none;border-radius:99px;padding:8px 14px;font-weight:600;color:#6d5d51;white-space:nowrap}.tabs button.on{background:var(--wine);color:#fff;box-shadow:0 4px 14px #7b1e3a44}
+.tabs button{border:0;background:none;border-radius:99px;padding:8px 12px;font-weight:600;color:#6d5d51;white-space:nowrap}.tabs button.on{background:var(--wine);color:#fff;box-shadow:0 4px 14px #7b1e3a44}
 .for{margin-left:auto;font-size:12px;color:var(--dim)}.for b{color:var(--wine)}
 main{max-width:1280px;margin:0 auto;padding:22px 20px 70px}
 .page{display:none}.page.on{display:block;animation:rise .35s ease}
@@ -158,16 +158,33 @@ tr.ev{display:none}tr.ev.open{display:table-row}tr.ev td{background:#fbf7ef}.evg
 .spin{display:inline-block;width:14px;height:14px;border:2px solid #eadfce;border-top-color:var(--wine);border-radius:50%;animation:sp .7s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 .audit{list-style:none;margin:0;padding:0;font-size:13px}.audit li{padding:6px 0;border-bottom:1px solid #f3ece1}.okt{color:var(--sage);font-weight:700}.badt{color:var(--rose);font-weight:700}
 #cSum .cs{margin-left:6px}
+
+.fixg{display:grid;grid-template-columns:320px minmax(0,1fr);gap:14px;align-items:start}@media(max-width:1000px){.fixg{grid-template-columns:1fr}}
+.toolg{display:grid;grid-template-columns:260px minmax(0,1fr) 300px;gap:14px;align-items:start}@media(max-width:1100px){.toolg{grid-template-columns:1fr}}
+.inclist{display:grid;gap:6px}.inclist button{text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;font-weight:600;display:flex;flex-direction:column;gap:4px}.inclist button.on{border-color:var(--wine);box-shadow:0 0 0 3px #7b1e3a14}.inclist .mono{color:var(--wine)}
+.stepper{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}.stepper span{font:700 11px JetBrains Mono,monospace;border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--dim);transition:.3s}.stepper span.on{background:var(--wine);border-color:var(--wine);color:#fff}.stepper span.ok{background:#e3f0e7;border-color:#bfdcc8;color:var(--sage)}
+.fixout{margin-top:14px;max-height:620px;overflow:auto}.req2{font:600 18px Fraunces,Georgia,serif;color:var(--wine2);margin-bottom:8px}
+.msg{background:#fbf7ef;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13.5px;margin:6px 0 10px;animation:rise .3s}.msg.good{background:#f4faf6;border-color:#bfdcc8}
+.judge{display:flex;gap:14px;align-items:center;border-radius:14px;padding:12px 14px;animation:rise .4s;font-size:13.5px}.judge .js{font:800 34px Fraunces,Georgia,serif;min-width:62px}.judge .js small{font-size:14px;color:var(--dim)}
+.judge.bad{background:#f8e1e5}.judge.bad .js{color:var(--rose)}.judge.warn{background:#f7ebd2}.judge.warn .js{color:#9a6a06}.judge.ok{background:#e3f0e7}.judge.ok .js{color:var(--sage)}.judge.mute{background:#f4efe7}
+.diag{margin:14px 0 8px;font-size:14px;animation:rise .3s}.diff{background:#0f0b16;border-radius:12px;padding:10px 12px;font:12px/1.7 JetBrains Mono,monospace;color:#d6cbe6;white-space:pre-wrap;animation:rise .3s}.diff .add{color:#8fe3b0}.diff .del{color:#ff9fb0;text-decoration:line-through;opacity:.8}
+.prove{display:flex;gap:12px;align-items:center;margin-top:14px;padding:12px;border:1px solid #bfdcc8;border-radius:14px;background:#f4faf6;animation:rise .4s}.prove .tile{min-width:70px}
+.code2{width:100%;min-height:260px;background:#0f0b16;color:#e6dcf3;border:0;border-radius:12px;padding:12px;font:12.5px/1.6 JetBrains Mono,monospace;margin-top:8px;resize:vertical}
+.tres{border-radius:12px;padding:10px 12px;animation:rise .3s;font-size:13px}.tres pre{font:12px/1.5 JetBrains Mono,monospace;margin:6px 0 0;white-space:pre-wrap}.tres.ok{background:#e3f0e7;color:#24543a}.tres.bad{background:#f8e1e5;color:#8c1630}
+.sel{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 10px;font:600 13px Inter;color:var(--ink)}
+.jg{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin:12px 0}.jg label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim);font-weight:600}.jg b{color:var(--ink)}
+.big2{font:800 30px Fraunces,Georgia,serif;color:var(--wine2);text-transform:capitalize}
+.jb{display:grid;grid-template-columns:110px 1fr 40px;gap:8px;align-items:center;font-size:12.5px;margin:6px 0}.jt{position:relative;height:10px;background:#f1e9dc;border-radius:6px}.jt i{display:block;height:100%;border-radius:6px;background:#d9cdbd;transition:width .3s}.jt i.pass{background:var(--sage)}.jt b{position:absolute;top:-4px;width:2px;height:18px;background:var(--wine)}
 </style>
 </head>
 <body>
 <header><div class="bar">
-  <div class="logo"><i></i>Thursday Dinner</div>
+  <div class="logo"><i></i><div>Thursday Dinner<small>Built for Ande · AI Engineer · <a href="https://github.com/AKilalours/thursday-dinner-concierge">code</a></small></div></div>
   <nav class="tabs" id="tabs">
     <button class="on" data-p="desk">Live desk</button><button data-p="book">Book</button><button data-p="lab">Inbox lab</button>
-    <button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button><button data-p="spend">Spend</button>
+    <button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button><button data-p="spend">Spend</button>
   </nav>
-  <div class="for">Built for <b>Ande</b> · AI Engineer · <a href="https://github.com/AKilalours/thursday-dinner-concierge" style="color:var(--wine)">code</a></div>
+  <button class="btn gold" id="tourBtn" style="padding:7px 14px">▶ Tour</button>
 </div></header>
 
 <main>
@@ -222,6 +239,48 @@ tr.ev{display:none}tr.ev.open{display:table-row}tr.ev td{background:#fbf7ef}.evg
         <div><div class="pill" id="injpill">-</div><div class="big" id="tri">-</div></div></div>
       <div class="fields" id="fields"></div><div class="verdict" id="verdict"></div>
     </div>
+  </div>
+</section>
+
+<section class="page" id="p-fix">
+  <div class="ph"><div><h1>Fix lab</h1><p class="lead">Find the failure in a real conversation. Fix it. Prove the fix.</p></div></div>
+  <div class="fixg">
+    <div class="panel"><div class="pt">Incidents found by the Claude judge</div><div class="inclist" id="incList"></div>
+      <p class="cs" style="margin-top:12px">Both came from the first live run. The pre-fix path is kept behind a flag so the original failure can be replayed exactly.</p></div>
+    <div class="panel"><div class="stepper" id="fixSteps"><span>1 · Replay</span><span>2 · Diagnose</span><span>3 · Fix</span><span>4 · Prove</span></div>
+      <button class="btn pri" id="fixGo">1 · Replay the failure ▶</button><div id="fixOut" class="fixout"></div></div>
+  </div>
+</section>
+
+<section class="page" id="p-tools">
+  <div class="ph"><div><h1>Tools</h1><p class="lead">The agent's typed capabilities. Call them yourself.</p></div>
+    <div class="row"><span class="cs">Acting as</span><select id="toolActor" class="sel"><option value="usr_priya">Priya (EA, acts for Dana)</option><option value="usr_sam">Sam (can't act for Dana)</option></select></div></div>
+  <div class="toolg">
+    <div class="panel"><div class="pt">Capabilities</div><div class="inclist" id="toolList"></div></div>
+    <div class="panel"><div class="cs" id="toolDesc"></div><textarea id="toolIn" class="code2" spellcheck="false"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn pri" id="toolCall">Call ▶</button><button class="btn" id="toolApprove">Approve last proposal as Priya</button></div>
+      <div id="toolOut" style="margin-top:12px"></div></div>
+    <div class="panel"><div class="pt">Audit log</div><ul class="audit" id="toolAudit"></ul>
+      <p class="cs" style="margin-top:10px">Try: create a proposal → book (refused) → approve → book → book again (same result) → switch to Sam.</p></div>
+  </div>
+</section>
+
+<section class="page" id="p-judg">
+  <div class="ph"><div><h1>Judgments</h1><p class="lead">Typed classifiers with labelled thresholds, a timeout and a safe fallback.</p></div></div>
+  <div class="fixg">
+    <div class="panel">
+      <div class="row" id="jPresets" style="margin-bottom:8px"><button class="chip">Clear offer</button><button class="chip">Vague</button><button class="chip">Decline</button><button class="chip">STOP</button><button class="chip">please stop texting me</button></div>
+      <textarea id="jIn" class="code2" style="min-height:110px">Great news, the Wine Cellar is available Thursday. We take a 25% deposit.</textarea>
+      <div class="jg">
+        <label>Classifier<select id="jKind" class="sel"><option value="triage">Venue reply triage</option><option value="consent">SMS consent</option></select></label>
+        <label>Rollout<select id="jMode" class="sel"><option value="rules">rules</option><option value="shadow">shadow</option><option value="live">live</option></select></label>
+        <label>Threshold <b id="jThrV"></b><input type="range" id="jThr" min="0" max="100" value="70"></label>
+        <label>Model latency (stub) <b id="jDelayV"></b><input type="range" id="jDelay" min="100" max="3000" step="100" value="300"></label>
+        <label>Timeout <b id="jTimeoutV"></b><input type="range" id="jTimeout" min="200" max="3000" step="100" value="2000"></label>
+      </div>
+      <p class="cs">In live mode a stub model answers after the chosen latency. Past the timeout, the rules decide; below threshold, the safe fallback wins.</p>
+    </div>
+    <div class="panel"><div class="pt">Decision</div><div id="jVerdict"></div><div class="pt" style="margin-top:14px">Confidence vs threshold</div><div id="jBars"></div></div>
   </div>
 </section>
 

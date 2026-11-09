@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials clearly stated: venue (Casa Verbena), room (Wine Cellar), date/time (Wed Nov 18 at 7pm), headcount (10 guests with Globex), cost breakdown (minimum $1,097, estimated total $1,474, per-head $147), and deposit terms (none, free cancellation 48h before). The risk/assumption is explicitly called out (approving authorizes signing Casa Verbena's private dining agreement). The corporate rate benefit is mentioned but not overstated. Everything a busy EA needs to make a quick approve/reject decision from their phone.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Casa Verbena), room (Wine Cellar), date (Wed Nov 18), time (7 pm), headcount (10 guests with Globex), cost structure (minimum $1,097, estimated total $1,474, per-person breakdown), and deposit terms (none, free cancellation 48h before). The message appropriately flags the assumption about the private dining agreement requiring signature upon approval. The corporate rate discount is a nice value-add detail. Information is concise and scannable for a busy executive on mobile.\"\n}\n```",
  "inputTokens": 290,
- "outputTokens": 162,
+ "outputTokens": 152,
  "model": "claude-sonnet-4-5"
 }

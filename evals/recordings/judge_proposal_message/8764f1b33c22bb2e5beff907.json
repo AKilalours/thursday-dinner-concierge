@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue (Casa Verbena), room (Wine Cellar), date (Wed Nov 18), time (7:30 pm), headcount (12), total cost ($1,769), deposit (none). Per-head cost and budget compliance stated. Corporate discount noted. Cancellation terms clear. Risk flagged: signing required agreement. Concise, actionable for busy exec.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue (Casa Verbena), room (Wine Cellar), date (Wed Nov 18), time (7:30 pm), headcount (12), total cost ($1,769), deposit (none). Per-head cost helps exec assess value. Flags the private dining agreement requirement as a risk/assumption that needs approval. Clear, concise, actionable.\"\n}\n```",
  "inputTokens": 317,
- "outputTokens": 112,
+ "outputTokens": 108,
  "model": "claude-sonnet-4-5"
 }

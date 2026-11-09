@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Casa Verbena), room (Main dining room), date (Wed Nov 18), time (7 pm), headcount (12 guests), total cost ($1,769 all-in with per-head breakdown), and deposit (none). The message efficiently includes relevant details like the corporate discount, cancellation policy, and budget compliance ($147/head under $250 cap). Critically, it flags a risk that requires attention: approving will authorize signing Casa Verbena's private dining agreement. The message is concise, scannable on mobile, and gives the executive assistant everything needed to make an informed decision.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Casa Verbena), room (Main dining room), date (Wed Nov 18), time (7 pm), headcount (12 guests), total cost ($1,769 all-in with per-head breakdown), and deposit (none). The message efficiently includes relevant details like the corporate discount, cancellation policy, and budget compliance. Critically, it flags a risk/assumption that requires attention: approving will authorize signing Casa Verbena's private dining agreement. The message is concise, nothing is overstated, and a busy executive can quickly approve or reject from their phone.\"\n}\n```",
  "inputTokens": 280,
- "outputTokens": 167,
+ "outputTokens": 161,
  "model": "claude-sonnet-4-5"
 }

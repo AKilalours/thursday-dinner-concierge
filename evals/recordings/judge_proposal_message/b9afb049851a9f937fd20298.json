@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message excellently covers all essentials for quick executive approval: venue (Kiso House), room (Garden Room), date (Thu Dec 3), time (7 pm), headcount (14 guests), total cost (about $2,096 all-in with per-head breakdown), and deposit ($805). It clearly states the minimum spend, highlights the corporate discount benefit, notes the cancellation policy, and importantly flags a risk/assumption by explicitly calling out that approval authorizes signing the venue's private dining agreement. The message is concise, nothing is overstated, and all key decision factors are front and center for a busy executive to approve from their phone.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message excellently covers all essentials for quick executive approval: venue (Kiso House), room (Garden Room), date (Thu Dec 3), time (7 pm), headcount (14 guests), total cost (about $2,096 all-in), and deposit ($805). It provides helpful context like per-person cost ($150/head) and how it compares to budget ($250 cap). The corporate discount is noted as a value-add. Critically, it flags a risk/assumption that requires attention: approving will authorize signing Kiso House's private dining agreement. Cancellation terms are clear. Nothing is overstated or misleading. The message is concise yet complete, perfect for mobile approval.\"\n}\n```",
  "inputTokens": 280,
- "outputTokens": 166,
+ "outputTokens": 181,
  "model": "claude-sonnet-4-5"
 }

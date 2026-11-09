@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message is exemplary. It clearly states all essentials: venue (Rue Margaux), room (The Library), date (Thu Nov 19), time (7 pm), headcount (16 guests), minimum spend ($1,038), estimated total cost ($1,402), per-person cost ($88), deposit ($260), and cancellation policy (free until 24h before). It also helpfully notes the cost is under the $120 cap, providing useful context. The message is concise, scannable, and enables quick decision-making from a phone. No ambiguities or risks are present that need flagging.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message contains all essential information clearly and concisely: venue (Rue Margaux), room (The Library), date (Thu Nov 19), time (7 pm), headcount (16 guests), total cost breakdown (minimum $1,038, estimated all-in $1,402, per-person $88), deposit ($260), and cancellation policy (free until 24h before). It appropriately notes the cost is under the $120 cap, providing helpful context. The format is perfect for quick mobile approval with clear action items. No misleading claims or missing critical details.\"\n}\n```",
  "inputTokens": 246,
- "outputTokens": 160,
+ "outputTokens": 151,
  "model": "claude-sonnet-4-5"
 }

@@ -71,6 +71,13 @@ describe("classifier rollout: thresholds, timeout, fallback, shadow", () => {
     assert.deepEqual([j.label, j.decidedBy], ["yes", "rules"]);
     assert.match(j.reason, /timed out/);
   });
+  it("regression R9: a model that rejects with its own abort error still counts as one timeout, not a retry", async () => {
+    let calls = 0;
+    const aborting: LLM = { mode: "live", complete: (_t, _s, _u, o) => { calls++; return new Promise((_, rej) => o?.signal?.addEventListener("abort", () => rej(new Error("This operation was aborted")))); } };
+    const t0 = Date.now();
+    const j = await new Classifier(spec(), aborting, "live").classify("y");
+    assert.equal(calls, 1); assert.ok(Date.now() - t0 < 120); assert.match(j.reason, /timed out/);
+  });
   it("shadow: the rules decide and the model's answer is only logged", async () => {
     const before = shadowLog.length;
     const j = await new Classifier(spec(), fake('{"label":"no","confidence":0.99,"reason":"m"}'), "shadow").classify("y");

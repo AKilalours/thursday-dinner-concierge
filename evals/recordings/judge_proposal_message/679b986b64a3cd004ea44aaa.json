@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message excellently covers all essentials for quick executive approval: venue (Casa Verbena), room (Wine Cellar), date (Thu Nov 12), time (7:30 pm), headcount (12 guests), total cost ($1,769 all-in with per-person breakdown), and deposit (none). It clearly states the minimum spend ($1,097), highlights the corporate discount benefit, notes free cancellation terms, and importantly calls out a risk/assumption by explicitly stating that approval authorizes signing Casa Verbena's private dining agreement. The message is concise, well-structured, and provides the budget context ($147/head under $250 cap) that an executive needs. Nothing is overstated or misleading.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message excellently provides all essential information for quick approval: venue (Casa Verbena), room (Wine Cellar), date (Thu Nov 12), time (7:30 pm), headcount (12 guests), total cost ($1,769 all-in with per-person breakdown), and deposit (none). It clearly states the minimum spend ($1,097), highlights the corporate discount benefit, notes free cancellation terms, and importantly calls out a risk/assumption by explicitly stating that approval authorizes signing Casa Verbena's private dining agreement. The message is concise, well-structured, and enables informed decision-making from a phone.\"\n}\n```",
  "inputTokens": 287,
- "outputTokens": 182,
+ "outputTokens": 162,
  "model": "claude-sonnet-4-5"
 }

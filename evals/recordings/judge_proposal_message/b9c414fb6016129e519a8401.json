@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Casa Verbena), room (Wine Cellar), date (Thu Nov 12), time (7 pm), headcount (12 guests with Acme), cost breakdown (minimum $1,097, estimated total $1,769, per-person $147), and deposit (none). The date ambiguity is explicitly flagged with the alternative interpretation (Nov 19). The private dining agreement requirement is disclosed as an additional approval point. The corporate rate benefit is mentioned but not overstated. Cancellation terms are clear. The message is scannable and actionable from a phone.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Casa Verbena), room (Wine Cellar), date (Thu Nov 12), time (7 pm), headcount (12 guests with Acme), cost breakdown (minimum $1,097, estimated total $1,769, per-person $147), and deposit (none). The date ambiguity is explicitly flagged with the alternative interpretation (Nov 19). The private dining agreement requirement is disclosed as an additional approval point. The corporate rate benefit is mentioned but not overstated. Cancellation terms are clear. Everything a busy executive needs to make a quick, informed decision from their phone.\"\n}\n```",
  "inputTokens": 302,
- "outputTokens": 163,
+ "outputTokens": 167,
  "model": "claude-sonnet-4-5"
 }

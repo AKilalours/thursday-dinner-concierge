@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials clearly stated: venue (Casa Verbena), room (Wine Cellar), date/time (Wed Nov 18 at 7 pm), headcount (12 guests), costs (minimum $1,097, estimated $1,769 total, $147/head), and deposit (none). The risk/assumption about signing the private dining agreement is explicitly called out with clear authorization language. Cancellation policy included. Budget context provided ($250 cap). Information is concise, scannable, and nothing is overstated. Perfect for quick mobile approval.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials clearly stated: venue (Casa Verbena), room (Wine Cellar), date/time (Wed Nov 18 at 7 pm), headcount (12 guests), costs (minimum $1,097, estimated $1,769 total, $147/head), and deposit (none). The risk/assumption about signing the private dining agreement is explicitly called out with clear authorization language. Cancellation policy is stated. The corporate rate discount adds helpful context. Concise, scannable format perfect for mobile approval.\"\n}\n```",
  "inputTokens": 285,
- "outputTokens": 151,
+ "outputTokens": 143,
  "model": "claude-sonnet-4-5"
 }

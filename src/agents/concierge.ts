@@ -39,6 +39,7 @@ export interface RunInput {
   smsOptedOut?: Set<string>;
   maxRounds?: number;
   onEvent?: (e: TraceEvent) => void;
+  legacy?: { r7?: boolean; r8?: boolean };
 }
 
 export interface RunResult {
@@ -69,7 +70,7 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   const runId = `run_${randomUUID().slice(0, 8)}`;
   const ctx: Ctx = {
     store: input.store, world: input.world, llm: input.llm, company: input.company ?? COMPANY, venues: input.venues,
-    actor: input.actor, principal: input.principal, runId, today: input.today, smsOptedOut: input.smsOptedOut ?? new Set(), trace: [], onEvent: input.onEvent,
+    actor: input.actor, principal: input.principal, runId, today: input.today, smsOptedOut: input.smsOptedOut ?? new Set(), trace: [], onEvent: input.onEvent, legacy: input.legacy,
   };
   const mode = input.judgmentMode ?? "rules";
   const result: RunResult = { runId, outcome: "escalated", request: null, proposals: [], bookingId: null, paymentId: null, chosenVenueId: null, messagesToBooker: [], trace: ctx.trace, parseDecidedBy: "rules" };
@@ -115,7 +116,7 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
     const candidates = (await source(ctx, req, contacted)).slice(0, urg.label === "urgent" ? 4 : 3);
     if (!candidates.length) {
       // A stated cuisine with no venue inside policy: ask which constraint to relax, with the real numbers.
-      if (round === 1 && req.cuisine) {
+      if (round === 1 && req.cuisine && !ctx.legacy?.r7) {
         const day = weekday(req.date);
         const options = ctx.venues.filter((v) => v.cuisine === req.cuisine && !ctx.company.policy.blockedVenueIds.includes(v.id)).flatMap((v) => {
           const room = v.rooms.filter((r) => (req.privateRoom ? r.private : true) && r.listedCapacity >= req.partySize).sort((a, b) => a.listedCapacity - b.listedCapacity)[0];
@@ -175,8 +176,8 @@ async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, inp
     + (v.preferredRatePct ? `Preferred corporate rate: ${v.preferredRatePct}% off, saving about ${usd(opt.policy.estimate.savingsCents)}. ` : "")
     + `Deposit ${opt.policy.depositCents ? usd(opt.policy.depositCents) : "none"}; free cancellation until ${v.cancellationHours} h before.`
     // Regression R8 (found by the LLM judge): dietary needs were sent to the venue but never confirmed to the booker.
-    + (req.dietary.length ? ` Dietary needs sent to ${v.name}: ${req.dietary.join(", ")}.` : "")
-    + (req.cuisine ? ` ${v.cuisine[0].toUpperCase()}${v.cuisine.slice(1)}, as asked.` : "");
+    + (req.dietary.length && !ctx.legacy?.r8 ? ` Dietary needs sent to ${v.name}: ${req.dietary.join(", ")}.` : "")
+    + (req.cuisine && !ctx.legacy?.r7 ? ` ${v.cuisine[0].toUpperCase()}${v.cuisine.slice(1)}, as asked.` : "");
 
   const base = { runId: ctx.runId, actorId: ctx.actor.id, principalId: ctx.principal.id, venueId: v.id, roomId: room.id, ...win, partySize: req.partySize, requiredRoles: opt.policy.requiredRoles, expiresAt };
   const bookP = await call(ctx, "concierge", createProposal, { ...base, kind: "book", amountCents: opt.policy.estimate.allInCents, payeeId: null, summary });
