@@ -18,6 +18,7 @@ npm test                                    # memory store
 ANDE_PSQL="-h localhost -U postgres" npm test  # also runs every store test on real Postgres
 npm run evals                               # invariants must stay 100%
 npm run fuzz                                # 300 random worlds, invariants only
+npm run build:web && npm run site:check     # every page in a real browser at 3 widths + the main flows
 ```
 
 ## When you fix a bug

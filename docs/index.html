@@ -285,6 +285,38 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 .xtray{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}.xchips{display:flex;flex-wrap:wrap;gap:4px}.xchips a{cursor:pointer;margin-left:4px;color:var(--rose)}
 .vq{border-left:3px solid #5b6b8c;padding-left:10px;font-size:13.5px;color:#4d4038}.vq b{display:block;color:#5b6b8c;font-size:12px;margin-bottom:2px}
 @media (max-width:900px){.xc{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.xc .chip{flex:none}.xwrap{grid-template-columns:1fr}#xMap{height:380px}.xdrawer{width:auto;left:10px}.xlist{max-height:none}}
+#p-home{padding-top:4px}
+.hform{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:8px 8px 8px 18px;box-shadow:0 14px 40px #7b1e3a14;transition:box-shadow .2s}.hform:focus-within{box-shadow:0 14px 50px #7b1e3a30;border-color:#d8b9c0}
+.hstar{font-size:22px;color:#a8502f}.hform input{flex:1;min-width:0;border:0;outline:none;font:500 19px Inter;background:none;padding:10px 0}.hform .btn{font-size:16px;padding:12px 28px;border-radius:16px}
+.hchips{margin:10px 0 14px}
+.hgrid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:stretch}
+.hstage{position:relative;background:linear-gradient(#fffdf8,#f7f0e5);border:1px solid var(--line);border-radius:22px;overflow:hidden;min-height:540px}
+#hMap{width:100%;height:100%;min-height:540px;display:block}
+.hhood rect{fill:#f3ece1;stroke:#e9dfcf}.hhood text{font:700 6.5px Inter;fill:#b9a893;letter-spacing:.08em}
+.hp{transition:opacity .4s}.hp .dot{fill:#d3c6b4;stroke:#fff;stroke-width:1.2;transition:all .35s}.hp .halo{opacity:0;transition:opacity .4s}.hp.fade{opacity:.28}
+.hp.cand .dot{fill:#5b6b8c;transform:scale(1.28)}.hp.mailed .dot{fill:#c98a12}.hp.offer .dot{fill:#3f7d5a;transform:scale(1.45)}.hp.no .dot{fill:#bfb2a2}.hp.inj .dot{fill:#c2455d;transform:scale(1.45)}.hp.wait .dot{fill:#c9b8a4}.hp.spent{opacity:.5}
+.hp.win .halo{opacity:1;animation:glow 1.4s ease-in-out infinite}.hp.win .dot{fill:var(--wine);transform:scale(1.8)}@keyframes glow{50%{transform:scale(1.5)}}
+.hp .tag rect{fill:#2b1d24}.hp .tag text{font:700 5.6px Inter;fill:#fff;text-anchor:middle}.hp.offer .tag rect{fill:#3f7d5a}.hp.inj .tag rect{fill:#c2455d}.hp.offer.inj .dot{fill:#3f7d5a;stroke:#c2455d;stroke-width:1.6}.hp.no .tag rect{fill:#a39380}.hp.win .tag rect{fill:var(--wine)}.hp .tag{animation:tagin .3s cubic-bezier(.2,1.6,.4,1)}@keyframes tagin{from{transform:translateY(4px) scale(.6);opacity:0}}
+.hline{fill:none;stroke:#c98a12;stroke-width:.8;stroke-dasharray:2 2;opacity:.75;transition:stroke-dashoffset .7s ease}.hwin{stroke:var(--wine);stroke-width:2;fill:none;stroke-linecap:round;stroke-dasharray:400;stroke-dashoffset:400;animation:draw 1s forwards}@keyframes draw{to{stroke-dashoffset:0}}
+.env rect{fill:#fff;stroke:#c98a12;stroke-width:.8}.env path{fill:none;stroke:#c98a12;stroke-width:.7}.env.in rect,.env.in path{stroke:#3f7d5a}.env.bad rect,.env.bad path{stroke:#c2455d}.env.bad rect{fill:#fde8ec}
+.hq rect{fill:#2b1d24}.hq text{font:800 6px Inter;fill:#2b1d24;text-anchor:middle}.hq .pulse{fill:#7b1e3a;opacity:0}#hMap.live .hq .pulse{animation:hq 1.4s ease-out infinite}@keyframes hq{0%{opacity:.5;transform:scale(.5)}100%{opacity:0;transform:scale(3.2)}}
+.hcount{position:absolute;top:12px;right:12px;display:flex;gap:6px}.hcount div{background:#fffdf8ee;border:1px solid var(--line);border-radius:12px;padding:6px 10px;text-align:center;min-width:62px}.hcount b{display:block;font:800 20px Fraunces,Georgia,serif;color:var(--ink)}.hcount span{font:600 10px Inter;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}.hcount .r b{color:var(--rose)}.hcount b.tick{animation:tick .4s}@keyframes tick{40%{transform:scale(1.35);color:var(--wine)}}
+.hsteps{position:absolute;left:12px;right:12px;bottom:12px;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;background:#fffdf8ee;border:1px solid var(--line);border-radius:14px;padding:6px}.hsteps div{position:relative;text-align:center;font:600 11.5px Inter;color:#b9a893;padding:6px 2px;border-radius:9px;transition:all .3s}.hsteps .on{background:var(--wine);color:#fff;box-shadow:0 4px 14px #7b1e3a44}.hsteps .done{color:var(--sage)}.hsteps .done:before{content:"✓ "}
+.hphone{position:relative;background:#1f1519;border-radius:40px;padding:12px;box-shadow:0 30px 60px #2b1d2440,inset 0 0 0 2px #3a2a31;display:flex;flex-direction:column;min-height:540px}
+.ph-top{display:flex;justify-content:space-between;align-items:center;color:#f3e9de;font:600 12px Inter;padding:4px 16px 8px}.ph-top b{font-size:13px}
+.ph-body{flex:1;background:#faf6f0;border-radius:28px;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;max-height:470px}
+.ph-s{margin:auto;text-align:center;color:#b3a08c;font-size:13.5px;line-height:1.5;padding:20px}
+.ph-me{align-self:flex-end;background:var(--wine);color:#fff;border-radius:18px 18px 4px 18px;padding:9px 12px;font-size:13.5px;max-width:88%;animation:fadeIn .3s}
+.ph-chips{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;animation:fadeIn .4s}.ph-chips span{background:#fff;border:1px solid var(--line);border-radius:99px;padding:2px 8px;font:600 11px Inter;color:#6d5d51}
+.ph-card{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;animation:tin .4s}.ph-v{font:700 19px Fraunces,Georgia,serif;color:var(--wine2);padding:12px 12px 0}.ph-r{font-size:12px;color:var(--dim);padding:0 12px 10px}
+.ph-g{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-top:1px solid var(--line)}.ph-g div{background:#fff;padding:8px 12px}.ph-g b{display:block;font-size:15px}.ph-g span{font-size:11px;color:var(--dim)}
+.ph-save{background:#e3f0e7;color:var(--sage);font:700 11.5px Inter;padding:7px 12px}
+#hSl .slide{margin:4px 0 2px}
+.ph-ok{background:#fff;border:1px solid #bfdcc8;border-radius:18px;padding:16px;text-align:center;animation:tin .4s}.ph-ok b{display:block;font:800 22px Fraunces,Georgia,serif;color:var(--sage)}.ph-ok span{display:block;font-size:12.5px;color:var(--dim)}.ph-check{width:44px;height:44px;border-radius:50%;background:var(--sage);color:#fff;font:800 22px Inter;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;animation:pop .5s}
+.ph-bot{background:#fff;border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:10px 12px;font-size:13px;animation:fadeIn .3s}
+.hres{display:flex;gap:6px;justify-content:center;padding:10px 4px 2px}.hres .btn{padding:7px 12px;font-size:13px}.hres:empty{display:none}
+.conf{position:absolute;inset:0;pointer-events:none;overflow:visible}.conf i{position:absolute;top:60%;width:8px;height:12px;border-radius:2px;animation:conf 1.5s cubic-bezier(.2,.7,.4,1) forwards}@keyframes conf{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
+@media (max-width:1000px){.hgrid{grid-template-columns:1fr}.hstage,#hMap{min-height:380px}.hphone{min-height:420px}.hcount div{min-width:0;padding:4px 7px}.hcount b{font-size:16px}.hsteps{grid-template-columns:repeat(3,1fr)}.hform input{font-size:16px}}
 </style>
 </head>
 <body>
@@ -293,7 +325,7 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
   <button class="menuBtn" id="menuBtn" aria-label="Menu"><span>☰</span><b id="menuCur">Live desk</b></button>
   <nav class="tabs" id="tabs">
     <div class="ws"><i>N</i><div>Northwind Labs<small>Priya Raman · EA to Dana Whitfield</small></div></div>
-    <span class="tsep">Concierge</span><button data-p="chat">Chat</button><button class="on" data-p="desk">Live desk</button><button data-p="book">Book step by step</button>
+    <span class="tsep">Concierge</span><button class="on" data-p="home">Home</button><button data-p="chat">Chat</button><button data-p="desk">Live desk</button><button data-p="book">Book step by step</button>
     <span class="tsep">Plan</span><button data-p="explore">Explore</button><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
     <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button>
     <span class="tsep">Under the hood</span><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
@@ -303,7 +335,17 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 </div></header>
 
 <main>
-<section class="page on" id="p-desk">
+<section class="page on" id="p-home">
+  <form id="hForm" class="hform"><span class="hstar">✳</span><input id="hIn" autocomplete="off" placeholder="dinner for 12 with the Acme team next Thursday, somewhere private"><button class="btn pri" id="hGo">Book</button></form>
+  <div class="chips hchips" id="hChips"></div>
+  <div class="hgrid">
+    <div class="hstage"><svg id="hMap" viewBox="0 0 340 290"></svg>
+      <div class="hcount"><div><b id="hcMail">0</b><span>emails</span></div><div><b id="hcRep">0</b><span>replies</span></div><div><b id="hcOff">0</b><span>offers</span></div><div class="r"><b id="hcInj">0</b><span>injections</span></div></div>
+      <div class="hsteps" id="hSteps"><div>Understand</div><div>Shortlist</div><div>Email</div><div>Compare</div><div>Approve</div><div>Booked</div></div></div>
+    <div class="hphone"><div class="ph-top"><span>9:41</span><b>Concierge</b><span>●●●</span></div><div class="ph-body" id="hPhone"><div class="ph-s">Type one sentence. Nothing books until you slide.</div></div><div class="hres" id="hRes"></div><div id="hConf" class="conf"></div></div>
+  </div>
+</section>
+<section class="page" id="p-desk">
   <div class="ph"><div><h1>Live desk</h1><p class="lead">Requests moving through the concierge right now.</p></div>
     <div class="row"><span class="clock2" id="dClock">Mon 10 am</span><div class="seg" id="dSpeed"><button data-s="1">1×</button><button data-s="2" class="on">2×</button><button data-s="4">4×</button></div><button class="btn" id="dPause">Pause</button><button class="btn pri" id="dReplay">Restart</button></div></div>
   <div class="kpis">
@@ -345,21 +387,21 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 </section>
 
 <section class="page" id="p-avail">
-  <div class="ph"><div><h1>Availability</h1><p class="lead">30 venues, next 14 nights. Each cell is the all-in price per head under your policy. Click one to book it.</p></div></div>
+  <div class="ph"><div><h1>Availability</h1><p class="lead">Click a night. Book it.</p></div></div>
   <div class="gtools"><label>Guests <input type="range" id="gParty" min="2" max="24" value="12"><b id="gPartyV">12</b></label><label><input type="checkbox" id="gPriv" checked> Private room</label>
     <div class="seg" id="gSort"><button data-s="score" class="on">Neighborhood</button><button data-s="price">Cheapest</button><button data-s="open">Most open</button></div><div class="legend2" id="gStats"></div></div>
   <div class="gwrap"><div class="gscroll" id="grid"></div><div class="card gside" id="gSide"><div class="cs">Pick a green or amber cell.<br><br><span class="st ok">$</span> in policy · <span class="st warn">$</span> needs a manager · <span class="st mute">$</span> over cap · <span class="st bad">●</span> booked · — closed</div></div></div>
 </section>
 
 <section class="page" id="p-compare">
-  <h1>Compare offers</h1><p class="lead">The agent emails venues and reads every reply. Sort, tick 2–4, pick one.</p>
+  <h1>Compare offers</h1><p class="lead">Every offer, side by side.</p>
   <div class="cform"><input id="cmpAsk" value="private dinner for 14 with Initech on Nov 19"><button class="btn pri" id="cmpGo">Get offers</button></div>
   <div class="ctwrap" id="cmpTable"><div class="empty">Press Get offers.</div></div>
   <div class="ccards" id="cmpCards"></div>
 </section>
 
 <section class="page" id="p-seating">
-  <div class="ph"><div><h1>Seating</h1><p class="lead">Drag guests to seats. Tap a seat to clear it. Flag dietary needs; the plan goes to the venue.</p></div>
+  <div class="ph"><div><h1>Seating</h1><p class="lead">Drag guests to seats.</p></div>
     <div class="row"><button class="btn" id="seatClear">Clear</button><button class="btn" id="seatAuto">Auto-seat</button><button class="btn pri" id="seatSend">Send plan to venue</button></div></div>
   <div class="empty" id="seatEmpty" style="margin-top:20px">Book a dinner first (Book, Availability or Compare), then come back to seat your guests. <button class="btn pri" onclick="go('avail')">Open availability →</button></div>
   <div id="seatWrap" class="seatwrap"><div class="card"><div id="seatHead"></div><div class="legend2" id="seatStats" style="margin-top:6px"></div><div class="stable" id="seatTable"></div><div id="seatOut"></div></div><div class="card"><h3>Guests</h3><div class="glist" id="guestList"></div></div></div>
@@ -386,14 +428,14 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 </section>
 
 <section class="page" id="p-bookings">
-  <div class="ph"><div><h1>Bookings</h1><p class="lead">Every reservation from this session. Open one for the receipt, a change or a cancellation.</p></div>
+  <div class="ph"><div><h1>Bookings</h1><p class="lead">Open one to change or cancel.</p></div>
     <div class="seg" id="bkFilter"><button data-f="upcoming" class="on">Upcoming</button><button data-f="cancelled">Cancelled</button><button data-f="all">All</button></div></div>
   <div class="kpis" id="bkKpis"></div>
   <div class="gwrap" style="margin-top:14px"><div class="ctwrap" id="bkTable"></div><div class="card gside" id="bkSide"></div></div>
 </section>
 
 <section class="page" id="p-policy">
-  <h1>Policy</h1><p class="lead">Spend rules are code. Change one, see what it unlocks, replay every request before you apply it.</p>
+  <h1>Policy</h1><p class="lead">Drag a rule. Replay every request.</p>
   <div class="gwrap pol"><div class="card" id="polForm"></div><div class="card gside" id="polImpact"></div></div>
 </section>
 
@@ -434,7 +476,7 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 </section>
 
 <section class="page" id="p-judg">
-  <div class="ph"><div><h1>Judgments</h1><p class="lead">Typed classifiers with labelled thresholds, a timeout and a safe fallback.</p></div></div>
+  <div class="ph"><div><h1>Judgments</h1><p class="lead">Thresholds, timeout, fallback.</p></div></div>
   <div class="fixg">
     <div class="panel">
       <div class="row" id="jPresets" style="margin-bottom:8px"><button class="chip">Clear offer</button><button class="chip">Vague</button><button class="chip">Decline</button><button class="chip">STOP</button><button class="chip">please stop texting me</button></div>
@@ -453,7 +495,7 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 </section>
 
 <section class="page" id="p-controls">
-  <div class="ph"><div><h1>Safety controls</h1><p class="lead">What stops the agent from moving money or bookings it shouldn't. Enforced by the database, testable here.</p></div>
+  <div class="ph"><div><h1>Safety controls</h1><p class="lead">Attack it. The database says no.</p></div>
     <button class="btn pri" id="runAll">Run all controls</button></div>
   <div class="panel"><div class="row" id="cSum" style="margin-bottom:10px"></div>
     <div style="overflow-x:auto"><table class="ctl"><thead><tr><th>ID</th><th>Control</th><th>Enforced by</th><th>Result</th><th>Time</th><th></th></tr></thead><tbody id="ctlBody"></tbody></table></div>
@@ -462,7 +504,7 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 </section>
 
 <section class="page" id="p-evals">
-  <h1>Evals</h1><p class="lead">The CI suite, running in your browser. Orange underline = Claude decided.</p>
+  <h1>Evals</h1><p class="lead">The CI suite, in your browser.</p>
   <div class="row" style="margin-bottom:12px"><button class="btn pri" id="runEvals">Run 45 scenarios ▶</button><button class="btn gold" id="runFuzz">Run 300 random worlds ▶</button></div>
   <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
     <div class="kpi" style="--c:var(--sage)"><div class="k">Passing</div><b id="sPass">-</b></div>
@@ -477,7 +519,7 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 </section>
 
 <section class="page" id="p-memory">
-  <h1>Memory</h1><p class="lead">Every reply teaches the next booking. Private stays private.</p>
+  <h1>Memory</h1><p class="lead">Every reply teaches the next booking.</p>
   <div class="sp">
     <div class="card"><h3>What venues taught the agent</h3><div class="vk" id="vk"><div class="empty">Book a dinner or watch the Live desk.</div></div></div>
     <div class="card"><h3>Company memory</h3><div class="seg" id="viewAs" style="margin-bottom:12px"><button data-u="usr_priya" class="on">Priya</button><button data-u="usr_sam">Sam</button><button data-u="usr_dana">Dana</button></div><div class="mem" id="mems"></div></div>

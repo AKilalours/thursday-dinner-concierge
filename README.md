@@ -1,28 +1,46 @@
 <h1 align="center">Thursday Dinner Concierge</h1>
 
-<p align="center"><b>One sentence in. A booked, paid, on-policy dinner out.<br>Nothing happens until you approve.</b><br><sub>Built for the Ande AI Engineer role · independent project</sub></p>
+<p align="center"><b>One sentence in. A booked, paid, on-policy dinner out. Nothing happens until you approve.</b><br><sub>Built for the Ande AI Engineer role · independent project · fictional venues and people</sub></p>
 
 <p align="center">
-  <a href="https://akilalours.github.io/thursday-dinner-concierge/"><b>▶ Try it live</b></a> · <a href="https://ande-thursday-dinner-concierge.streamlit.app">Streamlit</a> ·
+  <a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="https://img.shields.io/badge/▶_Open_the_live_app-7b1e3a?style=for-the-badge" alt="Open the live app"></a>
+  <a href="https://ande-thursday-dinner-concierge.streamlit.app"><img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit"></a>
+  <a href="docs/img/demo.mp4"><img src="https://img.shields.io/badge/45s_video-2b1d24?style=for-the-badge" alt="Video"></a>
+</p>
+<p align="center">
   <a href="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/ci.yml"><img src="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
-  <img src="https://img.shields.io/badge/TypeScript-Node%2022-3178c6" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Postgres-16-336791" alt="Postgres 16">
+  <a href="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/pages.yml"><img src="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/pages.yml/badge.svg" alt="deploy"></a>
+  <img src="https://img.shields.io/badge/TypeScript-Node%2022-3178c6" alt="TypeScript"> <img src="https://img.shields.io/badge/Postgres-16-336791" alt="Postgres 16"> <img src="https://img.shields.io/badge/Claude-recorded_%26_replayed-d97757" alt="Claude">
 </p>
 
-<p align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="docs/img/demo.gif" width="900" alt="Six chapters: a live city of agents, booking with approval, a prompt injection treated as data, attacks blocked by the database, 45 evals and 300 random worlds, and memory"></a><br><sub><a href="docs/img/demo.mp4">▶ 30-second video</a> · <a href="https://akilalours.github.io/thursday-dinner-concierge/">open the live app</a></sub></p>
+<p align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="docs/img/demo.gif" width="900" alt="One sentence: the agents email four venues, read the replies, ignore a prompt injection, compare, and the booker slides to approve"></a></p>
 
 <table align="center"><tr>
 <td align="center"><h3>47/47</h3>eval scenarios</td>
 <td align="center"><h3>0 / 2,013</h3>safety failures<br>in random worlds</td>
-<td align="center"><h3>91</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>90</h3>tests, incl.<br>real Postgres</td>
 <td align="center"><h3>9</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
 
-```bash
-npm install && npm run demo
-```
+### ▶ Try a sentence (each link runs it live)
 
-**On the live site:** **Chat** (talk to the concierge, approve its proposal in the thread, then follow up: "make it 14", "move it to Friday", "2 are vegetarian", "cancel it"; every change is an approved proposal run through the typed tools) · **Explore** (the venue network on a map you can pan, zoom and filter by guests, night, budget, cuisine and neighborhood; shortlist up to six and send one RFP: the replies are read, policy-checked and land in Compare) · Live desk · Book (slide to approve) · **Availability** (30 venues × 14 nights, priced under policy; click a cell to request, approve and book that exact table) · **Compare** (every offer the agent collected in one sortable table, side-by-side cards, propose any of them) · **Calendar** (drag a dinner to another night; the move is an approved amendment, refused by the database if the room is taken) · **Bookings** (receipt with tax, service, preferred rate and deposit; change headcount or night as an approved amendment, or cancel with the venue's refund window applied) · **Seating** (drag guests to seats, flag dietary needs, send the plan to the venue) · **Policy** (drag the caps and approval thresholds, see how many tables it unlocks, replay all 47 requests under the new policy before applying it) · **⌘K** to ask the concierge from any page · Inbox lab · **Fix lab** (replay a real failure with Claude's recorded 1/5 verdict, see the fix, prove it) · **Tools** (call the typed capabilities yourself) · **Judgments** (drag thresholds, force a timeout, watch the fallback) · Controls · Evals · Memory · Spend. Press **▶ Tour** for a hands-free one-minute walkthrough.
+- [“dinner for 12 with the Acme team next Thursday, somewhere private”](https://akilalours.github.io/thursday-dinner-concierge/?ask=dinner%20for%2012%20with%20the%20Acme%20team%20next%20Thursday%2C%20somewhere%20private#home)
+- [“private dinner for 20 with Globex on Nov 19”](https://akilalours.github.io/thursday-dinner-concierge/?ask=private%20dinner%20for%2020%20with%20Globex%20on%20Nov%2019#home)
+- [“japanese dinner for 8 with Wayne Enterprises on Nov 24, private”](https://akilalours.github.io/thursday-dinner-concierge/?ask=japanese%20dinner%20for%208%20with%20Wayne%20Enterprises%20on%20Nov%2024%2C%20private#home)
+- [“team dinner for 8 this Friday under $100 a head”](https://akilalours.github.io/thursday-dinner-concierge/?ask=team%20dinner%20for%208%20this%20Friday%20under%20%24100%20a%20head#home)
+
+### Click any screen to open it
+
+<table>
+<tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#home"><img src="docs/img/home.png" alt="Home"></a><br><b>Home</b> · one sentence → booked <a href="https://akilalours.github.io/thursday-dinner-concierge/#home">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#explore"><img src="docs/img/explore.png" alt="Explore"></a><br><b>Explore</b> · map → shortlist → RFP <a href="https://akilalours.github.io/thursday-dinner-concierge/#explore">open ↗</a></td></tr>
+<tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#chat"><img src="docs/img/chat.png" alt="Chat"></a><br><b>Chat</b> · “move it to Friday” <a href="https://akilalours.github.io/thursday-dinner-concierge/#chat">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#calendar"><img src="docs/img/calendar.png" alt="Calendar"></a><br><b>Calendar</b> · drag to reschedule <a href="https://akilalours.github.io/thursday-dinner-concierge/#calendar">open ↗</a></td></tr>
+<tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#compare"><img src="docs/img/compare.png" alt="Compare"></a><br><b>Compare</b> · every offer side by side <a href="https://akilalours.github.io/thursday-dinner-concierge/#compare">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#policy"><img src="docs/img/policy.png" alt="Policy"></a><br><b>Policy</b> · replay 47 requests first <a href="https://akilalours.github.io/thursday-dinner-concierge/#policy">open ↗</a></td></tr>
+<tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#controls"><img src="docs/img/controls.png" alt="Controls"></a><br><b>Controls</b> · attack it; Postgres says no <a href="https://akilalours.github.io/thursday-dinner-concierge/#controls">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#fix"><img src="docs/img/fix.png" alt="Fix lab"></a><br><b>Fix lab</b> · a real failure, fixed, proven <a href="https://akilalours.github.io/thursday-dinner-concierge/#fix">open ↗</a></td></tr>
+</table>
+
+```bash
+npm install && npm run demo        # or: npm test · npm run evals · npm run site:check
+```
 
 <details>
 <summary><b>How it works</b></summary>

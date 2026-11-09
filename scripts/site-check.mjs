@@ -54,6 +54,9 @@ for (const [w, h] of [[1440, 900], [1024, 768], [390, 844]]) {
 // 2. The main flows, end to end, through the real agent, tools and store.
 console.log("flows");
 const page = await open(1440, 900);
+await page.click("#hGo"); await page.waitForSelector("#hSl .slide", { timeout: 30000 }).catch(() => fail(1440, "home: no proposal reached the phone"));
+await page.click("#hSl .slide .lbl"); await page.waitForSelector(".ph-ok", { timeout: 15000 }).catch(() => fail(1440, "home: booking did not complete"));
+{ const p2 = await open(1440, 900); await p2.goto(url + "?ask=private%20dinner%20for%2020%20with%20Globex%20on%20Nov%2019#home"); await p2.waitForSelector("#hSl .slide, .ph-bot", { timeout: 30000 }).catch(() => fail(1440, "?ask= link did not run the request")); await p2.close(); }
 await page.evaluate(() => window.go("chat"));
 await page.fill("#chatIn", "dinner for 12 with the Acme team next Thursday, somewhere private"); await page.press("#chatIn", "Enter");
 await page.waitForSelector(".cm.card2 [data-k=y]", { timeout: 30000 }); await page.click(".cm.card2 [data-k=y]");

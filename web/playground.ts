@@ -70,6 +70,7 @@ function record(res: RunResult, world: VenueWorld) {
 function go(page: string) {
   $$<HTMLButtonElement>("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.p === page));
   $$(".page").forEach((p) => p.classList.toggle("on", p.id === `p-${page}`));
+  if (location.hash.slice(1) !== page) history.replaceState(null, "", `#${page}`);
   if (page === "bookings") void renderBookings();
   if (page === "calendar") void renderCal();
   if (page === "explore") renderExplore();
@@ -683,28 +684,23 @@ async function tour() {
   if (touring) { touring = false; return; }
   touring = true; $("#tourBtn").textContent = "■ Stop tour";
   const step = async (n: string, t: string, page: string, fn: () => Promise<void>) => { if (!touring) return; say(n, t); go(page); await fn(); };
-  await step("01 · LIVE DESK", "Requests move from one sentence to a confirmed table.", "desk", async () => { await sleep(9000); });
-  await step("02 · CHAT", "One sentence in. You approve. Then change it like you'd text a person.", "chat", async () => {
-    const wait = async (sel: string) => { for (let i = 0; i < 200 && touring && !$(sel); i++) await sleep(100); };
-    void chatSend("dinner for 12 with the Acme team next Thursday, somewhere private"); await wait(".cm.card2 [data-k=y]:not([disabled])"); await sleep(1200);
-    $<HTMLButtonElement>(".cm.card2 [data-k=y]:not([disabled])")?.click(); await wait("#chatChips .chip"); await sleep(1500);
-    $<HTMLButtonElement>("#chatChips .chip:nth-child(2)")?.click(); await wait(".cm.card2 [data-k=y]:not([disabled])"); await sleep(1000);
-    $<HTMLButtonElement>(".cm.card2 [data-k=y]:not([disabled])")?.click(); await sleep(2200);
+  await step("01 · ONE SENTENCE", "The agents email venues, read replies, ignore an injection. You slide. It's booked.", "home", async () => {
+    $("#hGo").click(); for (let i = 0; i < 300 && touring && !$("#hSl .slide"); i++) await sleep(100); await sleep(1400);
+    ($("#hSl .slide .lbl") as HTMLElement | null)?.click(); for (let i = 0; i < 100 && touring && !$(".ph-ok"); i++) await sleep(100); await sleep(2600);
   });
-  await step("03 · EXPLORE", "Filter the network on the map, shortlist, send one RFP. Offers land side by side.", "explore", async () => {
+  await step("02 · EXPLORE", "Filter the network on the map, shortlist, send one RFP. Offers land side by side.", "explore", async () => {
     await sleep(1000); for (let i = 0; i < 3 && touring; i++) { ($(".heart:not([disabled]):not(.on)") as HTMLElement | null)?.click(); await sleep(450); }
     await sleep(500); $("#xRfp")?.click(); for (let i = 0; i < 100 && touring && !$("#p-compare.on"); i++) await sleep(100); await sleep(2800);
   });
-  await step("04 · FIX LAB", "Find the failure in a real conversation. Fix it. Prove it.", "fix", async () => { for (let i = 0; i < 4 && touring; i++) { $<HTMLButtonElement>("#fixGo").click(); await sleep(2300); } });
-  await step("05 · TOOLS", "Typed tools: bad input rejected, unapproved booking refused.", "tools", async () => {
+  await step("03 · FIX LAB", "Find the failure in a real conversation. Fix it. Prove it.", "fix", async () => { for (let i = 0; i < 4 && touring; i++) { $<HTMLButtonElement>("#fixGo").click(); await sleep(2300); } });
+  await step("04 · TOOLS", "Typed tools: bad input rejected, unapproved booking refused.", "tools", async () => {
     $<HTMLButtonElement>("#toolList button[data-i='1']").click(); await sleep(500); $<HTMLButtonElement>("#toolCall").click(); await sleep(1300);
     $<HTMLButtonElement>("#toolList button[data-i='2']").click(); await sleep(500); $<HTMLButtonElement>("#toolCall").click(); await sleep(1600);
     $<HTMLButtonElement>("#toolApprove").click(); await sleep(1200); $<HTMLButtonElement>("#toolCall").click(); await sleep(1600);
   });
-  await step("06 · JUDGMENTS", "Thresholds, a timeout and a safe fallback.", "judg", async () => { $<HTMLSelectElement>("#jMode").value = "live"; $<HTMLInputElement>("#jTimeout").value = "500"; $<HTMLInputElement>("#jDelay").value = "1500"; void judge(); await sleep(2500); });
-  await step("07 · CONTROLS", "Six safety controls, enforced by Postgres.", "controls", async () => { $<HTMLButtonElement>("#runAll").click(); await sleep(3500); });
-  await step("08 · EVALS", "The CI suite in your browser. Real Claude outputs.", "evals", async () => { $<HTMLButtonElement>("#runEvals").click(); for (let i = 0; i < 300 && !$("#sPass").textContent!.startsWith("47/"); i++) await sleep(100); await sleep(1200); });
-  await step("09 · POLICY", "Policy is code. Drag it and the city changes.", "spend", async () => { for (const v of [180, 140, 300]) { const s = $<HTMLInputElement>("#cap"); s.value = String(v); s.dispatchEvent(new Event("input")); await sleep(900); } });
+  await step("05 · CONTROLS", "Six safety controls, enforced by Postgres.", "controls", async () => { $<HTMLButtonElement>("#runAll").click(); await sleep(3500); });
+  await step("06 · EVALS", "The CI suite in your browser. Real Claude outputs.", "evals", async () => { $<HTMLButtonElement>("#runEvals").click(); for (let i = 0; i < 300 && !$("#sPass").textContent!.startsWith("47/"); i++) await sleep(100); await sleep(1200); });
+  await step("07 · POLICY", "Policy is code. Drag it and the city changes.", "spend", async () => { for (const v of [180, 140, 300]) { const s = $<HTMLInputElement>("#cap"); s.value = String(v); s.dispatchEvent(new Event("input")); await sleep(900); } });
   say("", ""); touring = false; $("#tourBtn").textContent = "▶ Tour";
 }
 $("#tourBtn").onclick = () => void tour();
@@ -1103,7 +1099,7 @@ renderPolicy();
 // =====================================================================
 const CMDS: { t: string; sub: string; run: () => void }[] = [
   ...["dinner for 12 with the Acme team next Thursday, somewhere private", "private dinner for 20 with Globex on Nov 19", "team dinner for 8 this Friday under $100 a head", "client lunch for 6 with Initech tomorrow"].map((t) => ({ t, sub: "Ask the concierge", run: () => ask(t) })),
-  ...[["chat", "Chat with the concierge"], ["explore", "Explore venues on the map"], ["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["calendar", "Calendar"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
+  ...[["home", "Home"], ["chat", "Chat with the concierge"], ["explore", "Explore venues on the map"], ["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["calendar", "Calendar"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
 ];
 function ask(t: string) { go("chat"); void chatSend(t); }
 let kSel = 0;
@@ -1209,11 +1205,16 @@ async function chatAmend(c: ChatCtx, n: number, date: string) {
   if (c.v.closedDays.includes(weekday(date))) { msg("bot", `${esc(c.v.name)} is closed that night.`); chips(["Move it to Thursday", "Cancel it"]); return; }
   if (!pol.onPolicy) { msg("bot", `That breaks policy: ${esc(pol.violations.join("; "))}.`); chips(["Cancel it"]); return; }
   const old = (await chatStore.getProposal((await chatStore.getBooking(c.bookingId))!.proposalId))!.amountCents, delta = pol.estimate.allInCents - old;
-  const k = await choose(`${[n !== c.n ? `${c.n} → <b>${n}</b> guests` : "", date !== c.date ? `move to <b>${when(eventWindow(date, "19:00").startsAt)}, ${date.slice(5)}</b>` : ""].filter(Boolean).join(", ").replace(/^./, (x) => x.toUpperCase())}. ${usd(old)} → <b>${usd(pol.estimate.allInCents)}</b> (${delta >= 0 ? "+" : "−"}${usd(Math.abs(delta))}). The deposit carries over.`, [["y", pol.requiredRoles.length > 1 ? "Approve (and ask manager)" : "Approve change", "pri"], ["n", "Keep as is", ""]]);
+  const k = await choose(`${[n !== c.n ? `${c.n} → <b>${n}</b> guests` : "", date !== c.date ? `move to <b>${when(eventWindow(date, "19:00").startsAt)}, ${date.slice(5)}</b>` : ""].filter(Boolean).join(", ").replace(/^./, (x) => x.toUpperCase())}. ${usd(old)} → <b>${usd(pol.estimate.allInCents)}</b> (${delta >= 0 ? "+" : "−"}${usd(Math.abs(delta))}). The deposit carries over.`, [["y", "Approve change", "pri"], ["n", "Keep as is", ""]]);
   if (k !== "y") { msg("bot", "Kept as is."); chips(["Arrange seating", "Cancel it"]); return; }
   const ctxT = await mgmtCtx(chatStore), win = eventWindow(date, "19:00");
   const { proposalId } = await call(ctxT, "changes", createProposal, { runId: "changes", actorId: priya.id, principalId: dana.id, venueId: c.v.id, roomId: c.room.id, ...win, partySize: n, kind: "amend", amountCents: pol.estimate.allInCents, payeeId: null, requiredRoles: pol.requiredRoles, summary: `Change ${c.bookingId}`, expiresAt: new Date(Date.parse(NOW) + 48 * 3_600_000).toISOString(), replacesBookingId: c.bookingId }) as { proposalId: string };
-  for (const role of pol.requiredRoles) await chatStore.decide(proposalId, approverFor(role, priya).id, role, "approve");
+  for (const role of pol.requiredRoles) {
+    const who = approverFor(role, priya);
+    const ok = role === "booker" ? "y" : await choose(`Over ${usd(company.policy.managerApprovalAboveCents)}, so ${esc(who.name)} also signs off.`, [["y", `Approve as ${esc(who.name.split(" ")[0])}`, "pri"], ["n", "Decline", ""]]);
+    await chatStore.decide(proposalId, who.id, role, ok === "y" ? "approve" : "reject");
+    if (ok !== "y") { msg("bot", "Not approved, so nothing changed."); chips(["Arrange seating", "Cancel it"]); return; }
+  }
   try {
     const out = await call(ctxT, "changes", amendBooking, { proposalId }) as { bookingId: string; replaced: string };
     changedTo.set(out.replaced, out.bookingId); carried.set(out.bookingId, out.replaced);
@@ -1446,5 +1447,126 @@ $$<HTMLButtonElement>("#xSort button").forEach((b) => b.onclick = () => { $$("#x
 }
 renderHoodChips(); renderExplore();
 
+// =====================================================================
+// HOME: one sentence in; the agents work across the city; you approve on your phone
+// =====================================================================
+const HQ: [number, number] = [XB.Flatiron[0] + XB.Flatiron[2] - 10, XB.Flatiron[1] + 10];
+const vByName = (t: string) => venues.filter((v) => t.startsWith(v.name) || t.includes(` ${v.name}`) || t.includes(`${v.name},`) || t.includes(`${v.name}'s`)).sort((a, b) => b.name.length - a.name.length)[0];
+let hBusy = false, hRuns = 0;
+const SVGNS = "http://www.w3.org/2000/svg";
+function hMap() {
+  let s = `<defs><radialGradient id="hglow"><stop offset="0" stop-color="#c98a12" stop-opacity=".55"/><stop offset="1" stop-color="#c98a12" stop-opacity="0"/></radialGradient></defs><rect x="232" y="-60" width="22" height="420" fill="#e4ecf2"/>`;
+  for (const [h, [x, y, w, hh]] of Object.entries(XB)) s += `<g class="hhood"><rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="8"/><text x="${x + 7}" y="${y + 13}">${(h === "Financial District" ? "FIDI" : h).toUpperCase()}</text></g>`;
+  s += `<g id="hLines"></g>`;
+  for (const v of venues) { const [x, y] = xPos.get(v.id)!; s += `<g class="hp" id="hp_${v.id}" transform="translate(${x} ${y})"><circle class="halo" r="11" fill="url(#hglow)"/><circle class="dot" r="3.6"/><g class="tag"></g></g>`; }
+  s += `<g class="hq" transform="translate(${HQ[0]} ${HQ[1]})"><circle class="pulse" r="6"/><rect x="-5" y="-5" width="10" height="10" rx="2.5"/><text y="-9">HQ</text></g><g id="hFly"></g>`;
+  $("#hMap").innerHTML = s;
+}
+const hp = (id: string) => $(`#hp_${id}`) as unknown as SVGGElement;
+function hTag(id: string, text: string, cls: string) {
+  const g = hp(id); if (!g) return; g.setAttribute("class", `hp ${cls}`);
+  const tag = g.querySelector(".tag")! as SVGGElement, w = text.length * 3.4 + 8, [x, y] = xPos.get(id)!;
+  if (!tag.dataset.side) { const near = [...$$<SVGGElement>(".hp .tag[data-side='up']")].some((t) => { const o = t.closest(".hp")!.id.slice(3); if (o === id) return false; const [ox, oy] = xPos.get(o)!; return Math.abs(ox - x) < 34 && Math.abs(oy - y) < 14; }); tag.dataset.side = near ? "down" : "up"; }
+  const dy = tag.dataset.side === "down" ? 20 : 0;
+  tag.innerHTML = `<rect x="${-w / 2}" y="${-17 + dy}" width="${w}" height="10" rx="5"/><text y="${-10 + dy}">${esc(text)}</text>`;
+}
+function hPath(id: string) {
+  const [x, y] = xPos.get(id)!, [hx, hy] = HQ, mx = (x + hx) / 2, my = Math.min(y, hy) - 30;
+  const p = document.createElementNS(SVGNS, "path"); p.setAttribute("d", `M${hx} ${hy} Q${mx} ${my} ${x} ${y}`); p.setAttribute("class", "hline"); p.id = `hl_${id}`;
+  $("#hLines").append(p); const L = p.getTotalLength(); p.style.strokeDasharray = `${L}`; p.style.strokeDashoffset = `${L}`; void p.getBoundingClientRect(); p.style.strokeDashoffset = "0"; return p;
+}
+function hFly(path: SVGPathElement, back: boolean, cls: string, ms = 700) {
+  return new Promise<void>((res) => {
+    const L = path.getTotalLength(), g = document.createElementNS(SVGNS, "g"); g.setAttribute("class", `env ${cls}`);
+    g.innerHTML = `<rect x="-4.5" y="-3" width="9" height="6" rx="1"/><path d="M-4.5 -3 L0 0.6 L4.5 -3"/>`; $("#hFly").append(g);
+    const t0 = performance.now();
+    const step = (t: number) => { const k = Math.min(1, (t - t0) / ms), e = k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2, pt = path.getPointAtLength((back ? 1 - e : e) * L); g.setAttribute("transform", `translate(${pt.x} ${pt.y})`); if (k < 1) requestAnimationFrame(step); else { g.remove(); res(); } };
+    requestAnimationFrame(step);
+  });
+}
+function hStage(k: string) { const order = ["parse", "source", "email", "compare", "approve", "book"], i = order.indexOf(k); $$<HTMLElement>("#hSteps > div").forEach((d, j) => { d.classList.toggle("done", j < i); d.classList.toggle("on", j === i); }); }
+function hCount(id: string, n: number) { const e = $(`#${id}`); e.textContent = String(n); e.classList.remove("tick"); void e.offsetWidth; e.classList.add("tick"); }
+async function hRun(text: string) {
+  if (hBusy || !text.trim()) return; hBusy = true; hRuns++;
+  const btn = $<HTMLButtonElement>("#hGo"); btn.disabled = true; $<HTMLInputElement>("#hIn").value = text;
+  hMap(); $("#hPhone").innerHTML = `<div class="ph-s">Concierge is on it…</div>`; $("#hRes").innerHTML = ""; $("#hMap").classList.add("live"); $("#hMap").classList.remove("done");
+  const c = { mail: 0, rep: 0, off: 0, inj: 0 }; ["hcMail", "hcRep", "hcOff", "hcInj"].forEach((i) => ($(`#${i}`).textContent = "0"));
+  const store = new MemoryStore(); await store.init(venues); stores.push(store); srcOf.set(store, "Home");
+  const pool: Behavior[] = ["accept", "injection", "counter_price", "decline", "accept", "accept_slow", "counter_capacity"], seen = new Map<string, Behavior>();
+  const world = new VenueWorld(venues, (id) => { if (!seen.has(id)) seen.set(id, pool[(seen.size + hRuns) % pool.length]); return seen.get(id)!; }, NOW, 60 + hRuns);
+  const lines = new Map<string, SVGPathElement>(); let chain: Promise<void> = Promise.resolve();
+  const q = (fn: () => Promise<void> | void) => { chain = chain.then(async () => { await fn(); }); };
+  const onEvent = (e: TraceEvent) => {
+    if (e.kind === "parsed") q(async () => { hStage("parse"); const r = e.data?.request as BookingRequest | undefined; if (r) $("#hPhone").innerHTML = `<div class="ph-me">${esc(text)}</div><div class="ph-chips">${[`${r.partySize} guests`, r.date ? when(eventWindow(r.date, r.time).startsAt) + ` · ${r.date.slice(5)}` : "", r.privateRoom ? "private" : "", r.clientName ?? "", r.cuisine ?? ""].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")}${isAI(e) ? '<span class="ai"></span>' : ""}</div>`; await sleep(700); });
+    if (e.kind === "sourced") q(async () => {
+      hStage("source"); const top = ((e.data?.top ?? []) as { venueId: string }[]).map((t) => t.venueId);
+      $$<SVGGElement>(".hp").forEach((g) => g.classList.add("fade"));
+      for (const id of top) { const g = hp(id); g?.classList.remove("fade"); g?.classList.add("cand"); await sleep(70); }
+      await sleep(500);
+    });
+    if (e.kind === "inquiries_sent") q(async () => {
+      hStage("email"); const names = e.text.replace(/^emailed /, "").split(", ");
+      await Promise.all(names.map(async (n, i) => { const v = venues.find((x) => x.name === n); if (!v) return; await sleep(i * 180); const p = hPath(v.id); lines.set(v.id, p); hTag(v.id, "emailed", "cand mailed"); await hFly(p, false, "out"); hCount("hcMail", ++c.mail); }));
+      await sleep(300);
+    });
+    if (e.kind === "injection_flagged") q(async () => { const v = vByName(e.text); if (!v) return; const p = lines.get(v.id); if (p) await hFly(p, true, "bad", 600); hTag(v.id, "⚠ injection ignored", "inj"); hCount("hcInj", ++c.inj); toast("Injection blocked", `${v.name} tried to change who gets paid`, "bad"); await sleep(500); });
+    if (e.kind === "reply") q(async () => { const v = vByName(e.text); if (!v) return; const p = lines.get(v.id); if (p) await hFly(p, true, "in", 600); hCount("hcRep", ++c.rep); const lab = e.text.split(": ")[1]?.split(" ")[0] ?? "";
+      if (lab === "decline") hTag(v.id, "✕ declined", "no"); else if (lab === "auto_reply") hTag(v.id, "out of office", "wait"); else if (!hp(v.id)?.classList.contains("inj")) hTag(v.id, "replied", "cand mailed"); });
+    if (e.kind === "offer") q(async () => { const o = e.data?.offer as Offer | undefined; if (!o) return; hCount("hcOff", ++c.off); if (!hp(o.venueId)?.classList.contains("inj")) hTag(o.venueId, `offer${isAI(e) ? " ✳" : ""}`, "offer"); await sleep(250); });
+    if (e.kind === "gave_up" || e.kind === "follow_up") q(async () => { const v = vByName(e.text); if (v) hTag(v.id, e.kind === "gave_up" ? "no reply" : "nudged", "wait"); });
+    if (e.kind === "compared") q(async () => {
+      hStage("compare");
+      for (const u of (e.data?.usable ?? []) as { venue: string; perHeadAllIn: number }[]) { const v = venues.find((x) => x.name === u.venue); if (v) { const inj = hp(v.id)?.classList.contains("inj"); hTag(v.id, `$${Math.round(u.perHeadAllIn)}/head${inj ? " · ⚠ ignored" : ""}`, inj ? "offer inj" : "offer"); } }
+      for (const r of (e.data?.rejected ?? []) as { venue: string; why: string }[]) { const v = venues.find((x) => x.name === r.venue); if (v && !hp(v.id)?.classList.contains("inj")) hTag(v.id, `✕ ${r.why.replace(/needs[ _]human/, "unclear reply").replace(/_/g, " ").split(/[,;(]/)[0].slice(0, 22)}`, "no"); }
+      await sleep(700);
+    });
+    if (e.kind === "replan") q(async () => { toast("Widening the search", "First round came back empty", "warn"); $$<SVGGElement>(".hp.cand").forEach((g) => g.classList.add("spent")); await sleep(400); });
+    if (e.kind === "booked") q(() => hStage("book"));
+  };
+  const approver: Approver = async (p, st) => {
+    await chain;
+    if (p.kind === "pay_deposit") { for (const r of p.requiredRoles) await st.decide(p.id, approverFor(r, priya).id, r, "approve"); return "approved"; }
+    hStage("approve"); const v = venues.find((x) => x.id === p.venueId)!, room = v.rooms.find((r) => r.id === p.roomId)!;
+    hp(v.id)?.classList.add("win"); $("#hMap").classList.add("done");
+    const ph = $("#hPhone"); ph.insertAdjacentHTML("beforeend", `<div class="ph-card"><div class="ph-v">${esc(v.name)}</div><div class="ph-r">${esc(room.name)} · ${esc(v.neighborhood)}</div>
+      <div class="ph-g"><div><b>${when(p.startsAt)}</b><span>${localDate(p.startsAt).slice(5)}</span></div><div><b>${p.partySize}</b><span>guests</span></div><div><b>${usd(p.amountCents)}</b><span>all-in</span></div><div><b>${usd(Math.round(p.amountCents / p.partySize))}</b><span>per head</span></div></div>${v.preferredRatePct ? `<div class="ph-save">−${v.preferredRatePct}% corporate rate applied</div>` : ""}</div><div id="hSl"></div>`);
+    ph.scrollTop = ph.scrollHeight;
+    for (const role of p.requiredRoles) {
+      const ok = await slideIn($("#hSl"), role === "booker" ? "Slide to book" : `Slide as ${approverFor(role, priya).name.split(" ")[0]}`);
+      await st.decide(p.id, approverFor(role, priya).id, role, ok ? "approve" : "reject"); if (!ok) return "rejected";
+    }
+    return "approved";
+  };
+  const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm, venues, company, approver, onEvent, shortlistSize: 4 });
+  await chain; record(res, world);
+  const ph = $("#hPhone");
+  if (res.outcome === "booked" && res.chosenVenueId) {
+    const v = venues.find((x) => x.id === res.chosenVenueId)!, bk = (await store.getBooking(res.bookingId!))!, room = v.rooms.find((r) => r.id === bk.roomId)!;
+    const [x, y] = xPos.get(v.id)!; const p = document.createElementNS(SVGNS, "path"); p.setAttribute("d", `M${HQ[0]} ${HQ[1]} L${x} ${y}`); p.setAttribute("class", "hwin"); $("#hLines").append(p);
+    ph.insertAdjacentHTML("beforeend", `<div class="ph-ok"><div class="ph-check">✓</div><b>Booked</b><span>${esc(v.name)} · ${when(bk.startsAt)}</span><span>${res.paymentId ? "Deposit paid to venue on file" : "No deposit"}</span></div>`);
+    confetti(); toast("Booked", `${v.name} · ${bk.partySize} guests`);
+    setLastBooking({ venue: v, roomName: room.name, partySize: bk.partySize, date: localDate(bk.startsAt), dietary: res.request?.dietary ?? [], client: res.request?.clientName ?? "Guests", world, threadId: `thr_${res.runId}_${v.id}` });
+    $("#hRes").innerHTML = `<button class="btn pri" onclick="go('seating')">Seat guests</button><button class="btn" onclick="go('calendar')">Calendar</button><button class="btn" onclick="go('bookings')">Receipt</button>`;
+    renderGrid();
+  } else {
+    const last = res.messagesToBooker.at(-1) ?? "";
+    ph.insertAdjacentHTML("beforeend", `<div class="ph-bot">${esc(last.length > 220 ? last.slice(0, 218) + "…" : last)}</div>`);
+    $("#hRes").innerHTML = `<button class="btn" onclick="go('chat')">Answer in chat</button>`;
+  }
+  ph.scrollTop = ph.scrollHeight; $("#hMap").classList.remove("live"); btn.disabled = false; hBusy = false;
+}
+function confetti() {
+  const box = $("#hConf"); const cols = ["#7b1e3a", "#c98a12", "#3f7d5a", "#5b6b8c", "#e7c27d"];
+  for (let i = 0; i < 70; i++) { const s = el("i"); s.style.cssText = `left:${50 + (Math.random() - .5) * 30}%;background:${cols[i % 5]};--dx:${(Math.random() - .5) * 520}px;--dy:${-160 - Math.random() * 260}px;--r:${Math.random() * 720}deg;animation-delay:${Math.random() * 120}ms`; box.append(s); setTimeout(() => s.remove(), 1700); }
+}
+const HPH = ["dinner for 12 with the Acme team next Thursday, somewhere private", "private dinner for 20 with Globex on Nov 19", "team dinner for 8 this Friday under $100 a head", "japanese dinner for 8 with Wayne Enterprises on Nov 24, private"];
+{ let i = 0; setInterval(() => { const inp = $<HTMLInputElement>("#hIn"); if (document.activeElement !== inp && !inp.value) inp.placeholder = HPH[i++ % HPH.length]; }, 2600); }
+$("#hChips").innerHTML = HPH.slice(0, 3).map((t) => `<button class="chip" data-t="${esc(t)}">${esc(t.length > 42 ? t.slice(0, 40) + "…" : t)}</button>`).join("");
+$$<HTMLButtonElement>("#hChips .chip").forEach((b) => b.onclick = () => void hRun(b.dataset.t!));
+$<HTMLFormElement>("#hForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $<HTMLInputElement>("#hIn").value || $<HTMLInputElement>("#hIn").placeholder; void hRun(v); });
+hMap();
+
 // ---------- start ----------
 if (!new URLSearchParams(location.search).has("still")) void deskLoop();
+{ const h = location.hash.slice(1), ask0 = new URLSearchParams(location.search).get("ask"); go(ask0 ? "home" : $(`#p-${h}`) ? h : "home"); if (ask0) setTimeout(() => void hRun(ask0.slice(0, 200)), 700); }
+window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if ($(`#p-${h}`) && !$(`#p-${h}.on`)) go(h); });
