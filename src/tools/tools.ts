@@ -70,6 +70,37 @@ export const payDeposit = tool({
   },
 });
 
+export const amendBooking = tool({
+  name: "amend_booking",
+  description: "Change a confirmed booking (date, time or headcount) exactly as approved. Cancel and rebook happen in one transaction; if the new slot is taken, the original booking survives.",
+  consequential: true,
+  input: z.object({ proposalId: z.string() }),
+  output: z.object({ bookingId: z.string(), replaced: z.string() }),
+  async run(ctx, i) {
+    const p = await ctx.store.getProposal(i.proposalId);
+    if (!p || p.kind !== "amend" || !p.replacesBookingId) throw new Error(`no amend proposal ${i.proposalId}`);
+    const bookingId = `bk_${randomUUID().slice(0, 8)}`;
+    await ctx.store.amend(p.id, bookingId);
+    return { bookingId, replaced: p.replacesBookingId };
+  },
+});
+
+export const cancelBooking = tool({
+  name: "cancel_booking",
+  description: "Cancel a confirmed booking against an approved cancel proposal. Reports whether the deposit is refundable under the venue's window.",
+  consequential: true,
+  input: z.object({ proposalId: z.string() }),
+  output: z.object({ cancelled: z.string(), depositRefundable: z.boolean(), hoursBefore: z.number() }),
+  async run(ctx, i) {
+    const p = await ctx.store.getProposal(i.proposalId);
+    if (!p || p.kind !== "cancel" || !p.replacesBookingId) throw new Error(`no cancel proposal ${i.proposalId}`);
+    const v = ctx.venues.find((x) => x.id === p.venueId)!;
+    const hoursBefore = Math.round(hoursBetween(ctx.world.now, p.startsAt));
+    await ctx.store.cancel(p.id);
+    return { cancelled: p.replacesBookingId, depositRefundable: hoursBefore >= v.cancellationHours, hoursBefore };
+  },
+});
+
 export const notifyBooker = tool({
   name: "notify_booker",
   description: "Message the booker. Texts only if they have not opted out; email otherwise.",

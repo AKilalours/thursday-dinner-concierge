@@ -14,7 +14,7 @@
 <table align="center"><tr>
 <td align="center"><h3>47/47</h3>eval scenarios</td>
 <td align="center"><h3>0 / 2,013</h3>safety failures<br>in random worlds</td>
-<td align="center"><h3>89</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>91</h3>tests, incl.<br>real Postgres</td>
 <td align="center"><h3>9</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
 
@@ -22,7 +22,7 @@
 npm install && npm run demo
 ```
 
-**On the live site:** Live desk · Book (slide to approve) · **Availability** (30 venues × 14 nights, priced under policy; click a cell to request, approve and book that exact table) · **Compare** (every offer the agent collected in one sortable table, side-by-side cards, propose any of them) · **Seating** (drag guests to seats, flag dietary needs, send the plan to the venue) · Inbox lab · **Fix lab** (replay a real failure with Claude's recorded 1/5 verdict, see the fix, prove it) · **Tools** (call the typed capabilities yourself) · **Judgments** (drag thresholds, force a timeout, watch the fallback) · Controls · Evals · Memory · Spend. Press **▶ Tour** for a hands-free 47-second walkthrough.
+**On the live site:** Live desk · Book (slide to approve) · **Availability** (30 venues × 14 nights, priced under policy; click a cell to request, approve and book that exact table) · **Compare** (every offer the agent collected in one sortable table, side-by-side cards, propose any of them) · **Bookings** (receipt with tax, service, preferred rate and deposit; change headcount or night as an approved amendment, or cancel with the venue's refund window applied) · **Seating** (drag guests to seats, flag dietary needs, send the plan to the venue) · **Policy** (drag the caps and approval thresholds, see how many tables it unlocks, replay all 47 requests under the new policy before applying it) · **⌘K** to ask the concierge from any page · Inbox lab · **Fix lab** (replay a real failure with Claude's recorded 1/5 verdict, see the fix, prove it) · **Tools** (call the typed capabilities yourself) · **Judgments** (drag thresholds, force a timeout, watch the fallback) · Controls · Evals · Memory · Spend. Press **▶ Tour** for a hands-free 47-second walkthrough.
 
 <details>
 <summary><b>How it works</b></summary>
@@ -44,7 +44,7 @@ flowchart LR
 | **Agents** | Concierge + sourcing, comparison, venue-coordination subagents. Follow up on silence, widen the search, re-plan, fall through after a double booking. |
 | **Changes after booking** | Amendments and cancellations are proposals too; an amendment swaps the booking atomically and rolls back if the new slot is taken. |
 | **Spend control** | Policy as code: per-head caps, manager thresholds, notice; preferred corporate rates (12-15%) applied and reported. |
-| **Typed tools** | zod in and out, run as the EA *for* the executive, idempotent, audited. `book` / `pay_deposit` need an approved proposal. |
+| **Typed tools** | zod in and out, run as the EA *for* the executive, idempotent, audited. `book`, `pay_deposit`, `amend_booking` and `cancel_booking` need an approved proposal. |
 | **Evals** | 47 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
 | **Memory** | Every venue reply leaves facts ("the Library really seats 10"). Sourcing uses them next time. Private memories protected by row-level security. |
 | **Fast judgments** | Triage, SMS consent, urgency, injection. Threshold per label, timeout, safe fallback, `rules → shadow → live`. |

@@ -1,6 +1,7 @@
 // Runs one eval scenario or one random world. No file system, so the same code runs in CI and in the
 // browser playground ("Run the evals" tab).
 import { buildVenues, COMPANY, rng, user } from "../data/seed.ts";
+import type { Company } from "../src/domain/types.ts";
 import { carefulApprover, runConcierge } from "../src/agents/concierge.ts";
 import type { Approver, RunResult } from "../src/agents/concierge.ts";
 import type { LLM } from "../src/llm/client.ts";
@@ -24,7 +25,8 @@ function approverFor(s: Scenario): Approver {
 
 export interface ScenarioRun { checks: Check[]; result: RunResult; emails: number; hours: number; world: VenueWorld }
 
-export async function runScenario(s: Scenario, llm: LLM): Promise<ScenarioRun> {
+/** `company` lets a policy change be replayed against every scenario before it ships. */
+export async function runScenario(s: Scenario, llm: LLM, company: Company = COMPANY): Promise<ScenarioRun> {
   const today = s.today ?? "2026-11-09";
   // Behaviors are assigned by contact order, so a scenario can say "the first two venues never reply".
   const assigned = new Map<string, Behavior>();
@@ -35,7 +37,7 @@ export async function runScenario(s: Scenario, llm: LLM): Promise<ScenarioRun> {
   }, `${today}T15:00:00.000Z`, 11);
   const store = new MemoryStore();
   await store.init(venues);
-  const base = { actor: priya, principal: dana, today, store, world, llm, venues, company: COMPANY };
+  const base = { actor: priya, principal: dana, today, store, world, llm, venues, company };
   let warmupRunId: string | null = null;
   if (s.warmup) {
     const w = await runConcierge({ ...base, text: s.warmup.text, approver: approverFor({ ...s, expect: { outcome: "booked" } }) });
@@ -44,7 +46,7 @@ export async function runScenario(s: Scenario, llm: LLM): Promise<ScenarioRun> {
   } else order = s.order ?? [];
   const t0 = Date.parse(world.now);
   const result = await runConcierge({ ...base, text: s.text, approver: approverFor(s), smsOptedOut: s.smsOptedOut ? new Set([priya.id]) : new Set() });
-  const checks = await grade(s, result, store, world, venues, COMPANY, warmupRunId);
+  const checks = await grade(s, result, store, world, venues, company, warmupRunId);
   return { checks, result, world, emails: world.sent().filter((m) => m.threadId.includes(result.runId)).length, hours: (Date.parse(world.now) - t0) / 3_600_000 };
 }
 

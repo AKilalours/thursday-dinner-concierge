@@ -14,7 +14,7 @@ import type { LLM } from "../src/llm/client.ts";
 import { judgeMessage } from "../evals/judge.ts";
 import { call, ToolDenied } from "../src/tools/registry.ts";
 import type { Tool } from "../src/tools/registry.ts";
-import { book as bookTool, createProposal, eventWindow, leadHours, notifyBooker, payDeposit, recordFact, sendVenueEmail } from "../src/tools/tools.ts";
+import { amendBooking, book as bookTool, cancelBooking, createProposal, eventWindow, leadHours, notifyBooker, payDeposit, recordFact, sendVenueEmail } from "../src/tools/tools.ts";
 import { ZodError } from "zod";
 import { knowledge } from "../src/memory/supply.ts";
 import { extractRules } from "../src/parse/offer.ts";
@@ -51,6 +51,7 @@ const isAI = (e: TraceEvent) => e.data?.decidedBy === "model" || / \(model\)$/.t
 const S = { req: 0, booked: 0, saved: 0, inj: 0, mail: 0, ai: 0 };
 const ledger: { venue: string; guests: number; allIn: number; saved: number }[] = [];
 const stores: MemoryStore[] = [];
+const srcOf = new Map<MemoryStore, string>();
 function bump(id: string, v: string) { const k = $(`#${id}`); if (k.textContent !== v) { k.textContent = v; k.parentElement!.classList.remove("bump"); void k.offsetWidth; k.parentElement!.classList.add("bump"); } }
 function record(res: RunResult, world: VenueWorld) {
   S.req++; S.mail += world.sent().length + world.received().length;
@@ -69,6 +70,7 @@ function record(res: RunResult, world: VenueWorld) {
 function go(page: string) {
   $$<HTMLButtonElement>("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.p === page));
   $$(".page").forEach((p) => p.classList.toggle("on", p.id === `p-${page}`));
+  if (page === "bookings") void renderBookings();
   
   window.scrollTo({ top: 0 });
 }
@@ -307,7 +309,7 @@ async function book() {
   $$("#course span").forEach((s) => s.classList.remove("on", "done"));
   const s = scen(PRESET[preset]), seen = new Map<string, Behavior>(), order = s.order ?? [];
   bookWorld = new VenueWorld(venues, (id) => { if (!seen.has(id)) seen.set(id, order[seen.size] ?? "accept"); return seen.get(id)!; }, "2026-11-09T15:00:00.000Z", 11);
-  bookStore = new MemoryStore(); await bookStore.init(venues); stores.push(bookStore);
+  bookStore = new MemoryStore(); await bookStore.init(venues); stores.push(bookStore); srcOf.set(bookStore, "Book");
   const res = await runConcierge({ text: $<HTMLInputElement>("#ask").value, actor: priya, principal: dana, today: "2026-11-09", store: bookStore, world: bookWorld, llm, venues, company, approver: tap, onEvent: addEvent });
   await drained(); record(res, bookWorld);
   const v = res.chosenVenueId ? venues.find((x) => x.id === res.chosenVenueId) : null, bk = res.proposals.find((p) => p.kind === "book");
@@ -318,6 +320,7 @@ async function book() {
     $("#phone").append(el("div", "ticket", `<div class="tt">${esc(v.name)}</div><div class="ts">${esc(room.name)} · ${when(bk.startsAt).replace(/ \d+ (am|pm)/, "")} ${localDate(bk.startsAt).slice(5)} · ${bk.partySize} guests</div><hr>${seating(bk.partySize)}
       <div class="ts" style="margin-top:6px">${usd(bk.amountCents)} all-in${pay ? ` · deposit ${usd(pay.amountCents)} → ${esc(pay.payeeId)}` : ""}</div><button class="btn pri" style="margin-top:10px;width:100%" onclick="go('seating')">Arrange seating →</button>`));
     setLastBooking({ venue: v, roomName: room.name, partySize: bk.partySize, date: localDate(bk.startsAt), dietary: res.request?.dietary ?? [], client: res.request?.clientName ?? "Guests", world: bookWorld, threadId: `thr_${res.runId}_${v.id}` });
+    toast("Booked", `${v.name} · ${room.name} · ${bk.partySize} guests`);
   } else $("#phone").append(el("div", "ticket fail", `<div class="tt">${res.outcome.replace(/_/g, " ")}</div><div class="ts" style="color:#ffd5dc">Nothing was booked or paid.</div>`));
   $("#phonebox").scrollTop = $("#phonebox").scrollHeight;
   running = false; $("#go button").removeAttribute("disabled");
@@ -736,7 +739,8 @@ async function proposeAndBook(box: HTMLElement, store: MemoryStore, world: Venue
     S.booked++; S.req++; S.saved += saved; ledger.unshift({ venue: v.name, guests: n, allIn: pol.estimate.allInCents, saved });
     bump("kBook", String(S.booked)); bump("kReq", String(S.req)); bump("kSave", usd(S.saved)); renderSpend();
     setLastBooking({ venue: v, roomName: room.name, partySize: n, date, dietary: [], client: "Acme", world, threadId: `thr_${runId}_${v.id}` });
-    box.insertAdjacentHTML("beforeend", `<button class="btn pri" style="margin-top:8px" onclick="go('seating')">Arrange seating →</button>`);
+    box.insertAdjacentHTML("beforeend", `<div class="row" style="margin-top:8px"><button class="btn pri" onclick="go('seating')">Arrange seating →</button><button class="btn" onclick="go('bookings')">View booking</button></div>`);
+    toast("Booked", `${v.name} · ${room.name} · ${n} guests · ${date}`);
     return bk.bookingId;
   } catch (e) { box.insertAdjacentHTML("beforeend", `<div class="gstep bad">${esc(e instanceof StoreError ? `Refused by the database: ${e.code.replace(/_/g, " ")}` : String(e))}</div>`); return null; }
 }
@@ -820,7 +824,7 @@ interface Cmp { v: Venue; roomId: string; roomName: string; seats: number | null
 let cmpRows: Cmp[] = [], cmpSel = new Set<string>(), cmpSortKey = "perHead", cmpCtx: { store: MemoryStore; world: VenueWorld; runId: string; req: BookingRequest } | null = null;
 async function cmpLoad() {
   const btn = $<HTMLButtonElement>("#cmpGo"); btn.disabled = true; $("#cmpTable").innerHTML = `<div class="empty"><span class="spin"></span> The agent is emailing venues and reading replies…</div>`;
-  const text = $<HTMLInputElement>("#cmpAsk").value, store = new MemoryStore(); await store.init(venues); stores.push(store);
+  const text = $<HTMLInputElement>("#cmpAsk").value, store = new MemoryStore(); await store.init(venues); stores.push(store); srcOf.set(store, "Compare");
   const order: Behavior[] = ["accept", "counter_price", "injection", "accept", "decline", "counter_capacity", "accept"]; const seen = new Map<string, Behavior>();
   const world = new VenueWorld(venues, (id) => { if (!seen.has(id)) seen.set(id, order[seen.size] ?? "accept"); return seen.get(id)!; }, NOW, 11);
   const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm, venues, company, maxRounds: 1, shortlistSize: 7, approver: async () => "pending" });
@@ -923,9 +927,187 @@ $("#seatSend").onclick = async () => {
   b.world.send(b.venue.id, b.threadId, "Seating plan", body, "answer");
   await mem.remember({ companyId: company.id, scope: "company", ownerUserId: priya.id, subject: b.client, fact: `Seating plan sent to ${b.venue.name} for ${b.date}${diet.length ? `; dietary: ${diet.join(", ")}` : ""}`, source: "seating" });
   void renderMems();
+  toast("Seating sent", `${b.venue.name} · ${seats.length} seats${diet.length ? ` · ${diet.length} dietary` : ""}`);
   $("#seatOut").innerHTML = `<div class="gstep ok"><b>Sent to ${esc(b.venue.name)}</b> and saved to company memory.<pre style="margin-top:6px">${esc(body)}</pre></div>`;
 };
 seatRender();
+
+// =====================================================================
+// shared: toasts (what the booker's phone would buzz with)
+// =====================================================================
+function toast(title: string, body = "", tone: "ok" | "warn" | "bad" = "ok") {
+  const t = el("div", `toast ${tone}`, `<b>${esc(title)}</b>${body ? `<span>${esc(body)}</span>` : ""}<i>now</i>`);
+  $("#toasts").prepend(t); setTimeout(() => t.classList.add("out"), 5200); setTimeout(() => t.remove(), 5600);
+}
+srcOf.set(gStore, "Availability");
+
+// =====================================================================
+// BOOKINGS: every reservation in this session, with receipt, change and cancel
+// =====================================================================
+type BkStatus = "confirmed" | "cancelled";
+interface BkRow { id: string; status: BkStatus; startsAt: string; partySize: number; proposalId: string; store: MemoryStore; v: Venue; room: Venue["rooms"][number]; src: string; approved: number; paid: number }
+const changedTo = new Map<string, string>(), carried = new Map<string, string>(), cancelledHow = new Map<string, string>();
+let bkPick: string | null = null, bkFilter = "upcoming";
+const paidFor = (st: MemoryStore, id: string): number => st.allPayments().filter((p) => p.bookingId === id).reduce((a, p) => a + p.amountCents, 0) + (carried.has(id) ? paidFor(st, carried.get(id)!) : 0);
+async function bkRows(): Promise<BkRow[]> {
+  const out: BkRow[] = [];
+  for (const st of stores) for (const b of st.allBookings()) {
+    const v = venues.find((x) => x.id === b.venueId)!, room = v.rooms.find((r) => r.id === b.roomId)!, p = await st.getProposal(b.proposalId);
+    out.push({ id: b.id, status: b.status, startsAt: b.startsAt, partySize: b.partySize, proposalId: b.proposalId, store: st, v, room, src: srcOf.get(st) ?? "Live desk", approved: p?.amountCents ?? 0, paid: paidFor(st, b.id) });
+  }
+  return out.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+}
+function receipt(r: BkRow) {
+  const d = localDate(r.startsAt), min = r.room.private ? r.room.minSpendCents[weekday(d)] : 0, per = perHeadFor(r.v, "client_dinner");
+  const list = Math.max(min, per * r.partySize), disc = Math.round(list * r.v.preferredRatePct / 100), sub = list - disc, tax = Math.round(sub * 0.08875), svc = Math.round(sub * 0.2);
+  return { min, per, list, disc, sub, tax, svc, total: sub + tax + svc };
+}
+async function renderBookings() {
+  const rows = await bkRows(), conf = rows.filter((r) => r.status === "confirmed");
+  const shown = rows.filter((r) => bkFilter === "all" || (bkFilter === "upcoming" ? r.status === "confirmed" : r.status === "cancelled"));
+  $("#bkKpis").innerHTML = `<div class="kpi" style="--c:var(--wine)"><div class="k">Upcoming</div><b>${conf.length}</b></div><div class="kpi" style="--c:var(--sage)"><div class="k">Committed spend</div><b>${usd(conf.reduce((a, r) => a + r.approved, 0))}</b></div><div class="kpi" style="--c:var(--brass)"><div class="k">Deposits paid</div><b>${usd(conf.reduce((a, r) => a + r.paid, 0))}</b></div><div class="kpi" style="--c:#5b6b8c"><div class="k">Guests hosted</div><b>${conf.reduce((a, r) => a + r.partySize, 0)}</b></div>`;
+  $("#bkTable").innerHTML = shown.length ? `<table class="ctable"><thead><tr><th>When</th><th>Venue</th><th>Guests</th><th>All-in</th><th>Deposit</th><th>Status</th><th>Booked from</th></tr></thead><tbody>${shown.map((r) => {
+    const st = r.status === "confirmed" ? (carried.has(r.id) ? '<span class="st ok">Confirmed · changed</span>' : '<span class="st ok">Confirmed</span>') : changedTo.has(r.id) ? '<span class="st mute">Replaced</span>' : `<span class="st bad">Cancelled${cancelledHow.get(r.id) ? ` · ${cancelledHow.get(r.id)}` : ""}</span>`;
+    return `<tr class="bkr ${bkPick === r.id ? "picked" : ""} ${r.status === "cancelled" ? "dim" : ""}" data-id="${r.id}"><td><b>${when(r.startsAt)}</b><div class="cs">${localDate(r.startsAt)}</div></td><td><b>${esc(r.v.name)}</b><div class="cs">${esc(r.room.name)} · ${esc(r.v.neighborhood)}</div></td><td>${r.partySize}</td><td><b>${usd(r.approved)}</b></td><td>${r.paid ? usd(r.paid) : "—"}</td><td>${st}</td><td><span class="pill">${r.src}</span></td></tr>`;
+  }).join("")}</tbody></table>` : `<div class="empty">No ${bkFilter === "cancelled" ? "cancelled " : ""}bookings yet. Book one on <a href="#" onclick="go('avail');return false">Availability</a>, <a href="#" onclick="go('compare');return false">Compare</a> or <a href="#" onclick="go('book');return false">Book</a>, or let the Live desk run.</div>`;
+  $$<HTMLElement>("#bkTable .bkr").forEach((tr) => tr.onclick = () => { bkPick = tr.dataset.id!; void renderBookings(); });
+  const r = rows.find((x) => x.id === bkPick); if (!r) { $("#bkSide").innerHTML = `<div class="cs">Select a booking to see the receipt, change it or cancel it.</div>`; return; }
+  const rc = receipt(r), hrs = Math.round((Date.parse(r.startsAt) - Date.parse(NOW)) / 3_600_000), free = hrs >= r.v.cancellationHours;
+  $("#bkSide").innerHTML = `<div class="vt">${esc(r.v.name)}</div><div class="vs">${esc(r.room.name)} · ${when(r.startsAt)}, ${localDate(r.startsAt)} · ${r.partySize} guests · <span class="mono">${r.id}</span></div>
+    <div class="rcpt"><div><span>${rc.min > rc.per * r.partySize ? `Food &amp; beverage minimum` : `Menu, ${r.partySize} × ${usd(rc.per)}`}</span><b>${usd(rc.list)}</b></div>${rc.disc ? `<div class="g"><span>Preferred rate −${r.v.preferredRatePct}%</span><b>−${usd(rc.disc)}</b></div>` : ""}<div><span>NYC sales tax 8.875%</span><b>${usd(rc.tax)}</b></div><div><span>Service 20%</span><b>${usd(rc.svc)}</b></div><div class="t"><span>Total</span><b>${usd(rc.total)}</b></div><div><span>Deposit paid${carried.has(r.id) ? " (carried over)" : ""}</span><b>${r.paid ? `−${usd(r.paid)}` : "—"}</b></div><div class="t"><span>Balance at the venue</span><b>${usd(Math.max(0, rc.total - r.paid))}</b></div></div>
+    ${r.status === "confirmed" ? `<div class="cs" style="margin:8px 0">${free ? `Free cancellation for ${hrs - r.v.cancellationHours} more hours` : `Inside the ${r.v.cancellationHours} h window: the deposit would be forfeited`}</div>
+    <div class="seg" id="bkAct"><button data-a="change" class="on">Change</button><button data-a="cancel">Cancel</button></div><div id="bkPane"></div>` : `<div class="cs" style="margin-top:8px">${changedTo.has(r.id) ? `Replaced by <a href="#" data-j="${changedTo.get(r.id)}">${changedTo.get(r.id)}</a>.` : "This booking was cancelled."}</div>`}`;
+  $$<HTMLElement>("#bkSide [data-j]").forEach((a) => a.onclick = (e) => { e.preventDefault(); bkPick = a.dataset.j!; bkFilter = "all"; $$("#bkFilter button").forEach((x) => x.classList.toggle("on", (x as HTMLElement).dataset.f === "all")); void renderBookings(); });
+  if (r.status !== "confirmed") return;
+  $$<HTMLButtonElement>("#bkAct button").forEach((b) => b.onclick = () => { $$("#bkAct button").forEach((x) => x.classList.remove("on")); b.classList.add("on"); b.dataset.a === "change" ? bkChange(r) : bkCancel(r, free, hrs); });
+  bkChange(r);
+}
+async function mgmtCtx(st: MemoryStore) { await st.createRun({ id: "changes" }); return toolCtx(st, new VenueWorld(venues, () => "accept", NOW), "changes"); }
+function bkChange(r: BkRow) {
+  let n = r.partySize, date = localDate(r.startsAt); const DAYS3 = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const pane = $("#bkPane");
+  const draw = () => {
+    const min = r.room.private ? r.room.minSpendCents[weekday(date)] : 0;
+    const pol = checkPolicy(company, reqFor(n, date, r.room.private), r.v, { minSpendCents: min, perHeadCents: null, depositPct: null, capacity: null }, leadHours(NOW, date, "19:00"));
+    const same = n === r.partySize && date === localDate(r.startsAt), tooBig = n > r.room.listedCapacity, closed = r.v.closedDays.includes(weekday(date));
+    const delta = pol.estimate.allInCents - r.approved;
+    pane.innerHTML = `<div class="chg"><label>Guests<div class="step"><button data-d="-1">−</button><b>${n}</b><button data-d="1">+</button></div></label>
+      <label>Night<select id="bkDate">${[localDate(r.startsAt), ...NIGHTS].filter((d, i, a) => a.indexOf(d) === i).sort().map((d) => `<option value="${d}" ${d === date ? "selected" : ""}>${DAYS3[weekday(d)]} ${Number(d.slice(8))} Nov</option>`).join("")}</select></label></div>
+      ${same ? `<div class="cs">Pick a new headcount or night.</div>` : tooBig ? `<div class="gstep bad">${esc(r.room.name)} seats ${r.room.listedCapacity}. A bigger party needs a different room: book it fresh.</div>` : closed ? `<div class="gstep bad">${esc(r.v.name)} is closed that night.</div>` : !pol.onPolicy ? `<div class="gstep bad">${esc(pol.violations.join("; "))}</div>`
+        : `<div class="gstep"><b>${usd(r.approved)} → ${usd(pol.estimate.allInCents)}</b> <span class="st ${delta > 0 ? "warn" : "ok"}">${delta >= 0 ? "+" : "−"}${usd(Math.abs(delta))}</span><div class="cs">${pol.requiredRoles.map((x) => approverFor(x, priya).name).join(" + ")} must approve. Deposit carries over.</div></div><button class="btn pri" id="bkProp" style="width:100%">Propose this change</button>`}<div id="bkFlow"></div>`;
+    $$<HTMLButtonElement>("#bkPane .step button").forEach((b) => b.onclick = () => { n = Math.max(2, Math.min(40, n + Number(b.dataset.d))); draw(); });
+    $<HTMLSelectElement>("#bkDate").onchange = (e) => { date = (e.target as HTMLSelectElement).value; draw(); };
+    $("#bkProp")?.addEventListener("click", async () => {
+      $("#bkProp")!.remove(); const box = $("#bkFlow"), ctxT = await mgmtCtx(r.store), win = eventWindow(date, "19:00");
+      const { proposalId } = await call(ctxT, "changes", createProposal, { runId: "changes", actorId: priya.id, principalId: dana.id, venueId: r.v.id, roomId: r.room.id, ...win, partySize: n, kind: "amend", amountCents: pol.estimate.allInCents, payeeId: null, requiredRoles: pol.requiredRoles, summary: `Change ${r.id}: ${n} guests on ${date}`, expiresAt: new Date(Date.parse(NOW) + 48 * 3_600_000).toISOString(), replacesBookingId: r.id }) as { proposalId: string };
+      for (const role of pol.requiredRoles) {
+        const ok = await slideIn(box, `Slide to approve as ${approverFor(role, priya).name.split(" ")[0]}`);
+        await r.store.decide(proposalId, approverFor(role, priya).id, role, ok ? "approve" : "reject");
+        if (!ok) { box.insertAdjacentHTML("beforeend", `<div class="gstep bad">Declined. The original booking stands.</div>`); return; }
+      }
+      try {
+        const out = await call(ctxT, "changes", amendBooking, { proposalId }) as { bookingId: string; replaced: string };
+        changedTo.set(out.replaced, out.bookingId); carried.set(out.bookingId, out.replaced); bkPick = out.bookingId;
+        toast("Booking changed", `${r.v.name} · ${n} guests · ${date}`); renderGrid(); void renderBookings();
+      } catch (e) {
+        const msg = e instanceof StoreError && e.code === "double_booked" ? `${r.room.name} is already booked that night. The change rolled back; ${r.id} is untouched.` : String(e instanceof Error ? e.message : e);
+        box.insertAdjacentHTML("beforeend", `<div class="gstep bad"><b>Refused by the database.</b> ${esc(msg)}</div>`); toast("Change refused", "Original booking kept", "bad");
+      }
+    });
+  };
+  draw();
+}
+function bkCancel(r: BkRow, free: boolean, hrs: number) {
+  $("#bkPane").innerHTML = `<div class="gstep ${free ? "" : "bad"}">${free ? `Cancelling now is free: ${r.paid ? `the ${usd(r.paid)} deposit is refunded` : "no deposit was paid"}.` : `The dinner is ${hrs} h away, inside ${esc(r.v.name)}'s ${r.v.cancellationHours} h window. ${r.paid ? `The ${usd(r.paid)} deposit is forfeited.` : ""}`}<div class="cs">The booker approves; a cancellation is a proposal like any other.</div></div><button class="btn" id="bkCx" style="width:100%">Propose cancellation</button><div id="bkFlow"></div>`;
+  $("#bkCx").onclick = async () => {
+    $("#bkCx").remove(); const box = $("#bkFlow"), ctxT = await mgmtCtx(r.store), win = eventWindow(localDate(r.startsAt), "19:00");
+    const { proposalId } = await call(ctxT, "changes", createProposal, { runId: "changes", actorId: priya.id, principalId: dana.id, venueId: r.v.id, roomId: r.room.id, startsAt: r.startsAt, endsAt: win.endsAt, partySize: r.partySize, kind: "cancel", amountCents: 0, payeeId: null, requiredRoles: ["booker"], summary: `Cancel ${r.id}`, expiresAt: new Date(Date.parse(NOW) + 48 * 3_600_000).toISOString(), replacesBookingId: r.id }) as { proposalId: string };
+    const ok = await slideIn(box, "Slide to cancel as Priya");
+    await r.store.decide(proposalId, priya.id, "booker", ok ? "approve" : "reject");
+    if (!ok) { box.insertAdjacentHTML("beforeend", `<div class="gstep ok">Kept. Nothing changed.</div>`); return; }
+    const out = await call(ctxT, "changes", cancelBooking, { proposalId }) as { depositRefundable: boolean };
+    cancelledHow.set(r.id, r.paid ? (out.depositRefundable ? "refunded" : "deposit forfeited") : "no charge");
+    toast("Booking cancelled", `${r.v.name} · ${cancelledHow.get(r.id)}`, out.depositRefundable ? "ok" : "warn"); renderGrid(); void renderBookings();
+  };
+}
+$$<HTMLButtonElement>("#bkFilter button").forEach((b) => b.onclick = () => { $$("#bkFilter button").forEach((x) => x.classList.remove("on")); b.classList.add("on"); bkFilter = b.dataset.f!; void renderBookings(); });
+
+// =====================================================================
+// POLICY: edit the rules, see the impact, replay every request before it ships
+// =====================================================================
+const BASE_POLICY = structuredClone(COMPANY.policy);
+let draft = structuredClone(company.policy);
+const KINDS: [keyof typeof draft.perHeadCapCents, string][] = [["client_dinner", "Client dinner"], ["team_dinner", "Team dinner"], ["client_lunch", "Client lunch"], ["happy_hour", "Happy hour"]];
+function polSlots(pol: typeof draft) {
+  const co = { ...company, policy: pol }; let n = 0;
+  for (const v of venues) for (const d of NIGHTS) {
+    if (v.closedDays.includes(weekday(d))) continue;
+    const room = v.rooms.filter((r) => r.private && r.listedCapacity >= 12).sort((a, b) => a.listedCapacity - b.listedCapacity)[0]; if (!room) continue;
+    if (checkPolicy(co, reqFor(12, d, true), v, { minSpendCents: room.minSpendCents[weekday(d)], perHeadCents: null, depositPct: null, capacity: null }, leadHours(NOW, d, "19:00")).onPolicy) n++;
+  }
+  return n;
+}
+function renderPolicy() {
+  const row = (id: string, label: string, val: string, min: number, max: number, step: number, v: number, base: string) => `<div class="prow"><label for="${id}">${label}</label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}"><b>${val}</b><span class="cs">was ${base}</span></div>`;
+  $("#polForm").innerHTML = `<div class="pt">Per-head cap, all-in</div>${KINDS.map(([k, l]) => row(`pc_${k}`, l, usd(draft.perHeadCapCents[k]), 3000, 40000, 500, draft.perHeadCapCents[k], usd(BASE_POLICY.perHeadCapCents[k]))).join("")}
+    <div class="pt" style="margin-top:14px">Approvals</div>${row("pm", "Manager signs above", usd(draft.managerApprovalAboveCents), 50000, 800000, 25000, draft.managerApprovalAboveCents, usd(BASE_POLICY.managerApprovalAboveCents))}${row("pf", "Finance signs deposits above", `${draft.financeApprovalDepositAbovePct}%`, 10, 60, 5, draft.financeApprovalDepositAbovePct, `${BASE_POLICY.financeApprovalDepositAbovePct}%`)}${row("pl", "Minimum notice", `${draft.minLeadHours} h`, 0, 96, 6, draft.minLeadHours, `${BASE_POLICY.minLeadHours} h`)}
+    <div class="pt" style="margin-top:14px">Blocked venues <span class="cs">tap to toggle</span></div><div class="chips">${venues.map((v) => `<button class="chip ${draft.blockedVenueIds.includes(v.id) ? "blk" : ""}" data-bv="${v.id}">${esc(v.name)}</button>`).join("")}</div>`;
+  for (const [k] of KINDS) $<HTMLInputElement>(`#pc_${k}`).oninput = (e) => { draft.perHeadCapCents[k] = Number((e.target as HTMLInputElement).value); renderPolicy(); };
+  $<HTMLInputElement>("#pm").oninput = (e) => { draft.managerApprovalAboveCents = Number((e.target as HTMLInputElement).value); renderPolicy(); };
+  $<HTMLInputElement>("#pf").oninput = (e) => { draft.financeApprovalDepositAbovePct = Number((e.target as HTMLInputElement).value); renderPolicy(); };
+  $<HTMLInputElement>("#pl").oninput = (e) => { draft.minLeadHours = Number((e.target as HTMLInputElement).value); renderPolicy(); };
+  $$<HTMLButtonElement>("[data-bv]").forEach((b) => b.onclick = () => { const id = b.dataset.bv!; draft.blockedVenueIds = draft.blockedVenueIds.includes(id) ? draft.blockedVenueIds.filter((x) => x !== id) : [...draft.blockedVenueIds, id]; renderPolicy(); });
+  const live = polSlots(company.policy), next = polSlots(draft), dirty = JSON.stringify(draft) !== JSON.stringify(company.policy);
+  $("#polImpact").innerHTML = `<div class="big3">${live} <span>→</span> <b class="${next > live ? "up" : next < live ? "down" : ""}">${next}</b></div><div class="cs">bookable private nights for 12 guests across 30 venues and 14 nights</div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="polRun">Replay all ${SCENARIOS.length} requests</button><button class="btn pri" id="polApply" ${dirty ? "" : "disabled"}>Apply policy</button><button class="btn" id="polReset">Reset</button></div><div id="polOut"></div>`;
+  $("#polApply").onclick = () => { company.policy = structuredClone(draft); renderGrid(); renderPolicy(); toast("Policy applied", "Book, Availability and Compare now use it"); };
+  $("#polReset").onclick = () => { draft = structuredClone(BASE_POLICY); renderPolicy(); };
+  $("#polRun").onclick = () => void polReplay();
+}
+const baseRuns = new Map<string, ScenarioRun>();
+async function polReplay() {
+  const b = $<HTMLButtonElement>("#polRun"); b.disabled = true; const out = $("#polOut"), co = { ...company, policy: structuredClone(draft) };
+  const spend = (r: ScenarioRun) => r.result.outcome === "booked" ? r.result.proposals.find((p) => p.kind === "book")?.amountCents ?? 0 : 0;
+  const diffs: string[] = []; let bB = 0, bA = 0, sB = 0, sA = 0, invFail2 = 0, mgrB = 0, mgrA = 0;
+  for (const [i, s] of SCENARIOS.entries()) {
+    out.innerHTML = `<div class="gstep"><span class="spin"></span> Replaying ${i + 1}/${SCENARIOS.length}: “${esc(s.text.slice(0, 60))}”</div>`;
+    if (!baseRuns.has(s.id)) baseRuns.set(s.id, await runScenario(s, llm, { ...company, policy: BASE_POLICY }));
+    const a = baseRuns.get(s.id)!, z = await runScenario(s, llm, co);
+    invFail2 += z.checks.filter((c) => c.kind === "invariant" && !c.pass).length;
+    const roles = (r: ScenarioRun) => r.result.proposals.find((p) => p.kind === "book")?.requiredRoles.includes("manager") ? 1 : 0;
+    if (a.result.outcome === "booked") bB++; if (z.result.outcome === "booked") bA++; sB += spend(a); sA += spend(z); mgrB += roles(a); mgrA += roles(z);
+    if (a.result.outcome !== z.result.outcome || spend(a) !== spend(z)) diffs.push(`<tr><td>“${esc(s.text)}”<div class="cs">${s.id} · ${s.group.replace("_", " ")}${s.order?.length ? ` · venues: ${s.order.slice(0, 3).join(", ").replace(/_/g, " ")}` : ""}</div></td><td>${a.result.outcome.replace(/_/g, " ")}${spend(a) ? ` · ${usd(spend(a))}` : ""}</td><td><b>${z.result.outcome.replace(/_/g, " ")}${spend(z) ? ` · ${usd(spend(z))}` : ""}</b></td></tr>`);
+    await sleep(0);
+  }
+  out.innerHTML = `<div class="kpis" style="margin-top:12px"><div class="kpi" style="--c:var(--sage)"><div class="k">Booked</div><b>${bB} → ${bA}</b></div><div class="kpi" style="--c:var(--brass)"><div class="k">Spend</div><b>${usd(sB)} → ${usd(sA)}</b></div><div class="kpi" style="--c:#5b6b8c"><div class="k">Manager sign-offs</div><b>${mgrB} → ${mgrA}</b></div><div class="kpi" style="--c:var(--rose)"><div class="k">Safety failures</div><b>${invFail2}</b></div></div>
+    ${diffs.length ? `<div class="pt" style="margin-top:12px">${diffs.length} request${diffs.length > 1 ? "s" : ""} change</div><div class="ctwrap"><table class="ctable wrap"><thead><tr><th>Request</th><th>Today</th><th>With this policy</th></tr></thead><tbody>${diffs.join("")}</tbody></table></div>` : `<div class="gstep ok">No request changes outcome or spend under this policy.</div>`}`;
+  b.disabled = false;
+}
+renderPolicy();
+
+// =====================================================================
+// ⌘K: ask the concierge from anywhere
+// =====================================================================
+const CMDS: { t: string; sub: string; run: () => void }[] = [
+  ...["dinner for 12 with the Acme team next Thursday, somewhere private", "private dinner for 20 with Globex on Nov 19", "team dinner for 8 this Friday under $100 a head", "client lunch for 6 with Initech tomorrow"].map((t) => ({ t, sub: "Ask the concierge", run: () => ask(t) })),
+  ...[["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
+];
+function ask(t: string) { go("book"); $<HTMLInputElement>("#ask").value = t; $<HTMLFormElement>("#go").requestSubmit(); }
+let kSel = 0;
+function kRender() {
+  const q = $<HTMLInputElement>("#kIn").value.trim().toLowerCase(), list = CMDS.filter((c) => !q || c.t.toLowerCase().includes(q));
+  const items = q && !list.some((c) => c.t.toLowerCase() === q) ? [{ t: $<HTMLInputElement>("#kIn").value, sub: "Ask the concierge", run: () => ask($<HTMLInputElement>("#kIn").value) }, ...list] : list;
+  kSel = Math.min(kSel, items.length - 1);
+  $("#kList").innerHTML = items.map((c, i) => `<div class="ki ${i === kSel ? "on" : ""}" data-i="${i}"><span>${c.sub}</span>${esc(c.t)}</div>`).join("");
+  $$<HTMLElement>("#kList .ki").forEach((x) => x.onclick = () => { kClose(); items[Number(x.dataset.i)].run(); });
+  return items;
+}
+function kOpen() { $("#kbar").classList.add("on"); const i = $<HTMLInputElement>("#kIn"); i.value = ""; kSel = 0; kRender(); setTimeout(() => i.focus(), 20); }
+function kClose() { $("#kbar").classList.remove("on"); }
+$("#kBtn").onclick = kOpen; $("#kbar").onclick = (e) => { if (e.target === $("#kbar")) kClose(); };
+$("#kIn").oninput = () => { kSel = 0; kRender(); };
+$("#kIn").onkeydown = (e) => { const items = kRender(); if (e.key === "ArrowDown") { kSel = (kSel + 1) % items.length; kRender(); e.preventDefault(); } else if (e.key === "ArrowUp") { kSel = (kSel - 1 + items.length) % items.length; kRender(); e.preventDefault(); } else if (e.key === "Enter" && items[kSel]) { kClose(); items[kSel].run(); } else if (e.key === "Escape") kClose(); };
+document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); kOpen(); } });
 
 // ---------- start ----------
 if (!new URLSearchParams(location.search).has("still")) void deskLoop();
