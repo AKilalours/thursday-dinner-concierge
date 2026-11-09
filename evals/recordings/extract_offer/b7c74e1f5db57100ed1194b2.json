@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"date\": \"2026-11-19\",\n  \"guestCount\": 12,\n  \"availableRooms\": [\"Main dining room\"],\n  \"unavailableRooms\": [\"Garden Room\"],\n  \"minimumSpend\": null,\n  \"depositRequired\": true,\n  \"depositAmount\": null,\n  \"depositPercentage\": 50,\n  \"menuOptions\": null,\n  \"pricePerPerson\": null,\n  \"additionalNotes\": \"Garden Room only seats 10 comfortably. Semi-private section of Main dining room offered instead with no minimum. Private dining agreement required for signature.\",\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 207,
+ "outputTokens": 170,
+ "model": "claude-sonnet-4-5"
+}

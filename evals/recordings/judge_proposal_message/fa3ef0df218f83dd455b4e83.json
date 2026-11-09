@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. Contains all essentials: venue (The Gilded Pear), room (Wine Cellar), date (Thu Nov 12), time (7 pm), headcount (12 guests with Acme), total cost ($1,801 all-in), and deposit ($339). Clearly flags the date ambiguity risk ('I read next Thursday as Thu Nov 12; reject if you meant Thu Nov 19'). Provides helpful context (per-person cost, budget compliance, corporate discount, cancellation terms) without overstating. Concise and scannable on mobile with clear approve/reject instruction.\"\n}\n```",
+ "inputTokens": 289,
+ "outputTokens": 161,
+ "model": "claude-sonnet-4-5"
+}

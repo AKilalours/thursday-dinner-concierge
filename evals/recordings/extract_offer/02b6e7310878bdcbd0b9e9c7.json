@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"restaurantName\": \"Kiso House\",\n  \"availableDate\": \"2026-11-12\",\n  \"availableTime\": \"19:00\",\n  \"partySize\": 12,\n  \"room\": \"Garden Room\",\n  \"roomCapacity\": 18,\n  \"minimumSpend\": 160920,\n  \"minimumSpendBeforeTaxAndGratuity\": true,\n  \"depositRequired\": 80460,\n  \"depositPercentage\": 50,\n  \"holdDurationHours\": 24,\n  \"agreementRequired\": true,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 228,
+ "outputTokens": 164,
+ "model": "claude-sonnet-4-5"
+}

@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"partySize\": 10,\n  \"kind\": \"client_dinner\",\n  \"clientName\": \"Initech\",\n  \"privateRoom\": true,\n  \"neighborhood\": null,\n  \"cuisine\": \"steakhouse\",\n  \"maxPerHeadDollars\": null,\n  \"time24h\": null,\n  \"dietary\": [],\n  \"notes\": \"Nov 17\"\n}\n```",
+ "inputTokens": 185,
+ "outputTokens": 105,
+ "model": "claude-sonnet-4-5"
+}

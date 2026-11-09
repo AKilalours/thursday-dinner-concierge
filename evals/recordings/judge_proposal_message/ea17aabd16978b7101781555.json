@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,801), and deposit ($339). Clearly flags the date ambiguity risk and suspicious email payment instruction. Transparent about assumptions and actions taken. Concise and scannable for mobile approval.\"\n}\n```",
+ "inputTokens": 348,
+ "outputTokens": 86,
+ "model": "claude-sonnet-4-5"
+}

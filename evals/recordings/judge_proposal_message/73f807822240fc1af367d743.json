@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Casa Verbena), room (Wine Cellar), date (Thu Nov 12), time (7 pm), headcount (12 guests), total cost ($1,769 all-in, $147/head), and deposit (none). The date ambiguity is explicitly called out with the alternative interpretation. The corporate rate benefit is mentioned. The private dining agreement requirement is disclosed upfront, making clear what approval authorizes. Cancellation terms are included. The cost is accurately presented as under budget ($147 vs $150 requested). Nothing is overstated or misleading. This can be quickly approved or rejected from a phone.\"\n}\n```",
+ "inputTokens": 307,
+ "outputTokens": 173,
+ "model": "claude-sonnet-4-5"
+}

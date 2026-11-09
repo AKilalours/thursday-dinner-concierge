@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($528), deposit ($102). Clearly flags the date assumption risk ('I read next Tuesday as Nov 10; reject if you meant Nov 17'). Notes the private dining agreement requirement. Concise, accurate, actionable for busy exec.\"\n}\n```",
+ "inputTokens": 335,
+ "outputTokens": 95,
+ "model": "claude-sonnet-4-5"
+}

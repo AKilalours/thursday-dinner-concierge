@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Harbor & Rye), room (Main dining room), date/time (Wed Nov 18 at 7pm), headcount (12 guests), total cost (~$1,633), and deposit ($253). The per-head cost helps quick evaluation against the stated budget cap. Important terms are flagged: cancellation policy (free until 48h before) and a key assumption/risk is called out (requires signing their private dining agreement, and approval authorizes this). Nothing is overstated - uses 'about' appropriately for estimates. The corporate discount is mentioned as added value. Format is scannable for a busy executive on mobile.\"\n}\n```",
+ "inputTokens": 283,
+ "outputTokens": 174,
+ "model": "claude-sonnet-4-5"
+}

@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"partySize\": 6,\n  \"kind\": \"client_lunch\",\n  \"clientName\": \"Acme\",\n  \"privateRoom\": null,\n  \"neighborhood\": null,\n  \"cuisine\": null,\n  \"maxPerHeadDollars\": null,\n  \"time24h\": \"12:00\",\n  \"dietary\": null,\n  \"notes\": \"tomorrow at noon\"\n}\n```",
+ "inputTokens": 155,
+ "outputTokens": 106,
+ "model": "claude-sonnet-4-5"
+}

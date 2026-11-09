@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials clearly stated: venue (Lantern Row), room (Wine Cellar), date (Thu Nov 19), time (7 pm), headcount (20 guests with Acme), costs (minimum $2,072, estimated total $2,638, per-head $132), and deposit ($518). Key assumptions and risks are explicitly called out: the date format could be ambiguous but is clarified with day of week; budget compliance is confirmed ($132 under $250 cap); the corporate discount is noted; cancellation terms are clear; the private dining agreement requirement is disclosed with approval implications stated; and the additional approver (Marcus Lee) for amounts over $2,500 is identified. Nothing is overstated or misleading. Perfect for quick mobile approval.\"\n}\n```",
+ "inputTokens": 293,
+ "outputTokens": 196,
+ "model": "claude-sonnet-4-5"
+}

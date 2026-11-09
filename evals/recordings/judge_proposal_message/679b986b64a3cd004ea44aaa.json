@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Casa Verbena), room (Wine Cellar), date (Thu Nov 12), time (7:30 pm), headcount (12 guests), minimum spend ($1,097), estimated total cost ($1,769 / $147 per head), and deposit (none). The message efficiently includes relevant context (hosting Acme, under budget cap, corporate discount saving $288, free cancellation terms). Critically, it flags a risk/requirement that needs approval: signing Casa Verbena's private dining agreement. The call-to-action is clear and the format is scannable for a busy executive on mobile.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message excellently provides all essential information for quick approval: venue (Casa Verbena), room (Wine Cellar), date (Thu Nov 12), time (7:30 pm), headcount (12 guests), total cost ($1,769 all-in with per-person breakdown), and deposit (none). It clearly states the minimum spend ($1,097), highlights the corporate discount benefit, notes free cancellation terms, and importantly calls out a risk/assumption by explicitly stating that approval authorizes signing Casa Verbena's private dining agreement. The message is concise, well-structured, and enables informed decision-making from a phone.\"\n}\n```",
  "inputTokens": 287,
- "outputTokens": 170,
+ "outputTokens": 162,
  "model": "claude-sonnet-4-5"
 }

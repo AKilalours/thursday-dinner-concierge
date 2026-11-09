@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Kiso House), room (Garden Room), date (Thu Nov 12), time (7 pm), headcount (12 guests), total cost ($1,825 all-in at $152/head), and deposit ($805). The date ambiguity is explicitly called out with the alternative interpretation. Additional value (corporate discount saving $249, under budget cap) is mentioned without overstatement. The private dining agreement requirement is disclosed upfront with clear authorization language. Cancellation terms provided. Action required is crystal clear. A busy executive can approve or reject this confidently from their phone in seconds.\"\n}\n```",
+ "inputTokens": 301,
+ "outputTokens": 165,
+ "model": "claude-sonnet-4-5"
+}

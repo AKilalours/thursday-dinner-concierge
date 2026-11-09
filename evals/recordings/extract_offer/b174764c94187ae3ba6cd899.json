@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"available\": true,\n  \"roomName\": \"Main dining room\",\n  \"date\": \"2026-11-10\",\n  \"time\": \"20:00\",\n  \"capacity\": 60,\n  \"minSpendCents\": 0,\n  \"perHeadCents\": null,\n  \"depositPct\": 20,\n  \"holdExpiresHours\": 24,\n  \"contractRequired\": true,\n  \"requestedPaymentDestination\": null,\n  \"alternativeDates\": []\n}\n```",
+ "inputTokens": 364,
+ "outputTokens": 135,
+ "model": "claude-sonnet-4-5"
+}

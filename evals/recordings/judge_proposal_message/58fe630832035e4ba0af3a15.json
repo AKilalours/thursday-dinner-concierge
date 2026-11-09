@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,769), per-head cost ($147), deposit (none). Ambiguous date risk clearly flagged with specific dates. Corporate discount noted. Contract requirement disclosed. Concise, accurate, actionable for busy exec.\"\n}\n```",
+ "inputTokens": 336,
+ "outputTokens": 91,
+ "model": "claude-sonnet-4-5"
+}

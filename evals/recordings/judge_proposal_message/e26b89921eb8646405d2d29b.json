@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Casa Verbena), room (Wine Cellar), date (Wed Nov 18), time (7:30 pm), headcount (12 guests with Umbrella), minimum spend ($1,097), estimated total cost ($1,769 / $147 per head), and deposit (none). The message efficiently includes relevant context (under budget cap, corporate discount saving, free cancellation terms) and explicitly calls out a risk/assumption that requires attention: the private dining agreement that will be signed upon approval. The format is scannable and decision-ready for a busy executive on mobile.\"\n}\n```",
+ "inputTokens": 288,
+ "outputTokens": 162,
+ "model": "claude-sonnet-4-5"
+}

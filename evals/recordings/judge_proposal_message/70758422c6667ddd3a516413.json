@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($528), deposit ($102). Clearly states corporate discount benefit. Flags important assumption that approving authorizes signing their agreement. Concise, scannable format perfect for mobile approval.\"\n}\n```",
+ "inputTokens": 315,
+ "outputTokens": 82,
+ "model": "claude-sonnet-4-5"
+}

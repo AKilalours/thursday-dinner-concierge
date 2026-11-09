@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"proposedDate\": \"2026-11-12\",\n  \"guestCount\": 12,\n  \"proposedRoom\": \"Main dining room\",\n  \"roomNote\": \"Semi-private section offered instead of Wine Cellar, which only seats 10 comfortably\",\n  \"minimumSpend\": null,\n  \"depositRequired\": false,\n  \"depositAmount\": null,\n  \"agreementRequired\": true,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 201,
+ "outputTokens": 123,
+ "model": "claude-sonnet-4-5"
+}

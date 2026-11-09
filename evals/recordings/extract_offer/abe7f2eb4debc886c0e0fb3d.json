@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"available\": true,\n  \"date\": \"2026-11-12\",\n  \"time\": \"19:00\",\n  \"room\": \"Wine Cellar\",\n  \"capacity\": 16,\n  \"minimumSpend\": 218000,\n  \"depositPercent\": 30,\n  \"holdDuration\": \"24 hours\",\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 245,
+ "outputTokens": 105,
+ "model": "claude-sonnet-4-5"
+}

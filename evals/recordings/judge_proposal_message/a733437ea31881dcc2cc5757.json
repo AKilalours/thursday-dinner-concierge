@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Larkspur Table), room (Main dining room), date (Fri Nov 13), time (7 pm), headcount (6 guests with Stark), total cost ($758 all-in), and deposit (none). The per-head cost and budget compliance are noted ($126/head under $250 cap). Cancellation terms are clear (free until 24h before). Importantly, it flags a risk/requirement that needs attention: the private dining agreement that will be signed upon approval. The message is concise, scannable on mobile, and gives the executive assistant everything needed to make an informed decision without overstating or burying critical details.\"\n}\n```",
+ "inputTokens": 266,
+ "outputTokens": 179,
+ "model": "claude-sonnet-4-5"
+}

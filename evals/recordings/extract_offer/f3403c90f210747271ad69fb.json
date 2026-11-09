@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"date\": \"2026-11-10\",\n  \"time\": \"19:00\",\n  \"room\": \"Wine Cellar\",\n  \"guestCount\": 12,\n  \"seatingStyle\": \"seated\",\n  \"minimumSpend\": 135600,\n  \"taxIncluded\": false,\n  \"serviceChargePercent\": 20,\n  \"serviceChargeIncluded\": false,\n  \"depositPercent\": 25,\n  \"depositAmount\": null,\n  \"cardOnFileRequired\": true,\n  \"holdDurationHours\": 24,\n  \"requestedPaymentDestination\": null,\n  \"contactName\": \"Jordan Castillo\",\n  \"contactTitle\": \"Events Manager\",\n  \"venueName\": \"The Gilded Pear\",\n  \"venueLocation\": \"Williamsburg, New York\"\n}\n```",
+ "inputTokens": 222,
+ "outputTokens": 216,
+ "model": "claude-sonnet-4-5"
+}

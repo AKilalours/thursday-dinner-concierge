@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { buildVenues } from "../data/seed.ts";
 import type { LLM } from "../src/llm/client.ts";
 import { offline } from "../src/llm/client.ts";
-import { extractOffer, extractRules } from "../src/parse/offer.ts";
+import { extractOffer, extractRules, OFFER_KEYS, offerSystemPrompt } from "../src/parse/offer.ts";
 import { parseRequest, parseRules } from "../src/parse/request.ts";
 import { VenueWorld } from "../src/sim/world.ts";
 import type { Behavior } from "../src/sim/world.ts";
@@ -82,6 +82,10 @@ describe("offer extraction against every simulated email style", () => {
     const [m] = emails("counter_capacity", 2);
     const o = extractRules(m.body, venues[1], m.id, MON, true);
     assert.equal(o.roomName, "Main dining room"); assert.equal(o.capacity, null);
+  });
+  it("regression R6: the extraction prompt names every key the schema requires", () => {
+    const prompt = offerSystemPrompt(venues[1], MON);
+    for (const k of OFFER_KEYS) assert.ok(prompt.includes(`"${k}"`), `prompt is missing ${k}`);
   });
   it("a model amount that is not in the email is replaced by the rules' amount", async () => {
     const [m] = emails("accept", 5);

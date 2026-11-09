@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message excellently provides all essentials for quick approval: venue (Casa Verbena), room (Wine Cellar), date (Thu Nov 12), time (7 pm), headcount (12 guests with Acme), cost breakdown (minimum $1,097, estimated total $1,769, per-head $147 under $250 cap), and deposit terms (none, free cancellation 48h before). It clearly flags the key assumption/risk that approving authorizes signing Casa Verbena's private dining agreement. The corporate rate discount is a nice value-add detail. Nothing is overstated or misleading, and everything a busy executive needs to make an informed decision from their phone is present and clearly stated.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message excellently covers all essentials for quick approval: venue (Casa Verbena), room (Wine Cellar), date (Thu Nov 12), time (7 pm), headcount (12 guests with Acme), cost breakdown (minimum $1,097, estimated total $1,769, per-head $147), and deposit terms (none, free cancellation 48h before). It clearly flags the key assumption/risk that approving authorizes signing Casa Verbena's private dining agreement, which is material. The budget context ($147 vs $250 cap) helps decision-making. Nothing is overstated or misleading. Perfect for a busy executive to approve from their phone.\"\n}\n```",
  "inputTokens": 277,
- "outputTokens": 181,
+ "outputTokens": 175,
  "model": "claude-sonnet-4-5"
 }

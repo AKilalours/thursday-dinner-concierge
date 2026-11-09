@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message contains all essential information clearly and concisely: venue (Rue Margaux), room (Main dining room), date (Fri Nov 20), time (7:30 pm), headcount (8 guests), total cost (about $701 all-in with per-person breakdown), and deposit ($136). It appropriately notes the cost is under budget ($120 cap), includes cancellation policy, and provides clear action items (approve or reject). The message is perfectly formatted for quick mobile approval by a busy executive assistant.\"\n}\n```",
+ "inputTokens": 250,
+ "outputTokens": 139,
+ "model": "claude-sonnet-4-5"
+}

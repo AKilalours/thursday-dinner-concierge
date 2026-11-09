@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"venueName\": \"Kiso House\",\n  \"venueLocation\": \"SoHo, New York\",\n  \"contactName\": \"Jordan Castillo\",\n  \"contactTitle\": \"Events Manager\",\n  \"proposedDate\": \"2026-11-12\",\n  \"proposedTime\": \"19:00\",\n  \"partySize\": 12,\n  \"roomName\": \"Garden Room\",\n  \"roomCapacity\": 18,\n  \"minimumSpendCents\": 160920,\n  \"minimumSpendAppliesTo\": \"before tax and gratuity\",\n  \"depositRequiredCents\": 80460,\n  \"depositPercentage\": 50,\n  \"holdDurationHours\": 48,\n  \"requiresSignedAgreement\": true,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 235,
+ "outputTokens": 213,
+ "model": "claude-sonnet-4-5"
+}

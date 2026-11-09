@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"available\": true,\n  \"roomName\": \"The Library\",\n  \"capacity\": 18,\n  \"date\": \"2026-11-17\",\n  \"time\": \"19:00\",\n  \"minimumSpend\": 103800,\n  \"depositPercent\": 25,\n  \"serviceChargePercent\": 20,\n  \"holdDurationHours\": 24,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 242,
+ "outputTokens": 116,
+ "model": "claude-sonnet-4-5"
+}

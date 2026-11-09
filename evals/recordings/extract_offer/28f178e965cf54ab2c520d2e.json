@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"restaurantName\": \"Lantern Row\",\n  \"contactName\": \"Jordan Castillo\",\n  \"contactTitle\": \"Events Manager\",\n  \"availableDate\": \"2026-11-10\",\n  \"availableTime\": \"12:00\",\n  \"roomName\": \"Main dining room\",\n  \"capacity\": 60,\n  \"seatingStyle\": \"seated\",\n  \"minimumSpend\": 0,\n  \"taxIncluded\": false,\n  \"serviceChargePercent\": 20,\n  \"serviceChargeIncluded\": false,\n  \"depositPercent\": 25,\n  \"depositAmount\": null,\n  \"holdDurationHours\": 24,\n  \"requiresContract\": true,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 218,
+ "outputTokens": 197,
+ "model": "claude-sonnet-4-5"
+}

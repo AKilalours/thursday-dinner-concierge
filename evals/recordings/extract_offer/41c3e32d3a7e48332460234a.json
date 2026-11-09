@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"restaurantName\": \"Hollow Oak Tavern\",\n  \"contactPerson\": \"Jordan Castillo\",\n  \"contactTitle\": \"Events Manager\",\n  \"location\": \"SoHo, New York\",\n  \"availableDate\": \"2026-11-24\",\n  \"availableTime\": \"19:00\",\n  \"roomName\": \"Garden Room\",\n  \"capacity\": 8,\n  \"seatingStyle\": \"seated\",\n  \"minimumSpend\": 130800,\n  \"minimumSpendExcludesTax\": true,\n  \"minimumSpendExcludesServiceCharge\": true,\n  \"serviceChargePercentage\": 20,\n  \"depositPercentage\": 30,\n  \"depositRequired\": true,\n  \"agreementRequired\": true,\n  \"holdDurationHours\": 24,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 226,
+ "outputTokens": 227,
+ "model": "claude-sonnet-4-5"
+}

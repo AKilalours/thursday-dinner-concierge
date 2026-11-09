@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"available\": true,\n  \"roomName\": \"Garden Room\",\n  \"date\": \"2026-11-10\",\n  \"partySize\": 12,\n  \"startTime\": \"19:00\",\n  \"minimumSpend\": 160920,\n  \"depositRequired\": 80460,\n  \"holdDuration\": \"48 hours\",\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 252,
+ "outputTokens": 107,
+ "model": "claude-sonnet-4-5"
+}

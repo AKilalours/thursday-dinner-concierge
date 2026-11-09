@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($758), per-person cost, deposit (none), cancellation terms. Clearly flags the private dining agreement requirement and what approval authorizes. Concise and actionable for quick mobile approval.\"\n}\n```",
+ "inputTokens": 295,
+ "outputTokens": 84,
+ "model": "claude-sonnet-4-5"
+}

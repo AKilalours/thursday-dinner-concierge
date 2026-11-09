@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Casa Verbena), room (Main dining room), date/time (Wed Nov 18 at 7 pm), headcount (12 guests), total cost (~$1,769), and deposit (none). The per-person cost helps the executive quickly assess reasonableness against the stated $250 cap. Important terms are highlighted (free cancellation window, required dining agreement that will be signed upon approval). The message is concise, scannable on mobile, and includes a clear call-to-action. No misleading claims or buried information.\"\n}\n```",
+ "inputTokens": 280,
+ "outputTokens": 154,
+ "model": "claude-sonnet-4-5"
+}

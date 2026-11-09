@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"restaurantName\": \"The Gilded Pear\",\n  \"contactName\": \"Jordan Castillo\",\n  \"contactTitle\": \"Events Manager\",\n  \"availableDates\": [\"2026-11-11\", \"2026-11-19\"],\n  \"unavailableDates\": [\"2026-11-12\"],\n  \"proposedTime\": \"19:00\",\n  \"proposedRoom\": \"Wine Cellar\",\n  \"minimumSpend\": 135600,\n  \"depositRequired\": null,\n  \"menuOptions\": null,\n  \"pricePerPerson\": null,\n  \"maxCapacity\": null,\n  \"minCapacity\": null,\n  \"additionalFees\": null,\n  \"requestedPaymentDestination\": null,\n  \"suspiciousContent\": false,\n  \"notes\": \"Thursday Nov 12 is booked for a buyout\"\n}\n```",
+ "inputTokens": 207,
+ "outputTokens": 223,
+ "model": "claude-sonnet-4-5"
+}

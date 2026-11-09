@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Rue Margaux), room (The Library), date (Tue Nov 17), time (7 pm), headcount (10 guests with Initech), cost structure (minimum $1,038, estimated total $1,338 at $134/head), and deposit ($260). The per-person cost is helpfully compared to the budget cap ($250). Cancellation terms are included. The message is concise, scannable on mobile, and provides everything needed for a quick approve/reject decision without overstatement or ambiguity.\"\n}\n```",
+ "inputTokens": 253,
+ "outputTokens": 155,
+ "model": "claude-sonnet-4-5"
+}

@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"restaurantName\": \"Harbor & Rye\",\n  \"contactName\": \"Jordan Castillo\",\n  \"contactTitle\": \"Events Manager\",\n  \"location\": \"Flatiron, New York\",\n  \"proposedDate\": \"2026-11-17\",\n  \"proposedTime\": \"20:00\",\n  \"roomName\": \"Main dining room\",\n  \"capacity\": 60,\n  \"seatingStyle\": \"seated\",\n  \"minimumSpend\": 0,\n  \"taxIncluded\": false,\n  \"serviceChargePercent\": 20,\n  \"serviceChargeIncluded\": false,\n  \"depositPercent\": 20,\n  \"depositRequired\": true,\n  \"agreementRequired\": true,\n  \"holdDurationHours\": 24,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 224,
+ "outputTokens": 212,
+ "model": "claude-sonnet-4-5"
+}

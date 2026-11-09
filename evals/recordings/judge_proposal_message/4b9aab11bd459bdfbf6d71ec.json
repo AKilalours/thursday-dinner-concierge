@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($701), per-person cost, deposit ($136), and cancellation policy. Budget compliance clearly stated ($88 vs $120 cap). Concise and scannable for quick mobile approval.\"\n}\n```",
+ "inputTokens": 279,
+ "outputTokens": 84,
+ "model": "claude-sonnet-4-5"
+}

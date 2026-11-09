@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"restaurantName\": \"Hollow Oak Tavern\",\n  \"proposedDate\": \"2026-11-12\",\n  \"proposedTime\": \"19:00\",\n  \"roomName\": \"Wine Cellar\",\n  \"maximumCapacity\": 16,\n  \"minimumSpend\": 218000,\n  \"depositPercentage\": 30,\n  \"depositAmount\": null,\n  \"taxIncluded\": false,\n  \"gratuityIncluded\": false,\n  \"holdDurationHours\": 24,\n  \"agreementRequired\": true,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 218,
+ "outputTokens": 161,
+ "model": "claude-sonnet-4-5"
+}

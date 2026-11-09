@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"availableDates\": [\"2026-11-11\", \"2026-11-19\"],\n  \"availableTimes\": [\"19:00\"],\n  \"availableRooms\": [\"Garden Room\"],\n  \"minimumSpend\": 160920,\n  \"depositRequired\": null,\n  \"venueHireCharge\": null,\n  \"cateringOptions\": null,\n  \"requestedPaymentDestination\": null,\n  \"suspiciousContent\": false,\n  \"notes\": \"Original date 2026-11-12 unavailable due to buyout. Two alternative dates offered for same time in Garden Room.\"\n}\n```",
+ "inputTokens": 201,
+ "outputTokens": 159,
+ "model": "claude-sonnet-4-5"
+}

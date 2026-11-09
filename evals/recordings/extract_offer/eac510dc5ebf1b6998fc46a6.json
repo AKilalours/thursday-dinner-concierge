@@ -1,5 +1,5 @@
 {
- "text": "```json\n{\n  \"date\": \"2026-11-12\",\n  \"time\": \"19:00\",\n  \"partySize\": 12,\n  \"room\": \"Wine Cellar\",\n  \"minimumSpend\": 135600,\n  \"depositPercentage\": 25,\n  \"serviceChargePercentage\": 20,\n  \"taxIncluded\": false,\n  \"holdDuration\": \"24 hours\",\n  \"cardOnFileRequired\": true,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "text": "```json\n{\n  \"date\": \"2026-11-12\",\n  \"time\": \"19:00\",\n  \"partySize\": 12,\n  \"room\": \"Wine Cellar\",\n  \"minimumSpend\": 135600,\n  \"depositPercentage\": 25,\n  \"serviceChargePercentage\": 20,\n  \"taxIncluded\": false,\n  \"holdDurationHours\": 24,\n  \"cardOnFileRequired\": true,\n  \"requestedPaymentDestination\": null\n}\n```",
  "inputTokens": 222,
  "outputTokens": 134,
  "model": "claude-sonnet-4-5"

@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 4,\n  \"reason\": \"Strong message with all essentials: venue, room, date, time, headcount, cost breakdown, and deposit clearly stated. Proactively flags the date ambiguity risk. However, missing one important detail: the two vegetarians dietary requirement isn't acknowledged, so there's no confirmation the venue can accommodate this need. An executive assistant would want assurance this was handled before approving.\"\n}\n```",
+ "inputTokens": 275,
+ "outputTokens": 106,
+ "model": "claude-sonnet-4-5"
+}

@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,769), deposit (none). Budget compliance clearly stated ($147/head under $250 cap). Risk flagged: signing required agreement. Corporate discount noted. Cancellation terms included. Concise, actionable, nothing misleading.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, cost breakdown with per-person rate, deposit terms, and cancellation policy. Clearly states the corporate discount benefit. Appropriately flags the private dining agreement requirement as a risk that needs approval. Concise and actionable for quick mobile decision-making.\"\n}\n```",
  "inputTokens": 306,
- "outputTokens": 95,
+ "outputTokens": 94,
  "model": "claude-sonnet-4-5"
 }

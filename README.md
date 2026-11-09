@@ -14,8 +14,8 @@
 <table align="center"><tr>
 <td align="center"><h3>45/45</h3>eval scenarios</td>
 <td align="center"><h3>0 / 2,013</h3>safety failures<br>in random worlds</td>
-<td align="center"><h3>88</h3>tests, incl.<br>real Postgres</td>
-<td align="center"><h3>5</h3>bugs caught →<br>permanent cases</td>
+<td align="center"><h3>89</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>6</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
 
 ```bash
@@ -73,14 +73,16 @@ flowchart LR
 | R3 | Table for 4 priced as a private room → escalated as over budget |
 | R4 | "Nov 18 at 7:30pm" parsed as a party of 18 |
 | R5 | An offer carrying injected bank details was triaged as a payment request, losing the offer |
+| R6 | **Found by the first live Claude run:** the extraction prompt didn't name the schema keys, so Claude returned its own field names and every offer silently fell back to rules |
 </details>
 
 <details>
-<summary><b>Honest limits</b></summary>
+<summary><b>Live model</b></summary>
 
-- Numbers above are from the deterministic path (no model key in the build environment). The model path is wired and unit-tested with fake models. Measure it with `ANTHROPIC_API_KEY=... npm run evals:live`.
-- The simulator and the rule parsers were built together: the scenarios prove the plumbing and safety, not language understanding on real venue email.
-- The LLM judge needs human labels before its number means anything (`node evals/calibrate.ts --export`).
+- Claude (`claude-sonnet-4-5`) parses requests, extracts offers from venue email and judges proposal messages. Every output is recorded under `evals/recordings/` and replayed in CI and on the live site, so anyone sees exactly what Claude answered, with no key.
+- The first live run scored proposal messages 5/5 and found bug R6.
+- Put your key in `.env` once (`ANTHROPIC_API_KEY=...`); `npm run llm:check` verifies it, `npm run evals:live` re-measures and rebuilds the site.
+- The LLM judge is calibrated with `node evals/calibrate.ts --export` plus human labels.
 </details>
 
 <details>

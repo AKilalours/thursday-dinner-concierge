@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"available\": true,\n  \"roomName\": \"Main dining room\",\n  \"capacity\": null,\n  \"date\": \"2026-11-19\",\n  \"time\": null,\n  \"duration\": null,\n  \"menuOptions\": null,\n  \"pricing\": null,\n  \"minimumSpend\": null,\n  \"depositRequired\": \"50%\",\n  \"additionalFees\": null,\n  \"contactName\": \"Morgan\",\n  \"contactPhone\": null,\n  \"contactEmail\": null,\n  \"nextSteps\": null,\n  \"specialConditions\": \"Garden Room only seats 10 comfortably, so for 12 guests offering semi-private section of Main dining room instead with no minimum. Private dining agreement required for signature.\",\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 235,
+ "outputTokens": 199,
+ "model": "claude-sonnet-4-5"
+}

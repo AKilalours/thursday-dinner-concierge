@@ -39,6 +39,7 @@ const lines = [
   `Invariant checks: **${inv.filter((c) => c.pass).length}/${inv.length}** (must be 100%). Expectation checks: **${exp.filter((c) => c.pass).length}/${exp.length}**.`,
   `Bookings: ${booked.length}; median emails per booking ${median(booked.map((r) => r.emails))}; median simulated hours to booking ${median(booked.map((r) => r.hours)).toFixed(0)}.`,
   `Request parsing decided by: ${["model", "rules"].map((k) => `${k} ${rows.filter((r) => r.result.parseDecidedBy === k).length}`).join(", ")}.`,
+  `Offer extraction decided by: ${["model", "rules"].map((k) => `${k} ${rows.flatMap((r) => r.result.trace).filter((e) => e.kind === "offer" && e.text.endsWith(`(${k})`)).length}`).join(", ")}.`,
   judged.length ? `LLM judge (booker-message quality, 1-5): mean ${(judged.reduce((a, r) => a + r.judge!, 0) / judged.length).toFixed(2)} over ${judged.length} messages.` : `LLM judge: skipped (no model outputs available in this mode).`,
   ``,
   `| Group | Scenarios | Passing |`,

@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, cost breakdown, deposit. Clearly flags date ambiguity risk and contract signing requirement. Concise, actionable, perfect for mobile approval.\"\n}\n```",
+ "inputTokens": 332,
+ "outputTokens": 71,
+ "model": "claude-sonnet-4-5"
+}

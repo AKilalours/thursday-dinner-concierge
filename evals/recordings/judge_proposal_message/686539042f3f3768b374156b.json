@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message excellently covers all essentials for quick executive approval: venue (Lantern Row), room (Main dining room), date (Tue Nov 17), time (8 pm), headcount (4 guests with Pied Piper), total cost ($528 all-in with per-head breakdown), and deposit ($102). It highlights value (14% corporate discount saving $86, under budget cap). Critically, it flags a risk/assumption that requires attention: approving will authorize signing Lantern Row's private dining agreement. The cancellation policy is clear. The call-to-action is direct. Nothing is overstated or misleading.\"\n}\n```",
+ "inputTokens": 286,
+ "outputTokens": 166,
+ "model": "claude-sonnet-4-5"
+}

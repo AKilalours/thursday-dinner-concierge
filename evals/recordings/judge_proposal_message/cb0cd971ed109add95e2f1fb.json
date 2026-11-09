@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"This message is exemplary. It clearly states all essentials: venue (Rue Margaux), room (The Library), date (Thu Nov 19), time (7 pm), headcount (16 guests), minimum spend ($1,038), estimated total cost ($1,402), per-person cost ($88), deposit ($260), and cancellation policy. It appropriately references the budget constraint ($120 cap) showing the booking is within limits. The message is concise, scannable on mobile, and ends with a clear call-to-action. No ambiguities or risks are present that need flagging.\"\n}\n```",
+ "inputTokens": 246,
+ "outputTokens": 156,
+ "model": "claude-sonnet-4-5"
+}

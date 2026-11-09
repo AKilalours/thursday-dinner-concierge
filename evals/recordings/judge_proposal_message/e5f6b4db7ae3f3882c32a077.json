@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,633), deposit ($253). Clearly states per-person cost under budget cap. Notes corporate discount benefit. Flags important assumption that approval authorizes signing required agreement. Cancellation terms included. Concise and actionable for quick mobile approval.\"\n}\n```",
+ "inputTokens": 312,
+ "outputTokens": 97,
+ "model": "claude-sonnet-4-5"
+}
