@@ -22,7 +22,7 @@
 npm install && npm run demo
 ```
 
-**On the live site:** Live desk · Book (slide to approve) · Inbox lab · **Fix lab** (replay a real failure with Claude's recorded 1/5 verdict, see the fix, prove it) · **Tools** (call the typed capabilities yourself) · **Judgments** (drag thresholds, force a timeout, watch the fallback) · Controls · Evals · Memory · Spend. Press **▶ Tour** for a hands-free 47-second walkthrough.
+**On the live site:** Live desk · Book (slide to approve) · **Availability** (30 venues × 14 nights, priced under policy; click a cell to request, approve and book that exact table) · **Compare** (every offer the agent collected in one sortable table, side-by-side cards, propose any of them) · **Seating** (drag guests to seats, flag dietary needs, send the plan to the venue) · Inbox lab · **Fix lab** (replay a real failure with Claude's recorded 1/5 verdict, see the fix, prove it) · **Tools** (call the typed capabilities yourself) · **Judgments** (drag thresholds, force a timeout, watch the fallback) · Controls · Evals · Memory · Spend. Press **▶ Tour** for a hands-free 47-second walkthrough.
 
 <details>
 <summary><b>How it works</b></summary>

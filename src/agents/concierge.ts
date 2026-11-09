@@ -38,6 +38,8 @@ export interface RunInput {
   judgmentMode?: Mode;
   smsOptedOut?: Set<string>;
   maxRounds?: number;
+  /** Venues to contact per round (an RFP to more venues gives more offers to compare). */
+  shortlistSize?: number;
   onEvent?: (e: TraceEvent) => void;
   legacy?: { r7?: boolean; r8?: boolean };
 }
@@ -113,7 +115,7 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   let options: Option[] = [];
   const rounds = input.maxRounds ?? 2;
   for (let round = 1; round <= rounds && options.length === 0; round++) {
-    const candidates = (await source(ctx, req, contacted)).slice(0, urg.label === "urgent" ? 4 : 3);
+    const candidates = (await source(ctx, req, contacted)).slice(0, input.shortlistSize ?? (urg.label === "urgent" ? 4 : 3));
     if (!candidates.length) {
       // A stated cuisine with no venue inside policy: ask which constraint to relax, with the real numbers.
       if (round === 1 && req.cuisine && !ctx.legacy?.r7) {

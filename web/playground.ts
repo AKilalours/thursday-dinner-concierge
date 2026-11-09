@@ -7,18 +7,21 @@ import type { ScenarioRun } from "../evals/runner.ts";
 import { SCENARIOS } from "../evals/scenarios.ts";
 import { approverFor, carefulApprover, runConcierge } from "../src/agents/concierge.ts";
 import type { Approver, RunResult } from "../src/agents/concierge.ts";
-import type { Company, Proposal } from "../src/domain/types.ts";
+import type { BookingRequest, Company, Offer, Proposal, Venue } from "../src/domain/types.ts";
 import { injection, replyTriage, smsConsent } from "../src/judgments/judgments.ts";
 import { ReplayLLM } from "../src/llm/client.ts";
 import type { LLM } from "../src/llm/client.ts";
 import { judgeMessage } from "../evals/judge.ts";
 import { call, ToolDenied } from "../src/tools/registry.ts";
 import type { Tool } from "../src/tools/registry.ts";
-import { book as bookTool, createProposal, notifyBooker, payDeposit, recordFact, sendVenueEmail } from "../src/tools/tools.ts";
+import { book as bookTool, createProposal, eventWindow, leadHours, notifyBooker, payDeposit, recordFact, sendVenueEmail } from "../src/tools/tools.ts";
 import { ZodError } from "zod";
 import { knowledge } from "../src/memory/supply.ts";
 import { extractRules } from "../src/parse/offer.ts";
 import { checkPolicy, estimate, perHeadFor } from "../src/policy/policy.ts";
+import type { PolicyResult } from "../src/policy/policy.ts";
+import { addDays, weekday } from "../src/time.ts";
+import { extractOffer } from "../src/parse/offer.ts";
 import { VenueWorld } from "../src/sim/world.ts";
 import type { Behavior, Message } from "../src/sim/world.ts";
 import { MemoryStore } from "../src/store/memory.ts";
@@ -313,7 +316,8 @@ async function book() {
     course("book");
     const room = v.rooms.find((r) => r.id === bk.roomId)!;
     $("#phone").append(el("div", "ticket", `<div class="tt">${esc(v.name)}</div><div class="ts">${esc(room.name)} · ${when(bk.startsAt).replace(/ \d+ (am|pm)/, "")} ${localDate(bk.startsAt).slice(5)} · ${bk.partySize} guests</div><hr>${seating(bk.partySize)}
-      <div class="ts" style="margin-top:6px">${usd(bk.amountCents)} all-in${pay ? ` · deposit ${usd(pay.amountCents)} → ${esc(pay.payeeId)}` : ""}</div>`));
+      <div class="ts" style="margin-top:6px">${usd(bk.amountCents)} all-in${pay ? ` · deposit ${usd(pay.amountCents)} → ${esc(pay.payeeId)}` : ""}</div><button class="btn pri" style="margin-top:10px;width:100%" onclick="go('seating')">Arrange seating →</button>`));
+    setLastBooking({ venue: v, roomName: room.name, partySize: bk.partySize, date: localDate(bk.startsAt), dietary: res.request?.dietary ?? [], client: res.request?.clientName ?? "Guests", world: bookWorld, threadId: `thr_${res.runId}_${v.id}` });
   } else $("#phone").append(el("div", "ticket fail", `<div class="tt">${res.outcome.replace(/_/g, " ")}</div><div class="ts" style="color:#ffd5dc">Nothing was booked or paid.</div>`));
   $("#phonebox").scrollTop = $("#phonebox").scrollHeight;
   running = false; $("#go button").removeAttribute("disabled");
@@ -688,6 +692,240 @@ async function tour() {
   say("", ""); touring = false; $("#tourBtn").textContent = "▶ Tour";
 }
 $("#tourBtn").onclick = () => void tour();
+
+// =====================================================================
+// shared: a slide-to-approve control that works in any container
+// =====================================================================
+function slideIn(box: HTMLElement, label: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const s = el("div", "slide light", `<div class="fill"></div><div class="lbl">${esc(label)} ›››</div><div class="knob">✓</div>`), rej = el("button", "reject dark", "Decline");
+    box.append(s, rej);
+    const knob = s.querySelector<HTMLElement>(".knob")!, fill = s.querySelector<HTMLElement>(".fill")!;
+    let drag = false, sx = 0, x = 0; const max = () => s.clientWidth - 52;
+    const set = (v: number) => { x = Math.max(0, Math.min(max(), v)); knob.style.left = `${4 + x}px`; fill.style.width = `${56 + x}px`; };
+    const done = () => { s.classList.add("done"); s.querySelector(".lbl")!.textContent = "Approved ✓"; rej.remove(); resolve(true); };
+    knob.addEventListener("pointerdown", (e) => { drag = true; sx = e.clientX - x; knob.setPointerCapture(e.pointerId); });
+    knob.addEventListener("pointermove", (e) => { if (drag) set(e.clientX - sx); });
+    knob.addEventListener("pointerup", () => { drag = false; if (x > max() * 0.85) { set(max()); done(); } else set(0); });
+    s.addEventListener("click", (e) => { if (e.target !== knob && !s.classList.contains("done")) { set(max()); setTimeout(done, 150); } });
+    rej.onclick = () => { s.remove(); rej.remove(); resolve(false); };
+  });
+}
+const toolCtx = (store: MemoryStore, world: VenueWorld, runId: string) => ({ store, world, llm, company, venues, actor: priya, principal: dana, runId, today: "2026-11-09", smsOptedOut: new Set<string>(), trace: [] as TraceEvent[] });
+const NOW = "2026-11-09T15:00:00.000Z";
+const reqFor = (n: number, date: string, priv: boolean, client = "Acme"): BookingRequest => ({ partySize: n, partySizeStated: true, date, dateAmbiguous: false, time: "19:00", kind: "client_dinner", clientName: client, privateRoom: priv, neighborhood: null, cuisine: null, maxPerHeadCents: null, dietary: [], notes: "" });
+
+/** Propose → approve (slider per role) → book → pay deposit, all through the real typed tools and store. */
+async function proposeAndBook(box: HTMLElement, store: MemoryStore, world: VenueWorld, runId: string, v: Venue, roomId: string, date: string, n: number, pol: PolicyResult, minSpend: number) {
+  const ctxT = toolCtx(store, world, runId), win = eventWindow(date, "19:00");
+  const base = { runId, actorId: priya.id, principalId: dana.id, venueId: v.id, roomId, ...win, partySize: n, requiredRoles: pol.requiredRoles, expiresAt: new Date(Date.parse(NOW) + 48 * 3_600_000).toISOString() };
+  const room = v.rooms.find((r) => r.id === roomId)!;
+  const bp = await call(ctxT, "grid", createProposal, { ...base, kind: "book", amountCents: pol.estimate.allInCents, payeeId: null, summary: `${v.name}, ${room.name}, ${date}, ${n} guests` }) as { proposalId: string };
+  const dp = pol.depositCents > 0 ? await call(ctxT, "grid", createProposal, { ...base, kind: "pay_deposit", amountCents: pol.depositCents, payeeId: v.payeeId, summary: `Deposit for ${v.name}` }) as { proposalId: string } : null;
+  box.insertAdjacentHTML("beforeend", `<div class="gstep"><b>Proposal</b> ${esc(v.name)} · ${esc(room.name)} · ${usd(minSpend)} min · <b>${usd(pol.estimate.allInCents)}</b> all-in${pol.depositCents ? ` · deposit ${usd(pol.depositCents)}` : ""}<div class="cs">${pol.requiredRoles.map((r) => approverFor(r, priya).name).join(" + ")} must approve</div></div>`);
+  for (const role of pol.requiredRoles) {
+    const ok = await slideIn(box, `Slide to approve as ${approverFor(role, priya).name.split(" ")[0]}`);
+    for (const id of [bp.proposalId, dp?.proposalId].filter(Boolean) as string[]) await store.decide(id, approverFor(role, priya).id, role, ok ? "approve" : "reject");
+    if (!ok) { box.insertAdjacentHTML("beforeend", `<div class="gstep bad">Declined. Nothing booked or paid.</div>`); return null; }
+  }
+  try {
+    const bk = await call(ctxT, "grid", bookTool, { proposalId: bp.proposalId }, `${bp.proposalId}:book`) as { bookingId: string };
+    const pay = dp ? await call(ctxT, "grid", payDeposit, { proposalId: dp.proposalId, bookingId: bk.bookingId, idempotencyKey: `${dp.proposalId}:pay` }, `${dp.proposalId}:pay`) as { payeeId: string } : null;
+    box.insertAdjacentHTML("beforeend", `<div class="gstep ok"><b>Booked</b> ${esc(bk.bookingId)}${pay ? ` · deposit paid to ${esc(pay.payeeId)}` : ""}</div>`);
+    const saved = v.preferredRatePct ? Math.round(pol.estimate.savingsCents) : 0;
+    S.booked++; S.req++; S.saved += saved; ledger.unshift({ venue: v.name, guests: n, allIn: pol.estimate.allInCents, saved });
+    bump("kBook", String(S.booked)); bump("kReq", String(S.req)); bump("kSave", usd(S.saved)); renderSpend();
+    setLastBooking({ venue: v, roomName: room.name, partySize: n, date, dietary: [], client: "Acme", world, threadId: `thr_${runId}_${v.id}` });
+    box.insertAdjacentHTML("beforeend", `<button class="btn pri" style="margin-top:8px" onclick="go('seating')">Arrange seating →</button>`);
+    return bk.bookingId;
+  } catch (e) { box.insertAdjacentHTML("beforeend", `<div class="gstep bad">${esc(e instanceof StoreError ? `Refused by the database: ${e.code.replace(/_/g, " ")}` : String(e))}</div>`); return null; }
+}
+
+// =====================================================================
+// AVAILABILITY: 30 venues × 14 nights, click a table, book it
+// =====================================================================
+const gStore = new MemoryStore(); await gStore.init(venues); gStore.setNow(NOW); await gStore.createRun({ id: "grid" }); stores.push(gStore);
+const NIGHTS = Array.from({ length: 14 }, (_, i) => addDays("2026-11-09", i + 1));
+let gParty = 12, gPrivate = true, gSort = "score", gPick: { v: Venue; date: string } | null = null;
+function cell(v: Venue, date: string) {
+  const wd = weekday(date), n = gParty;
+  if (v.closedDays.includes(wd)) return { kind: "closed" as const };
+  const room = v.rooms.filter((r) => (gPrivate ? r.private : true) && r.listedCapacity >= n).sort((a, b) => (gPrivate ? 0 : Number(a.private) - Number(b.private)) || a.listedCapacity - b.listedCapacity)[0];
+  if (!room) return { kind: "noroom" as const };
+  const min = room.private ? room.minSpendCents[wd] : 0;
+  const taken = stores.some((s) => s.allBookings().some((b) => b.status === "confirmed" && b.roomId === room.id && localDate(b.startsAt) === date));
+  const pol = checkPolicy(company, reqFor(n, date, gPrivate), v, { minSpendCents: min, perHeadCents: null, depositPct: null, capacity: null }, leadHours(NOW, date, "19:00"));
+  return { kind: taken ? "taken" as const : pol.onPolicy ? (pol.requiredRoles.includes("manager") ? "mgr" as const : "ok" as const) : "over" as const, room, min, pol };
+}
+function renderGrid() {
+  $("#gPartyV").textContent = String(gParty);
+  const DAYS3 = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const rows = venues.map((v) => ({ v, cells: NIGHTS.map((d) => cell(v, d)) }));
+  const ph = (r: (typeof rows)[number]) => Math.min(...r.cells.map((c) => ("pol" in c && c.pol ? c.pol.estimate.perHeadAllInCents : 1e9)));
+  const open = (r: (typeof rows)[number]) => r.cells.filter((c) => c.kind === "ok" || c.kind === "mgr").length;
+  rows.sort((a, b) => gSort === "price" ? ph(a) - ph(b) : gSort === "open" ? open(b) - open(a) : a.v.neighborhood.localeCompare(b.v.neighborhood) || a.v.name.localeCompare(b.v.name));
+  let html = `<table class="grid"><thead><tr><th class="vh">Venue</th>${NIGHTS.map((d) => `<th class="${[0, 6].includes(weekday(d)) ? "we" : ""}">${DAYS3[weekday(d)]}<span>${Number(d.slice(8))}</span></th>`).join("")}</tr></thead><tbody>`;
+  for (const r of rows) {
+    html += `<tr><td class="vh"><b>${esc(r.v.name)}</b><span>${esc(r.v.neighborhood)} · ${esc(r.v.cuisine)}${r.v.preferredRatePct ? ` · <em>−${r.v.preferredRatePct}%</em>` : ""}</span></td>`;
+    r.cells.forEach((c, i) => {
+      const d = NIGHTS[i], sel = gPick && gPick.v.id === r.v.id && gPick.date === d ? " sel" : "";
+      if (c.kind === "closed") html += `<td class="gc closed${sel}" title="Closed">—</td>`;
+      else if (c.kind === "noroom") html += `<td class="gc none${sel}" title="No ${gPrivate ? "private " : ""}room for ${gParty}">·</td>`;
+      else html += `<td class="gc ${c.kind}${sel}" data-v="${r.v.id}" data-d="${d}" title="${esc(c.room.name)} · ${usd(c.pol.estimate.perHeadAllInCents)}/head">${c.kind === "taken" ? "●" : `$${Math.round(c.pol.estimate.perHeadAllInCents / 100)}`}</td>`;
+    });
+    html += "</tr>";
+  }
+  $("#grid").innerHTML = html + "</tbody></table>";
+  const all = rows.flatMap((r) => r.cells);
+  $("#gStats").innerHTML = `<span class="st ok">${all.filter((c) => c.kind === "ok").length} in policy</span><span class="st warn">${all.filter((c) => c.kind === "mgr").length} need a manager</span><span class="st mute">${all.filter((c) => c.kind === "over").length} over cap</span><span class="st bad">${all.filter((c) => c.kind === "taken").length} booked</span>`;
+  $$<HTMLElement>("#grid .gc[data-v]").forEach((td) => td.onclick = () => { gPick = { v: venues.find((x) => x.id === td.dataset.v)!, date: td.dataset.d! }; renderGrid(); gDetail(); });
+}
+function gDetail() {
+  if (!gPick) return; const { v, date } = gPick, c = cell(v, date); if (!("pol" in c) || !c.pol) return;
+  const p = c.pol, DAYS3 = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  $("#gSide").innerHTML = `<div class="vt">${esc(v.name)}</div><div class="vs">${DAYS3[weekday(date)]}, Nov ${Number(date.slice(8))} · 7 pm · ${gParty} guests</div>
+    <div>${c.kind === "taken" ? '<span class="pill r">Already booked</span>' : p.onPolicy ? '<span class="pill g">In-Policy</span>' : `<span class="pill r">${esc(p.violations[0])}</span>`}${v.preferredRatePct ? `<span class="pill y">Preferred −${v.preferredRatePct}%</span>` : ""}${v.contractRequired ? '<span class="pill">Contract</span>' : ""}</div>
+    <dl class="kv"><dt>Room</dt><dd>${esc(c.room.name)} · ${c.room.listedCapacity} seats</dd><dt>Minimum</dt><dd>${usd(c.min)}</dd><dt>All-in</dt><dd>${usd(p.estimate.allInCents)} · ${usd(p.estimate.perHeadAllInCents)}/head</dd><dt>Deposit</dt><dd>${p.depositCents ? usd(p.depositCents) : "none"}</dd><dt>Cancellation</dt><dd>free until ${v.cancellationHours} h before</dd><dt>Approval</dt><dd>${p.requiredRoles.join(" + ")}</dd></dl>
+    ${c.kind === "taken" ? "" : p.onPolicy ? `<button class="btn pri" id="gReq" style="width:100%;margin-top:10px">Request this table</button>` : ""}<div id="gFlow"></div>`;
+  $("#gReq")?.addEventListener("click", () => void gRequest(v, date, c.room.id));
+}
+async function gRequest(v: Venue, date: string, roomId: string) {
+  $("#gReq")!.remove(); const box = $("#gFlow"), runId = `grid_${Math.random().toString(36).slice(2, 7)}`, thread = `thr_${runId}_${v.id}`;
+  await gStore.createRun({ id: runId });
+  const world = new VenueWorld(venues, () => "accept", NOW, 31 + Math.floor(Math.random() * 1000));
+  const ctxT = toolCtx(gStore, world, runId);
+  await call(ctxT, "grid", sendVenueEmail, { venueId: v.id, threadId: thread, kind: "inquiry", body: `Hello ${v.name} team, could you host ${gParty} guests${gPrivate ? " in a private room" : ""} on ${date} at 7 pm for Northwind Labs?`, meta: { date, time: "19:00", partySize: gParty, privateRoom: gPrivate } });
+  box.insertAdjacentHTML("beforeend", `<div class="gstep"><span class="spin"></span> Emailed ${esc(v.name)}…</div>`); await sleep(900);
+  const reply = world.advance(8).find((m) => m.threadId === thread);
+  box.lastElementChild!.innerHTML = `<b>Emailed</b> ${esc(v.name)} · reply in ${reply ? Math.max(1, Math.round((Date.parse(reply.at) - Date.parse(NOW)) / 3_600_000)) : "?"} h`;
+  if (!reply) { box.insertAdjacentHTML("beforeend", `<div class="gstep bad">No reply yet.</div>`); return; }
+  const { offer, decidedBy } = await extractOffer(llm, reply.body, v, reply.id, "2026-11-09", true);
+  box.insertAdjacentHTML("beforeend", `<div class="gstep"><b>Reply read</b>${decidedBy === "model" ? '<span class="ai"></span>' : ""}<div class="cs">${esc(reply.body.split("\n").filter(Boolean)[1]?.slice(0, 150) ?? "")}…</div></div>`);
+  const room = v.rooms.find((r) => r.name === offer.roomName) ?? v.rooms.find((r) => r.id === roomId)!;
+  const min = offer.minSpendCents ?? room.minSpendCents[weekday(date)];
+  const pol = checkPolicy(company, reqFor(gParty, date, gPrivate), v, { ...offer, minSpendCents: min }, leadHours(NOW, date, "19:00"));
+  if (!pol.onPolicy) { box.insertAdjacentHTML("beforeend", `<div class="gstep bad">${esc(pol.violations.join("; "))}</div>`); return; }
+  await proposeAndBook(box, gStore, world, runId, v, room.id, date, gParty, pol, min);
+  renderGrid();
+}
+$<HTMLInputElement>("#gParty").addEventListener("input", (e) => { gParty = Number((e.target as HTMLInputElement).value); renderGrid(); gDetail(); });
+$<HTMLInputElement>("#gPriv").addEventListener("change", (e) => { gPrivate = (e.target as HTMLInputElement).checked; renderGrid(); gDetail(); });
+$$<HTMLButtonElement>("#gSort button").forEach((b) => b.onclick = () => { $$("#gSort button").forEach((x) => x.classList.remove("on")); b.classList.add("on"); gSort = b.dataset.s!; renderGrid(); });
+renderGrid();
+
+// =====================================================================
+// COMPARE: every offer the agent collected, side by side
+// =====================================================================
+interface Cmp { v: Venue; roomId: string; roomName: string; seats: number | null; min: number; pol: PolicyResult; ai: boolean; why: string | null; injected: boolean; agentPick: boolean }
+let cmpRows: Cmp[] = [], cmpSel = new Set<string>(), cmpSortKey = "perHead", cmpCtx: { store: MemoryStore; world: VenueWorld; runId: string; req: BookingRequest } | null = null;
+async function cmpLoad() {
+  const btn = $<HTMLButtonElement>("#cmpGo"); btn.disabled = true; $("#cmpTable").innerHTML = `<div class="empty"><span class="spin"></span> The agent is emailing venues and reading replies…</div>`;
+  const text = $<HTMLInputElement>("#cmpAsk").value, store = new MemoryStore(); await store.init(venues); stores.push(store);
+  const order: Behavior[] = ["accept", "counter_price", "injection", "accept", "decline", "counter_capacity", "accept"]; const seen = new Map<string, Behavior>();
+  const world = new VenueWorld(venues, (id) => { if (!seen.has(id)) seen.set(id, order[seen.size] ?? "accept"); return seen.get(id)!; }, NOW, 11);
+  const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm, venues, company, maxRounds: 1, shortlistSize: 7, approver: async () => "pending" });
+  const req = res.request!; const proposed = res.proposals.find((p) => p.kind === "book");
+  cmpCtx = { store, world, runId: res.runId, req };
+  const rejected = new Map(((res.trace.find((e) => e.kind === "compared")?.data?.rejected ?? []) as { venue: string; why: string }[]).map((r) => [r.venue, r.why]));
+  const injected = new Set(res.trace.filter((e) => e.kind === "injection_flagged").map((e) => e.text.split("'s email")[0]));
+  cmpRows = res.trace.filter((e) => e.kind === "offer").map((e) => {
+    const o = e.data!.offer as Offer, v = venues.find((x) => x.id === o.venueId)!;
+    const room = v.rooms.find((r) => r.name === o.roomName) ?? v.rooms.find((r) => r.private) ?? v.rooms[0];
+    const min = o.minSpendCents ?? room.minSpendCents[weekday(req.date!)];
+    const pol = checkPolicy(company, req, v, { ...o, minSpendCents: min }, leadHours(NOW, req.date!, req.time));
+    const why = rejected.get(v.name) ?? (!pol.onPolicy ? pol.violations.join("; ") : req.privateRoom && !room.private ? "not private" : null);
+    return { v, roomId: room.id, roomName: room.name, seats: o.capacity ?? room.listedCapacity, min, pol, ai: isAI(e), why, injected: injected.has(v.name), agentPick: proposed?.venueId === v.id };
+  });
+  cmpSel = new Set(cmpRows.filter((r) => !r.why).slice(0, 3).map((r) => r.v.id));
+  btn.disabled = false; cmpRender();
+}
+function cmpRender() {
+  const key: Record<string, (r: Cmp) => number> = { perHead: (r) => r.pol.estimate.perHeadAllInCents, min: (r) => r.min, deposit: (r) => r.pol.depositCents, cancel: (r) => r.v.cancellationHours, seats: (r) => -(r.seats ?? 0) };
+  const rows = [...cmpRows].sort((a, b) => Number(!!a.why) - Number(!!b.why) || key[cmpSortKey](a) - key[cmpSortKey](b));
+  const th = (k: string, l: string) => `<th class="sortable ${cmpSortKey === k ? "on" : ""}" data-k="${k}">${l}${cmpSortKey === k ? " ↑" : ""}</th>`;
+  $("#cmpTable").innerHTML = rows.length ? `<table class="ctable"><thead><tr><th></th><th>Venue</th><th>Room</th>${th("seats", "Seats")}${th("min", "Minimum")}${th("perHead", "Per head")}<th>All-in</th>${th("deposit", "Deposit")}${th("cancel", "Free cancel")}<th>Policy</th></tr></thead><tbody>${rows.map((r) =>
+    `<tr class="${r.why ? "dim" : ""} ${cmpSel.has(r.v.id) ? "picked" : ""}"><td><input type="checkbox" data-v="${r.v.id}" ${cmpSel.has(r.v.id) ? "checked" : ""} ${r.why ? "disabled" : ""}></td>
+    <td><b>${esc(r.v.name)}</b>${r.agentPick ? ' <span class="pill b">agent’s pick</span>' : ""}${r.injected ? ' <span class="pill r">injection ignored</span>' : ""}${r.ai ? '<span class="ai"></span>' : ""}<div class="cs">${esc(r.v.neighborhood)} · ${esc(r.v.cuisine)}</div></td>
+    <td>${esc(r.roomName)}</td><td>${r.seats ?? "—"}</td><td>${usd(r.min)}</td><td><b>${usd(r.pol.estimate.perHeadAllInCents)}</b></td><td>${usd(r.pol.estimate.allInCents)}</td><td>${r.pol.depositCents ? usd(r.pol.depositCents) : "none"}</td><td>${r.v.cancellationHours} h</td>
+    <td>${r.why ? `<span class="st bad">${esc(r.why.length > 40 ? r.why.slice(0, 38) + "…" : r.why)}</span>` : `<span class="st ok">${r.pol.requiredRoles.join(" + ")}</span>`}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No offers came back.</div>`;
+  $$<HTMLElement>("#cmpTable th.sortable").forEach((t) => t.onclick = () => { cmpSortKey = t.dataset.k!; cmpRender(); });
+  $$<HTMLInputElement>("#cmpTable input[type=checkbox]").forEach((c) => c.onchange = () => { if (c.checked) { if (cmpSel.size >= 4) { c.checked = false; return; } cmpSel.add(c.dataset.v!); } else cmpSel.delete(c.dataset.v!); cmpRender(); });
+  const pick = rows.filter((r) => cmpSel.has(r.v.id));
+  const best = (f: (r: Cmp) => number) => Math.min(...pick.map(f));
+  $("#cmpCards").innerHTML = pick.map((r) => `<div class="ccard ${r.agentPick ? "agent" : ""}"><div class="vt">${esc(r.v.name)}</div><div class="vs">${esc(r.roomName)} · ${r.seats ?? "?"} seats</div>
+    <div class="cline ${r.pol.estimate.perHeadAllInCents === best((x) => x.pol.estimate.perHeadAllInCents) ? "best" : ""}"><span>Per head</span><b>${usd(r.pol.estimate.perHeadAllInCents)}</b></div>
+    <div class="cline ${r.pol.estimate.allInCents === best((x) => x.pol.estimate.allInCents) ? "best" : ""}"><span>All-in</span><b>${usd(r.pol.estimate.allInCents)}</b></div>
+    <div class="cline ${r.pol.depositCents === best((x) => x.pol.depositCents) ? "best" : ""}"><span>Deposit</span><b>${r.pol.depositCents ? usd(r.pol.depositCents) : "none"}</b></div>
+    <div class="cline ${r.v.cancellationHours === best((x) => x.v.cancellationHours) ? "best" : ""}"><span>Free cancel</span><b>${r.v.cancellationHours} h before</b></div>
+    <div class="cline"><span>Approvals</span><b>${r.pol.requiredRoles.join(" + ")}</b></div>${r.v.preferredRatePct ? `<div class="cline best"><span>Preferred rate</span><b>−${r.v.preferredRatePct}%</b></div>` : ""}
+    <button class="btn pri" data-pv="${r.v.id}" style="width:100%;margin-top:10px">Propose this one</button><div class="cflow" id="cf_${r.v.id}"></div></div>`).join("") || `<div class="cs">Tick 2–4 offers to compare them side by side.</div>`;
+  $$<HTMLButtonElement>("#cmpCards [data-pv]").forEach((b) => b.onclick = async () => {
+    const r = cmpRows.find((x) => x.v.id === b.dataset.pv)!; if (!cmpCtx) return; b.remove();
+    await proposeAndBook($(`#cf_${r.v.id}`), cmpCtx.store, cmpCtx.world, cmpCtx.runId, r.v, r.roomId, cmpCtx.req.date!, cmpCtx.req.partySize, r.pol, r.min);
+  });
+}
+$("#cmpGo").onclick = () => void cmpLoad();
+
+// =====================================================================
+// SEATING: drag guests onto the table, flag dietary needs, send the plan
+// =====================================================================
+interface LastBooking { venue: Venue; roomName: string; partySize: number; date: string; dietary: string[]; client: string; world: VenueWorld; threadId: string }
+let lastBk: LastBooking | null = null, seats: (number | null)[] = [], guests: { name: string; org: string; diet: string | null; host?: boolean }[] = [], dragG: number | null = null;
+const NAMES = ["Dana Whitfield", "Marcus Lee", "Jordan Kim", "Alex Chen", "Sam Rivera", "Taylor Brooks", "Morgan Diaz", "Riley Shah", "Casey Moore", "Jamie Fox", "Avery Kim", "Quinn Patel", "Rowan Price", "Elliot Hart", "Harper Cole", "Skyler Wu", "Drew Lane", "Reese Ford", "Parker Gray", "Logan Ruiz"];
+function setLastBooking(b: LastBooking) {
+  lastBk = b; const n = Math.min(b.partySize, 20), ours = Math.max(2, Math.round(n / 3));
+  guests = Array.from({ length: n }, (_, i) => ({ name: NAMES[i] ?? `Guest ${i + 1}`, org: i < ours ? "Northwind" : b.client, diet: null as string | null, host: i === 0 }));
+  b.dietary.forEach((d, i) => { const g = guests[ours + i]; if (g) g.diet = d; });
+  seats = Array(n).fill(null); seatRender();
+}
+function seatPos(i: number, n: number) {
+  if (i === 0) return [6, 50]; if (i === 1 && n > 1) return [94, 50];
+  const k = i - 2, per = Math.ceil((n - 2) / 2), side = k >= per ? 1 : 0, j = side ? per - 1 - (k - per) : k;
+  return [16 + (j + 0.5) * (68 / per), side ? 86 : 14];
+}
+function seatRender() {
+  $("#seatEmpty").style.display = lastBk ? "none" : ""; $("#seatWrap").style.display = lastBk ? "" : "none";
+  if (!lastBk) return;
+  const b = lastBk, n = seats.length;
+  $("#seatHead").innerHTML = `<div class="vt">${esc(b.venue.name)} · ${esc(b.roomName)}</div><div class="vs">${b.date} · 7 pm · ${b.partySize} guests${b.partySize > 20 ? " (first 20 shown)" : ""}</div>`;
+  const placed = new Set(seats.filter((x) => x !== null));
+  $("#seatTable").innerHTML = `<div class="tbl"></div>` + seats.map((g, i) => { const [x, y] = seatPos(i, n), gg = g !== null ? guests[g] : null;
+    return `<div class="seat ${gg ? (gg.org === "Northwind" ? "ours" : "theirs") : ""} ${gg?.diet ? "diet" : ""}" data-s="${i}" style="left:${x}%;top:${y}%">${gg ? `<b>${esc(gg.name.split(" ").map((p) => p[0]).join(""))}</b>${gg.diet ? `<i>${gg.diet === "vegetarian" ? "V" : gg.diet[0].toUpperCase()}</i>` : ""}` : `<span>${i + 1}</span>`}</div>`; }).join("");
+  $("#guestList").innerHTML = guests.map((g, i) => `<div class="guest ${placed.has(i) ? "placed" : ""} ${g.org === "Northwind" ? "ours" : "theirs"}" draggable="true" data-g="${i}"><b>${esc(g.name)}</b><span>${esc(g.org)}${g.host ? " · host" : ""}</span>
+    <button class="dt ${g.diet ? "on" : ""}" data-d="${i}" title="Toggle vegetarian">${g.diet ? "V" : "+diet"}</button></div>`).join("");
+  $("#seatStats").innerHTML = `<span class="st ${placed.size === n ? "ok" : "warn"}">${placed.size}/${n} seated</span><span class="st mute">${guests.filter((g) => g.diet).length} dietary</span>`;
+  $$<HTMLElement>(".guest").forEach((el2) => {
+    el2.addEventListener("dragstart", () => { dragG = Number(el2.dataset.g); });
+    el2.addEventListener("click", (e) => { if ((e.target as HTMLElement).classList.contains("dt")) return; const free = seats.indexOf(null); const gi = Number(el2.dataset.g); if (!placed.has(gi) && free >= 0) { seats[free] = gi; seatRender(); } });
+  });
+  $$<HTMLButtonElement>(".guest .dt").forEach((d) => d.onclick = (e) => { e.stopPropagation(); const g = guests[Number(d.dataset.d)]; g.diet = g.diet ? null : "vegetarian"; seatRender(); });
+  $$<HTMLElement>(".seat").forEach((s) => {
+    s.addEventListener("dragover", (e) => { e.preventDefault(); s.classList.add("over"); });
+    s.addEventListener("dragleave", () => s.classList.remove("over"));
+    s.addEventListener("drop", (e) => { e.preventDefault(); if (dragG === null) return; const prev = seats.indexOf(dragG); if (prev >= 0) seats[prev] = null; seats[Number(s.dataset.s)] = dragG; dragG = null; seatRender(); });
+    s.addEventListener("click", () => { seats[Number(s.dataset.s)] = null; seatRender(); });
+  });
+}
+$("#seatAuto").onclick = async () => {
+  if (!lastBk) return; seats = Array(seats.length).fill(null);
+  // Host at the head, then alternate our people and their people so every client sits next to a host.
+  const ours = guests.map((g, i) => ({ g, i })).filter((x) => x.g.org === "Northwind").map((x) => x.i), theirs = guests.map((g, i) => ({ g, i })).filter((x) => x.g.org !== "Northwind").map((x) => x.i);
+  const order: number[] = []; while (ours.length || theirs.length) { if (theirs.length) order.push(theirs.shift()!); if (ours.length) order.push(ours.shift()!); }
+  const hostIdx = order.indexOf(0); if (hostIdx > 0) { order.splice(hostIdx, 1); order.unshift(0); }
+  for (let i = 0; i < order.length && i < seats.length; i++) { seats[i] = order[i]; seatRender(); await sleep(70); }
+};
+$("#seatClear").onclick = () => { seats = Array(seats.length).fill(null); seatRender(); };
+$("#seatSend").onclick = async () => {
+  if (!lastBk) return; const b = lastBk, seated = seats.filter((x) => x !== null).length;
+  if (seated < seats.length) { $("#seatOut").innerHTML = `<div class="gstep bad">Seat everyone first (${seated}/${seats.length}).</div>`; return; }
+  const diet = guests.filter((g) => g.diet).map((g) => `${g.name} (${g.diet})`);
+  const body = `Hi ${b.venue.name} team,\n\nSeating for our ${b.date} dinner, starting at the head of the table:\n${seats.map((g, i) => `${i + 1}. ${guests[g!].name}`).join("\n")}\n\n${diet.length ? `Dietary: ${diet.join(", ")}.` : "No dietary restrictions."}\n\nThank you,\nConcierge desk for Priya Raman, Northwind Labs`;
+  b.world.send(b.venue.id, b.threadId, "Seating plan", body, "answer");
+  await mem.remember({ companyId: company.id, scope: "company", ownerUserId: priya.id, subject: b.client, fact: `Seating plan sent to ${b.venue.name} for ${b.date}${diet.length ? `; dietary: ${diet.join(", ")}` : ""}`, source: "seating" });
+  void renderMems();
+  $("#seatOut").innerHTML = `<div class="gstep ok"><b>Sent to ${esc(b.venue.name)}</b> and saved to company memory.<pre style="margin-top:6px">${esc(body)}</pre></div>`;
+};
+seatRender();
 
 // ---------- start ----------
 if (!new URLSearchParams(location.search).has("still")) void deskLoop();

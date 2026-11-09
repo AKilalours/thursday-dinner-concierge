@@ -175,14 +175,47 @@ tr.ev{display:none}tr.ev.open{display:table-row}tr.ev td{background:#fbf7ef}.evg
 .jg{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin:12px 0}.jg label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim);font-weight:600}.jg b{color:var(--ink)}
 .big2{font:800 30px Fraunces,Georgia,serif;color:var(--wine2);text-transform:capitalize}
 .jb{display:grid;grid-template-columns:110px 1fr 40px;gap:8px;align-items:center;font-size:12.5px;margin:6px 0}.jt{position:relative;height:10px;background:#f1e9dc;border-radius:6px}.jt i{display:block;height:100%;border-radius:6px;background:#d9cdbd;transition:width .3s}.jt i.pass{background:var(--sage)}.jt b{position:absolute;top:-4px;width:2px;height:18px;background:var(--wine)}
+#seatHead .vt{font:700 19px Fraunces,Georgia,serif;color:var(--wine2)}#seatHead .vs{font-size:12.5px;color:var(--dim)}
+.bar .tabs{order:3;width:100%}.bar #tourBtn{margin-left:auto}
+.tsep{align-self:center;font:700 10px Inter;text-transform:uppercase;letter-spacing:.08em;color:#b3a08c;padding:0 6px 0 12px;border-left:1px solid var(--line);margin-left:4px;white-space:nowrap}
+.slide.light{background:#efe6d8}.slide.light .lbl{color:#7d6b5c}.slide.light.done{background:var(--sage)}.slide.light.done .lbl{color:#fff}.reject.dark{color:#8a7a6c}
+.gtools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0 12px}.gtools label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--dim)}.gtools b{color:var(--ink);min-width:20px}
+.gwrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
+.gscroll{overflow:auto;max-height:640px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+table.grid{border-collapse:separate;border-spacing:0;font-size:12px;width:100%}
+table.grid th{position:sticky;top:0;background:var(--paper);z-index:2;font-weight:700;color:var(--dim);padding:8px 4px;border-bottom:1px solid var(--line);text-align:center;font-size:11px}table.grid th span{display:block;font:800 15px Fraunces,Georgia,serif;color:var(--ink)}table.grid th.we span{color:var(--wine)}
+table.grid .vh{position:sticky;left:0;background:var(--paper);z-index:1;text-align:left;padding:7px 10px;min-width:170px;border-right:1px solid var(--line);border-bottom:1px solid #f1e9dc}table.grid th.vh{z-index:3}table.grid .vh b{display:block;font-size:13px}table.grid .vh span{font-size:11px;color:var(--dim)}table.grid .vh em{color:var(--sage);font-style:normal;font-weight:700}
+.gc{text-align:center;padding:0;height:40px;min-width:46px;border-bottom:1px solid #f1e9dc;font:600 11.5px JetBrains Mono,monospace;transition:transform .12s,box-shadow .12s}
+.gc[data-v]{cursor:pointer}.gc[data-v]:hover{transform:scale(1.08);box-shadow:0 4px 12px #0002;position:relative;z-index:1}
+.gc.ok{background:#e3f0e7;color:var(--sage)}.gc.mgr{background:#f7ebd2;color:#8a6212}.gc.over{background:#f6f1ea;color:#bba996}.gc.taken{background:var(--wine);color:#fff;font-size:14px}.gc.closed,.gc.none{color:#d6c9b8;background:#fbf8f3}
+.gc.sel{outline:3px solid var(--wine);outline-offset:-3px}
+.gside{position:sticky;top:80px}.gside .vt{font:700 19px Fraunces,Georgia,serif;color:var(--wine2)}.gside .vs{font-size:12.5px;color:var(--dim);margin:2px 0 8px}.gside .kv{margin-top:10px}
+.gstep{border-left:3px solid var(--line);padding:6px 10px;margin:8px 0;font-size:13px;animation:fadeIn .3s}.gstep.ok{border-color:var(--sage);background:#f1f7f3}.gstep.bad{border-color:var(--rose);background:#fbf0f2}.gstep pre{white-space:pre-wrap;font:11.5px JetBrains Mono,monospace;color:var(--dim);margin:0}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}}
+.legend2{display:flex;gap:6px;flex-wrap:wrap}
+.cform{display:flex;gap:8px;margin:10px 0 14px}.cform input{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px;background:var(--paper)}
+.ctwrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+table.ctable{border-collapse:collapse;width:100%;font-size:13px}table.ctable th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}table.ctable th.sortable{cursor:pointer}table.ctable th.on{color:var(--wine)}
+table.ctable td{padding:10px;border-bottom:1px solid #f1e9dc;vertical-align:top;white-space:nowrap}table.ctable tr.dim td{opacity:.5}table.ctable tr.picked td{background:#fbf6ee}table.ctable input{accent-color:var(--wine);width:16px;height:16px}
+.ccards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+.ccard{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px;animation:fadeIn .3s}.ccard.agent{border-color:var(--wine);box-shadow:0 0 0 2px #7b1e3a22}.ccard .vt{font:700 17px Fraunces,Georgia,serif;color:var(--wine2)}.ccard .vs{font-size:12px;color:var(--dim);margin-bottom:8px}
+.cline{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #eadfce;font-size:13px}.cline span{color:var(--dim)}.cline.best b{color:var(--sage)}.cline.best b:after{content:" ★";font-size:11px}
+.seatwrap{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:14px;align-items:start}
+.stable{position:relative;height:340px;margin:10px 0}.stable .tbl{position:absolute;left:12%;right:12%;top:30%;bottom:30%;background:linear-gradient(#8a5a3c,#6e452d);border-radius:90px;box-shadow:inset 0 2px 10px #0004,0 8px 22px #0002}
+.seat{position:absolute;transform:translate(-50%,-50%);width:50px;height:50px;border-radius:50%;background:var(--paper);border:2px dashed #cdbca7;display:flex;align-items:center;justify-content:center;font:700 13px Inter;color:#bba996;cursor:pointer;transition:all .15s}
+.seat.ours{background:var(--wine);border:2px solid var(--wine);color:#fff}.seat.theirs{background:#5b6b8c;border:2px solid #5b6b8c;color:#fff}.seat.over{transform:translate(-50%,-50%) scale(1.18);border-color:var(--gold)}
+.seat i{position:absolute;right:-5px;top:-5px;width:18px;height:18px;border-radius:50%;background:var(--sage);color:#fff;font:700 10px Inter;display:flex;align-items:center;justify-content:center;font-style:normal;border:2px solid var(--paper)}
+.glist{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto}
+.guest{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 8px;border:1px solid var(--line);border-left:4px solid #5b6b8c;border-radius:10px;padding:7px 10px;background:var(--paper);cursor:grab;font-size:13px}.guest.ours{border-left-color:var(--wine)}.guest span{grid-column:1;font-size:11px;color:var(--dim)}.guest .dt{grid-row:1/3;grid-column:2;border:1px solid var(--line);background:none;border-radius:8px;font:700 11px Inter;padding:4px 7px;color:var(--dim)}.guest .dt.on{background:var(--sage);color:#fff;border-color:var(--sage)}.guest.placed{opacity:.45}
+@media (max-width:900px){.gwrap,.seatwrap{grid-template-columns:1fr}.gside{position:static}.stable{height:300px}.seat{width:40px;height:40px;font-size:11px}}
 </style>
 </head>
 <body>
 <header><div class="bar">
   <div class="logo"><i></i><div>Thursday Dinner<small>Built for Ande · AI Engineer · <a href="https://github.com/AKilalours/thursday-dinner-concierge">code</a></small></div></div>
   <nav class="tabs" id="tabs">
-    <button class="on" data-p="desk">Live desk</button><button data-p="book">Book</button><button data-p="lab">Inbox lab</button>
-    <button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button><button data-p="spend">Spend</button>
+    <button class="on" data-p="desk">Live desk</button><button data-p="book">Book</button><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="seating">Seating</button><button data-p="spend">Spend</button>
+    <span class="tsep">Under the hood</span><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
   </nav>
   <button class="btn gold" id="tourBtn" style="padding:7px 14px">▶ Tour</button>
 </div></header>
@@ -227,6 +260,27 @@ tr.ev{display:none}tr.ev.open{display:table-row}tr.ev td{background:#fbf7ef}.evg
     <div class="phone scroll" id="phonebox"><div id="phone"></div><div class="empty" id="e2">Your phone. Nothing books or pays until you slide.</div></div>
   </div>
   <div class="card" style="margin-top:14px"><h3>Inbox · both directions</h3><div id="inbox"></div><div class="empty" id="e3">Threads open here.</div></div>
+</section>
+
+<section class="page" id="p-avail">
+  <div class="ph"><div><h1>Availability</h1><p class="lead">30 venues, next 14 nights. Each cell is the all-in price per head under your policy. Click one to book it.</p></div></div>
+  <div class="gtools"><label>Guests <input type="range" id="gParty" min="2" max="24" value="12"><b id="gPartyV">12</b></label><label><input type="checkbox" id="gPriv" checked> Private room</label>
+    <div class="seg" id="gSort"><button data-s="score" class="on">Neighborhood</button><button data-s="price">Cheapest</button><button data-s="open">Most open</button></div><div class="legend2" id="gStats"></div></div>
+  <div class="gwrap"><div class="gscroll" id="grid"></div><div class="card gside" id="gSide"><div class="cs">Pick a green or amber cell.<br><br><span class="st ok">$</span> in policy · <span class="st warn">$</span> needs a manager · <span class="st mute">$</span> over cap · <span class="st bad">●</span> booked · — closed</div></div></div>
+</section>
+
+<section class="page" id="p-compare">
+  <h1>Compare offers</h1><p class="lead">The agent emails venues and reads every reply. Sort, tick 2–4, pick one.</p>
+  <div class="cform"><input id="cmpAsk" value="private dinner for 14 with Initech on Nov 19"><button class="btn pri" id="cmpGo">Get offers</button></div>
+  <div class="ctwrap" id="cmpTable"><div class="empty">Press Get offers.</div></div>
+  <div class="ccards" id="cmpCards"></div>
+</section>
+
+<section class="page" id="p-seating">
+  <div class="ph"><div><h1>Seating</h1><p class="lead">Drag guests to seats. Tap a seat to clear it. Flag dietary needs; the plan goes to the venue.</p></div>
+    <div class="row"><button class="btn" id="seatClear">Clear</button><button class="btn" id="seatAuto">Auto-seat</button><button class="btn pri" id="seatSend">Send plan to venue</button></div></div>
+  <div class="empty" id="seatEmpty" style="margin-top:20px">Book a dinner first (Book, Availability or Compare), then come back to seat your guests. <button class="btn pri" onclick="go('avail')">Open availability →</button></div>
+  <div id="seatWrap" class="seatwrap"><div class="card"><div id="seatHead"></div><div class="legend2" id="seatStats" style="margin-top:6px"></div><div class="stable" id="seatTable"></div><div id="seatOut"></div></div><div class="card"><h3>Guests</h3><div class="glist" id="guestList"></div></div></div>
 </section>
 
 <section class="page" id="p-lab">
