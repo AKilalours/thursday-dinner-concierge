@@ -1,5 +1,5 @@
 {
- "text": "```json\n{\n  \"roomName\": \"Garden Room\",\n  \"date\": \"2026-11-12\",\n  \"time\": \"19:00\",\n  \"partySize\": 12,\n  \"minimumSpend\": 160920,\n  \"depositRequired\": 80460,\n  \"holdDuration\": \"48 hours\",\n  \"requestedPaymentDestination\": null\n}\n```",
+ "text": "```json\n{\n  \"roomName\": \"Garden Room\",\n  \"date\": \"2026-11-12\",\n  \"time\": \"19:00\",\n  \"partySize\": 12,\n  \"minimumSpend\": 160920,\n  \"depositRequired\": 80460,\n  \"holdDurationHours\": 48,\n  \"requestedPaymentDestination\": null\n}\n```",
  "inputTokens": 252,
  "outputTokens": 99,
  "model": "claude-sonnet-4-5"

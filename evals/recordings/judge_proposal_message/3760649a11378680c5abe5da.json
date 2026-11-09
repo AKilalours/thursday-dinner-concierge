@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,769), deposit (none). Budget compliance clearly stated ($147/head under $250 cap). Risk flagged: requires signing agreement. Concise, actionable, nothing misleading.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,769), deposit (none). Budget compliance clearly stated ($147/head under $250 cap). Risk flagged: signing required agreement. Corporate discount noted. Cancellation terms included. Concise, actionable, nothing misleading.\"\n}\n```",
  "inputTokens": 306,
- "outputTokens": 85,
+ "outputTokens": 95,
  "model": "claude-sonnet-4-5"
 }

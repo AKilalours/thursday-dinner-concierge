@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"availableRooms\": [\"Wine Cellar\"],\n  \"date\": \"2026-11-12\",\n  \"time\": \"19:30\",\n  \"guestCount\": 12,\n  \"roomCapacity\": 13,\n  \"minimumSpend\": 109700,\n  \"taxIncluded\": false,\n  \"serviceChargePercent\": 20,\n  \"serviceChargeIncluded\": false,\n  \"depositRequired\": false,\n  \"depositAmount\": null,\n  \"holdDurationHours\": 24,\n  \"agreementRequired\": true,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "text": "```json\n{\n  \"availableRooms\": [\"Wine Cellar\"],\n  \"date\": \"2026-11-12\",\n  \"time\": \"19:30\",\n  \"guestCount\": 12,\n  \"roomCapacity\": 13,\n  \"minimumSpend\": 109700,\n  \"taxIncluded\": false,\n  \"serviceChargePercent\": 20,\n  \"serviceChargeIncluded\": false,\n  \"depositRequired\": false,\n  \"depositAmount\": null,\n  \"holdDurationHours\": 24,\n  \"requiresSignedAgreement\": true,\n  \"requestedPaymentDestination\": null\n}\n```",
  "inputTokens": 216,
- "outputTokens": 163,
+ "outputTokens": 167,
  "model": "claude-sonnet-4-5"
 }
