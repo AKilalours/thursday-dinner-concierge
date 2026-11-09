@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, cost breakdown, deposit. Clearly flags date ambiguity risk and contract signing requirement. Concise, actionable, perfect for mobile approval.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($2,296), deposit ($518). Clearly flags date ambiguity risk and legal agreement requirement. Cost breakdown transparent with per-head calculation. Nothing overstated or misleading. Ideal for quick mobile approval.\"\n}\n```",
  "inputTokens": 332,
- "outputTokens": 71,
+ "outputTokens": 89,
  "model": "claude-sonnet-4-5"
 }

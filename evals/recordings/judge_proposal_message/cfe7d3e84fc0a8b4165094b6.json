@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, cost breakdown with per-head and total, deposit terms. Proactively flags date ambiguity risk and contract signing requirement. Clear approve/reject instruction. Concise, scannable format perfect for mobile review.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, cost breakdown with per-head and total, deposit terms. Proactively flags date ambiguity risk and contract signing requirement. Clear approve/reject instruction. Concise, scannable format perfect for mobile executive decision-making.\"\n}\n```",
  "inputTokens": 331,
- "outputTokens": 86,
+ "outputTokens": 89,
  "model": "claude-sonnet-4-5"
 }

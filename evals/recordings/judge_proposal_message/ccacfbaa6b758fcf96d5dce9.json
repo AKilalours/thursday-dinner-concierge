@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,338), per-head cost, deposit ($260), cancellation policy. Ambiguous date assumption clearly flagged with instruction to reject if wrong. Dietary needs confirmed. Budget compliance noted. Concise and scannable for mobile approval.\"\n}\n```",
+ "inputTokens": 318,
+ "outputTokens": 95,
+ "model": "claude-sonnet-4-5"
+}

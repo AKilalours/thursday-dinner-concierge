@@ -15,6 +15,7 @@ import { addDays, startsAt, weekday } from "../time.ts";
 import type { Ctx, TraceEvent } from "../tools/registry.ts";
 import { call, log } from "../tools/registry.ts";
 import { book, createProposal, eventWindow, leadHours, notifyBooker, payDeposit } from "../tools/tools.ts";
+import { estimate, perHeadFor } from "../policy/policy.ts";
 import { compare } from "./comparison.ts";
 import type { Option } from "./comparison.ts";
 import { coordinate } from "./coordination.ts";
@@ -112,7 +113,25 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   const rounds = input.maxRounds ?? 2;
   for (let round = 1; round <= rounds && options.length === 0; round++) {
     const candidates = (await source(ctx, req, contacted)).slice(0, urg.label === "urgent" ? 4 : 3);
-    if (!candidates.length) break;
+    if (!candidates.length) {
+      // A stated cuisine with no venue inside policy: ask which constraint to relax, with the real numbers.
+      if (round === 1 && req.cuisine) {
+        const day = weekday(req.date);
+        const options = ctx.venues.filter((v) => v.cuisine === req.cuisine && !ctx.company.policy.blockedVenueIds.includes(v.id)).flatMap((v) => {
+          const room = v.rooms.filter((r) => (req.privateRoom ? r.private : true) && r.listedCapacity >= req.partySize).sort((a, b) => a.listedCapacity - b.listedCapacity)[0];
+          return room ? [{ v, e: estimate(req.partySize, perHeadFor(v, req.kind), room.private ? room.minSpendCents[day] : 0, v.preferredRatePct) }] : [];
+        }).sort((a, b) => a.e.perHeadAllInCents - b.e.perHeadAllInCents);
+        const best = options[0];
+        const cz = req.cuisine[0].toUpperCase() + req.cuisine.slice(1);
+        result.outcome = "needs_clarification";
+        await log(ctx, "concierge", "clarify", `no ${req.cuisine} venue fits policy; asking the booker which constraint to relax`);
+        await tell(best
+          ? `No ${cz} venue has ${req.privateRoom ? "a private room" : "a table"} for ${req.partySize} within the ${usd(ctx.company.policy.perHeadCapCents[req.kind])} cap. Closest is ${best.v.name} at about ${usd(best.e.perHeadAllInCents)} a head. Should I look beyond ${cz}, or ask ${approverFor("manager", ctx.actor).name} to approve the higher spend?`
+          : `No ${cz} venue in the network can host ${req.partySize}${req.privateRoom ? " privately" : ""}. Should I look at other cuisines?`);
+        return result;
+      }
+      break;
+    }
     candidates.forEach((c) => contacted.add(c.venue.id));
     const threads = await coordinate(ctx, req, candidates, { urgency: urg.label, judgmentMode: mode });
     const cmp = await compare(ctx, req, threads);
@@ -154,7 +173,10 @@ async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, inp
   const summary = `${v.name}, ${room.name}, ${human(req.date!)} at ${clock(req.time)}, ${req.partySize} guests${req.clientName ? ` with ${req.clientName}` : ""}. `
     + `Minimum ${usd(opt.minSpendCents)}; about ${usd(opt.policy.estimate.allInCents)} all-in (${usd(opt.policy.estimate.perHeadAllInCents)} a head, under the ${usd(ctx.company.policy.perHeadCapCents[req.kind])} cap). `
     + (v.preferredRatePct ? `Preferred corporate rate: ${v.preferredRatePct}% off, saving about ${usd(opt.policy.estimate.savingsCents)}. ` : "")
-    + `Deposit ${opt.policy.depositCents ? usd(opt.policy.depositCents) : "none"}; free cancellation until ${v.cancellationHours} h before.`;
+    + `Deposit ${opt.policy.depositCents ? usd(opt.policy.depositCents) : "none"}; free cancellation until ${v.cancellationHours} h before.`
+    // Regression R8 (found by the LLM judge): dietary needs were sent to the venue but never confirmed to the booker.
+    + (req.dietary.length ? ` Dietary needs sent to ${v.name}: ${req.dietary.join(", ")}.` : "")
+    + (req.cuisine ? ` ${v.cuisine[0].toUpperCase()}${v.cuisine.slice(1)}, as asked.` : "");
 
   const base = { runId: ctx.runId, actorId: ctx.actor.id, principalId: ctx.principal.id, venueId: v.id, roomId: room.id, ...win, partySize: req.partySize, requiredRoles: opt.policy.requiredRoles, expiresAt };
   const bookP = await call(ctx, "concierge", createProposal, { ...base, kind: "book", amountCents: opt.policy.estimate.allInCents, payeeId: null, summary });

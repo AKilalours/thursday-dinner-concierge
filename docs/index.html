@@ -123,40 +123,77 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 6px;b
 .cap2{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--wine2);color:#fff;border-radius:99px;padding:10px 20px 10px 12px;font:700 16px Fraunces,Georgia,serif;display:none;gap:12px;align-items:center;box-shadow:0 12px 34px #4a0f2466;z-index:9}
 .cap2 span{font:700 11px JetBrains Mono,monospace;color:var(--gold);background:#ffffff14;border-radius:99px;padding:4px 10px}
 @media(max-width:700px){.for{display:none}h1{font-size:28px}.bar{gap:10px}}
+
+/* live desk + controls: product surfaces */
+.ph{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}.ph .lead{margin:0}
+.clock2{font:600 12px JetBrains Mono,monospace;color:var(--dim);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px;min-width:0}
+.pt{font:700 11px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+.desk{display:grid;grid-template-columns:300px minmax(0,1fr) 330px;gap:14px;align-items:start}@media(max-width:1150px){.desk{grid-template-columns:1fr}}
+.queue{display:grid;gap:6px;max-height:640px;overflow:auto}
+.qi{text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;transition:.15s}.qi:hover{border-color:#d9c9b2}.qi.on{border-color:var(--wine);box-shadow:0 0 0 3px #7b1e3a14}
+.qh{display:flex;gap:8px;align-items:flex-start}.qh b{font:600 13px/1.35 Inter}.av{flex:none;width:24px;height:24px;border-radius:50%;background:#efe4d4;color:var(--wine2);font:800 9.5px Inter;display:flex;align-items:center;justify-content:center}
+.qm{display:flex;gap:6px;align-items:center;margin:8px 0 6px 32px}.prog{height:3px;background:#f1e9dc;border-radius:3px;margin-left:32px;overflow:hidden}.prog i{display:block;height:100%;transition:width .5s;background:var(--brass)}.prog i.ok{background:var(--sage)}.prog i.bad{background:var(--rose)}.prog i.warn{background:var(--brass)}
+.st{display:inline-block;font:700 11px Inter;border-radius:6px;padding:2px 8px;background:#f1e9dc;color:#6d5d51}.st.run{background:#e8edf6;color:#3d5180}.st.ok{background:#e3f0e7;color:var(--sage)}.st.warn{background:#f7ebd2;color:#7a560f}.st.bad{background:#f8e1e5;color:#a3203c}.st.mute{background:#f4efe7;color:#a39380}
+.dreq{font:600 20px/1.3 Fraunces,Georgia,serif;color:var(--wine2)}.dmeta{margin:6px 0 12px}
+.stages{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}.sg{display:flex;flex-direction:column;align-items:center;gap:4px;font:600 11px Inter;color:#b3a594;position:relative}
+.sg:before{content:"";position:absolute;top:12px;left:-50%;width:100%;height:2px;background:#eadfce;z-index:0}.sg:first-child:before{display:none}
+.sg i{position:relative;z-index:1;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid #eadfce;display:flex;align-items:center;justify-content:center;font:800 11px Inter;font-style:normal;transition:.3s}
+.sg.done{color:var(--sage)}.sg.done i{background:var(--sage);border-color:var(--sage);color:#fff}.sg.done:before{background:var(--sage)}
+.sg.on{color:var(--wine)}.sg.on i{border-color:var(--wine);color:var(--wine);box-shadow:0 0 0 4px #7b1e3a1a;animation:pul 1.4s infinite}.sg.stop i{border-color:var(--brass);color:var(--brass)}
+@keyframes pul{50%{box-shadow:0 0 0 7px #7b1e3a10}}
+#offers table{font-size:12.5px}#offers td{padding:7px 6px}#offers tr.win td{background:#f7eff0}#offers tr.win b{color:var(--wine)}
+.acts{list-style:none;margin:0;padding:0;max-height:260px;overflow:auto}.acts li{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #f3ece1;animation:rise .3s}.acts.still li{animation:none}
+.acts .ic{flex:none;width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;background:#f1e9dc;color:var(--wine)}.acts .ic.s{color:var(--sage)}.acts .ic.v{color:#9a6a06}.acts .ic.m{color:#6a4fa0}
+.acts .at{font-size:13px}.acts .tm{font:500 10.5px JetBrains Mono,monospace;color:var(--dim);text-transform:capitalize}.acts li.bad .at{color:#a3203c;font-weight:600}.acts li.good .at{color:var(--sage);font-weight:700}
+#map .pin{cursor:pointer;transition:r .3s,fill .3s}#map .pin.ring{stroke:#7b1e3a;stroke-width:3;stroke-opacity:.35}
+.lg{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--dim);margin:6px 0 10px}.lg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.vc2{border-top:1px solid var(--line);padding-top:10px}.vc2 .vt{font:700 16px Fraunces,Georgia,serif;color:var(--wine2)}.vc2 .vs{font-size:12px;color:var(--dim);margin-bottom:6px}.vc2 s{color:var(--dim)}.vc2 .kv{margin-top:8px;font-size:12.5px}
+.cs{color:var(--dim);font-size:12px}.mono{font-family:JetBrains Mono,monospace;font-size:12px}
+.ai:empty:before{content:"✳ CLAUDE"}
+.ctl tbody tr.cr{cursor:pointer}.ctl tbody tr.cr:hover td{background:#fbf7ef}.ctl td{vertical-align:middle;border-bottom:1px solid #f3ece1}.ctl b{font-weight:600}
+.btn.sm{padding:5px 12px;font-size:12px}
+tr.ev{display:none}tr.ev.open{display:table-row}tr.ev td{background:#fbf7ef}.evg{display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:start}@media(max-width:800px){.evg{grid-template-columns:1fr}}
+.evg .sql{margin:0}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #eadfce;border-top-color:var(--wine);border-radius:50%;animation:sp .7s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.audit{list-style:none;margin:0;padding:0;font-size:13px}.audit li{padding:6px 0;border-bottom:1px solid #f3ece1}.okt{color:var(--sage);font-weight:700}.badt{color:var(--rose);font-weight:700}
+#cSum .cs{margin-left:6px}
 </style>
 </head>
 <body>
 <header><div class="bar">
   <div class="logo"><i></i>Thursday Dinner</div>
   <nav class="tabs" id="tabs">
-    <button class="on" data-p="tonight">Tonight</button><button data-p="book">Book</button><button data-p="lab">Inbox lab</button>
-    <button data-p="break">Break it</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button><button data-p="spend">Spend</button>
+    <button class="on" data-p="desk">Live desk</button><button data-p="book">Book</button><button data-p="lab">Inbox lab</button>
+    <button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button><button data-p="spend">Spend</button>
   </nav>
   <div class="for">Built for <b>Ande</b> · AI Engineer · <a href="https://github.com/AKilalours/thursday-dinner-concierge" style="color:var(--wine)">code</a></div>
 </div></header>
 
 <main>
-<section class="page on" id="p-tonight">
-  <h1>Tonight in the city</h1><p class="lead">Real requests. Real agent decisions. <span class="ai">CLAUDE</span> marks replayed Claude outputs.</p>
+<section class="page on" id="p-desk">
+  <div class="ph"><div><h1>Live desk</h1><p class="lead">Requests moving through the concierge right now.</p></div>
+    <div class="row"><span class="clock2" id="dClock">Mon 10 am</span><div class="seg" id="dSpeed"><button data-s="1">1×</button><button data-s="2" class="on">2×</button><button data-s="4">4×</button></div><button class="btn" id="dPause">Pause</button><button class="btn pri" id="dReplay">Restart</button></div></div>
   <div class="kpis">
     <div class="kpi" style="--c:var(--wine)"><div class="k">Requests</div><b id="kReq">0</b></div>
-    <div class="kpi" style="--c:var(--sage)"><div class="k">Booked</div><b id="kBook">0</b></div>
+    <div class="kpi" style="--c:var(--sage)"><div class="k">Confirmed</div><b id="kBook">0</b></div>
     <div class="kpi" style="--c:var(--brass)"><div class="k">Saved</div><b id="kSave">$0</b></div>
     <div class="kpi" style="--c:var(--rose)"><div class="k">Injections ignored</div><b id="kInj">0</b></div>
-    <div class="kpi" style="--c:#7a4fb0"><div class="k">Emails</div><b id="kMail">0</b></div>
+    <div class="kpi" style="--c:#5b6b8c"><div class="k">Venue emails</div><b id="kMail">0</b></div>
     <div class="kpi" style="--c:var(--claude)"><div class="k">Claude decisions</div><b id="kAI">0</b></div>
   </div>
-  <div class="citywrap">
-    <div class="night">
-      <div class="row"><button class="btn pri" id="cPause">❚❚ Pause</button><button class="btn" id="cReplay">↺ Replay</button>
-        <div class="seg" id="cSpeed"><button data-s="1">1×</button><button data-s="3" class="on">3×</button><button data-s="8">8×</button></div>
-        <button class="btn" id="cInject">⚠ Watch an injection</button><span class="clock" id="cClock">Mon 10 am</span></div>
-      <div class="req" id="cReq"></div>
-      <canvas id="city" height="440"></canvas>
+  <div class="desk">
+    <div class="panel"><div class="pt">Requests</div><div id="queue" class="queue"></div></div>
+    <div class="panel">
+      <div class="dreq" id="dReq"></div><div class="dmeta" id="dMeta"></div>
+      <div class="stages" id="stages"></div>
+      <div class="pt" style="margin-top:14px">Venues</div><div id="offers"></div>
+      <div class="pt" style="margin-top:14px">Activity</div><ul class="acts" id="acts"></ul>
     </div>
-    <div class="card vcard" id="vcard"><h3>Venue</h3><div class="empty">Tap a light in the city.</div></div>
+    <div class="panel"><div class="pt">Manhattan &amp; Brooklyn</div><svg id="map" viewBox="0 0 340 290" width="100%"></svg>
+      <div class="lg"><span><i style="background:#5b6b8c"></i>Shortlisted</span><span><i style="background:#c98a12"></i>Emailed</span><span><i style="background:#3f7d5a"></i>Offered</span><span><i style="background:#c2455d"></i>Injection</span><span><i style="background:#7b1e3a"></i>Booked</span></div>
+      <div id="vcard" class="vc2"><div class="cs">Select a pin to see the venue and what the agent has learned.</div></div></div>
   </div>
-  <div style="margin-top:14px" class="runs" id="runs"></div>
 </section>
 
 <section class="page" id="p-book">
@@ -188,29 +225,13 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 6px;b
   </div>
 </section>
 
-<section class="page" id="p-break">
-  <h1>Break it</h1><p class="lead">Pick an attack. Fire it at the real rules.</p>
-  <div class="arena">
-    <div><div class="atk" id="atk">
-      <button class="on" data-a="attacker">Pay the attacker <span class="res" data-r="attacker">ready</span></button>
-      <button data-a="unapproved">Book unapproved <span class="res" data-r="unapproved">ready</span></button>
-      <button data-a="self">Approve itself <span class="res" data-r="self">ready</span></button>
-      <button data-a="double">Double-book <span class="res" data-r="double">ready</span></button>
-      <button data-a="amend">Move it silently <span class="res" data-r="amend">ready</span></button>
-      <button data-a="replay">Charge twice <span class="res" data-r="replay">ready</span></button>
-    </div><div class="card" style="margin-top:10px;text-align:center"><div class="score" id="tally">0 / 6 attempted</div></div></div>
-    <div class="stage">
-      <div class="row"><button class="btn pri" id="fire" style="background:var(--rose);border-color:var(--rose)">Fire ▶</button><span id="adesc" style="color:#cbbfd8;font-size:13px"></span></div>
-      <svg viewBox="0 0 600 220" id="scene">
-        <g transform="translate(70,110)"><circle r="34" fill="#251b31" stroke="#e2b45a" stroke-width="3"/><text y="6" text-anchor="middle" fill="#e2b45a" font-family="Inter" font-weight="800" font-size="16">AGENT</text></g>
-        <g transform="translate(330,110)" id="shield" opacity=".35"><path d="M0,-58 L46,-38 L40,22 Q20,52 0,62 Q-20,52 -40,22 L-46,-38 Z" fill="#3f7d5a33" stroke="#7fd6a3" stroke-width="3"/><text y="6" text-anchor="middle" fill="#7fd6a3" font-family="Inter" font-weight="800" font-size="12" id="ruleName">RULE</text></g>
-        <g transform="translate(520,110)"><ellipse cy="-30" rx="40" ry="12" fill="#3a2e48" stroke="#9d8fb3"/><path d="M-40,-30 V30 A40,12 0 0 0 40,30 V-30" fill="#2a2036" stroke="#9d8fb3"/><text y="10" text-anchor="middle" fill="#cbbfd8" font-family="Inter" font-weight="800" font-size="12">POSTGRES</text></g>
-        <circle id="bolt" r="9" cx="104" cy="110" fill="#c2455d" opacity="0"/>
-      </svg>
-      <div class="boom" id="boom">BLOCKED</div>
-      <div class="sql" id="sql">-- pick an attack, then Fire</div>
-    </div>
+<section class="page" id="p-controls">
+  <div class="ph"><div><h1>Safety controls</h1><p class="lead">What stops the agent from moving money or bookings it shouldn't. Enforced by the database, testable here.</p></div>
+    <button class="btn pri" id="runAll">Run all controls</button></div>
+  <div class="panel"><div class="row" id="cSum" style="margin-bottom:10px"></div>
+    <table class="ctl"><thead><tr><th>ID</th><th>Control</th><th>Enforced by</th><th>Result</th><th>Time</th><th></th></tr></thead><tbody id="ctlBody"></tbody></table>
   </div>
+  <div class="panel" style="margin-top:14px"><div class="pt">Audit log</div><ul class="audit" id="audit"></ul></div>
 </section>
 
 <section class="page" id="p-evals">
@@ -231,7 +252,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 6px;b
 <section class="page" id="p-memory">
   <h1>Memory</h1><p class="lead">Every reply teaches the next booking. Private stays private.</p>
   <div class="sp">
-    <div class="card"><h3>What venues taught the agent</h3><div class="vk" id="vk"><div class="empty">Book a dinner or watch Tonight.</div></div></div>
+    <div class="card"><h3>What venues taught the agent</h3><div class="vk" id="vk"><div class="empty">Book a dinner or watch the Live desk.</div></div></div>
     <div class="card"><h3>Company memory</h3><div class="seg" id="viewAs" style="margin-bottom:12px"><button data-u="usr_priya" class="on">Priya</button><button data-u="usr_sam">Sam</button><button data-u="usr_dana">Dana</button></div><div class="mem" id="mems"></div></div>
   </div>
 </section>

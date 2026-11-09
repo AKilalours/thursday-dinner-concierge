@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 2,\n  \"reason\": \"Date is wrong: Nov 24, 2026 is a Tuesday, but the request was for 2026-11-24 which is actually a Tuesday. However, the year 2026 is suspicious and should be flagged as a risk. Missing explicit total cost statement. The phrase 'about $1,055 all-in' buries the actual cost. Should state 'Total cost: $1,055' clearly. Good: venue, room, time, headcount, deposit, cancellation terms present.\"\n}\n```",
+ "inputTokens": 316,
+ "outputTokens": 137,
+ "model": "claude-sonnet-4-5"
+}

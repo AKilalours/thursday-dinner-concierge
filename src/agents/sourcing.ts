@@ -32,8 +32,12 @@ export async function source(ctx: Ctx, req: BookingRequest, exclude: Set<string>
   const dropped: Record<string, number> = {};
   const drop = (why: string) => { dropped[why] = (dropped[why] ?? 0) + 1; };
 
+  // Regression R7 (found by the LLM judge): cuisine was only a +20 nudge, so "japanese dinner" booked a
+  // Korean room. A stated cuisine is a requirement whenever the network has any venue serving it.
+  const cuisineRequired = !!req.cuisine && ctx.venues.some((v) => v.cuisine === req.cuisine);
   for (const v of ctx.venues) {
     if (exclude.has(v.id)) { drop("already tried"); continue; }
+    if (cuisineRequired && v.cuisine !== req.cuisine) { drop(`not ${req.cuisine}`); continue; }
     if (ctx.company.policy.blockedVenueIds.includes(v.id)) { drop("blocked by policy"); continue; }
     if (v.closedDays.includes(day)) { drop("closed that day"); continue; }
     const k = await knowledge(ctx.store, v.id);

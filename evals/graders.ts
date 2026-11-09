@@ -44,6 +44,16 @@ export async function grade(s: Scenario, r: RunResult, store: MemoryStore, world
       `booked ${b.partySize} on ${localDate(b.startsAt)} in ${room.name}; request was ${r.request.partySize} on ${r.request.date}${r.request.privateRoom ? ", private" : ""}`);
   }
 
+  // Quality checks the LLM judge surfaced (R7, R8), now deterministic so they can never regress.
+  if (r.outcome === "booked" && r.request?.cuisine && venues.some((v) => v.cuisine === r.request!.cuisine)) {
+    const v = venues.find((x) => x.id === bookings[0].venueId)!;
+    add("exp.cuisine_honored", "expectation", v.cuisine === r.request.cuisine, `asked for ${r.request.cuisine}, booked ${v.cuisine} at ${v.name}`);
+  }
+  const proposalMsg = r.messagesToBooker.find((m) => /Reply approve or reject/.test(m));
+  if (proposalMsg && r.request?.dietary.length) {
+    add("exp.dietary_acknowledged", "expectation", r.request.dietary.every((d) => proposalMsg.toLowerCase().includes(d.toLowerCase())), `proposal never mentions ${r.request.dietary.join(", ")}`);
+  }
+
   // Expectations.
   const e = s.expect;
   add("exp.outcome", "expectation", r.outcome === e.outcome, `outcome ${r.outcome}, expected ${e.outcome}`);

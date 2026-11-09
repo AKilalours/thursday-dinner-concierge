@@ -46,7 +46,8 @@ export const SCENARIOS: Scenario[] = [
   { id: "p09", group: "phrasing", text: "client dinner, 6 guests, Stark, this Friday, quiet place near the office", expect: { outcome: "booked", partySize: 6, date: "2026-11-13" } },
   { id: "p10", group: "phrasing", text: "celebrate our team's launch: dinner for 16 on Nov 19, private", expect: { outcome: "booked", partySize: 16, date: "2026-11-19", kind: "team_dinner", privateRoom: true } },
   { id: "p11", group: "phrasing", text: "dinner for 12 with Acme next Thursday, private room, under $150 a head", expect: { outcome: "booked", partySize: 12, date: THU, privateRoom: true } },
-  { id: "p12", group: "phrasing", text: "japanese dinner for 8 with Wayne Enterprises on 2026-11-24, private", expect: { outcome: "booked", partySize: 8, date: "2026-11-24", privateRoom: true } },
+  // No Japanese private room for 8 fits the cap in this network, so the right move is to ask (R7), not to book another cuisine.
+  { id: "p12", group: "phrasing", text: "japanese dinner for 8 with Wayne Enterprises on 2026-11-24, private", expect: { outcome: "needs_clarification", partySize: 8, date: "2026-11-24", privateRoom: true } },
   { id: "p13", group: "phrasing", text: "table for 4 with Pied Piper next Tuesday at 8pm", expect: { outcome: "booked", partySize: 4, date: "2026-11-10", privateRoom: false } },
 
   // Missing information: ask, never guess.
@@ -103,4 +104,8 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg03", group: "regression", text: "table for 4 with Pied Piper on Nov 17 at 8pm", expect: { outcome: "booked", privateRoom: false } },
   // R4: "Nov 18 at 7:30pm" was read as a party of 18 (a bare "<number> at" pattern). Found by a unit test.
   { id: "reg04", group: "regression", text: "dinner for a dozen with Umbrella on Nov 18 at 7:30pm, private", expect: { outcome: "booked", partySize: 12, date: "2026-11-18" } },
+  // R7 (found by the LLM judge on the first live run): "japanese dinner" booked a Korean venue; cuisine was a nudge, not a requirement.
+  { id: "reg05", group: "regression", text: "japanese dinner for 8 with Wayne Enterprises on 2026-11-24", expect: { outcome: "booked", partySize: 8 } },
+  // R8 (found by the LLM judge): two vegetarians were sent to the venue but never confirmed to the booker.
+  { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];

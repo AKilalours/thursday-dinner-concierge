@@ -12,10 +12,10 @@
 <p align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="docs/img/demo.gif" width="900" alt="Six chapters: a live city of agents, booking with approval, a prompt injection treated as data, attacks blocked by the database, 45 evals and 300 random worlds, and memory"></a><br><sub><a href="docs/img/demo.mp4">▶ 30-second video</a> · <a href="https://akilalours.github.io/thursday-dinner-concierge/">open the live app</a></sub></p>
 
 <table align="center"><tr>
-<td align="center"><h3>45/45</h3>eval scenarios</td>
+<td align="center"><h3>47/47</h3>eval scenarios</td>
 <td align="center"><h3>0 / 2,013</h3>safety failures<br>in random worlds</td>
 <td align="center"><h3>89</h3>tests, incl.<br>real Postgres</td>
-<td align="center"><h3>6</h3>bugs caught →<br>permanent cases</td>
+<td align="center"><h3>8</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
 
 ```bash
@@ -43,7 +43,7 @@ flowchart LR
 | **Changes after booking** | Amendments and cancellations are proposals too; an amendment swaps the booking atomically and rolls back if the new slot is taken. |
 | **Spend control** | Policy as code: per-head caps, manager thresholds, notice; preferred corporate rates (12-15%) applied and reported. |
 | **Typed tools** | zod in and out, run as the EA *for* the executive, idempotent, audited. `book` / `pay_deposit` need an approved proposal. |
-| **Evals** | 45 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
+| **Evals** | 47 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
 | **Memory** | Every venue reply leaves facts ("the Library really seats 10"). Sourcing uses them next time. Private memories protected by row-level security. |
 | **Fast judgments** | Triage, SMS consent, urgency, injection. Threshold per label, timeout, safe fallback, `rules → shadow → live`. |
 </details>
@@ -74,13 +74,15 @@ flowchart LR
 | R4 | "Nov 18 at 7:30pm" parsed as a party of 18 |
 | R5 | An offer carrying injected bank details was triaged as a payment request, losing the offer |
 | R6 | **Found by the first live Claude run:** the extraction prompt didn't name the schema keys, so Claude returned its own field names and every offer silently fell back to rules |
+| R7 | **Found by the LLM judge (1/5):** "japanese dinner" booked a Korean room; cuisine was a nudge, not a requirement. Now it books the cuisine or asks which constraint to relax |
+| R8 | **Found by the LLM judge (4/5):** two vegetarians were sent to the venue but never confirmed to the booker |
 </details>
 
 <details>
 <summary><b>Live model</b></summary>
 
 - Claude (`claude-sonnet-4-5`) parses requests, extracts offers from venue email and judges proposal messages. Every output is recorded under `evals/recordings/` and replayed in CI and on the live site, so anyone sees exactly what Claude answered, with no key.
-- The first live run scored proposal messages 5/5 and found bug R6.
+- First full live run: 45/45 scenarios, Claude decided 45/45 request parses and 117/117 offer extractions. The judge scored every proposal message 5/5 except two (4/5 and 1/5); both were real bugs (R7, R8), now fixed and graded deterministically.
 - Put your key in `.env` once (`ANTHROPIC_API_KEY=...`); `npm run llm:check` verifies it, `npm run evals:live` re-measures and rebuilds the site.
 - The LLM judge is calibrated with `node evals/calibrate.ts --export` plus human labels.
 </details>

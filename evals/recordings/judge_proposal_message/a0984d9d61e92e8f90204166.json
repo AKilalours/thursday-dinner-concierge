@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, costs (minimum, all-in, per-head), deposit, cancellation terms. Clearly flags date ambiguity risk and legal agreement requirement. Concise, actionable, nothing overstated.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, costs (minimum, estimated total, per-head), deposit. Clearly flags the date assumption risk and extra approval requirement (dining agreement). Concise, actionable, nothing overstated.\"\n}\n```",
  "inputTokens": 330,
- "outputTokens": 84,
+ "outputTokens": 81,
  "model": "claude-sonnet-4-5"
 }

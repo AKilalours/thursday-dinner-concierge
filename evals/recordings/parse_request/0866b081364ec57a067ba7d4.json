@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"partySize\": 12,\n  \"kind\": \"client_dinner\",\n  \"clientName\": \"Umbrella\",\n  \"privateRoom\": true,\n  \"neighborhood\": \"West Village\",\n  \"cuisine\": null,\n  \"maxPerHeadDollars\": null,\n  \"time24h\": null,\n  \"dietary\": [\"vegetarian\"],\n  \"notes\": \"next Wednesday, two vegetarians in party\"\n}\n```",
+ "text": "```json\n{\n  \"partySize\": 12,\n  \"kind\": \"client_dinner\",\n  \"clientName\": \"Umbrella\",\n  \"privateRoom\": true,\n  \"neighborhood\": \"West Village\",\n  \"cuisine\": null,\n  \"maxPerHeadDollars\": null,\n  \"time24h\": null,\n  \"dietary\": [\"vegetarian\"],\n  \"notes\": \"next Wednesday, two vegetarians\"\n}\n```",
  "inputTokens": 187,
- "outputTokens": 112,
+ "outputTokens": 110,
  "model": "claude-sonnet-4-5"
 }

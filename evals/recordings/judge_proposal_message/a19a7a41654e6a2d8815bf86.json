@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Rue Margaux), room (The Library), date (Tue Nov 17), time (7 pm), headcount (10 guests), minimum spend ($1,038), estimated total ($1,338), per-person cost ($134), deposit ($260), and cancellation policy (free until 24h before). The message confirms the steakhouse requirement was met and notes the cost is under the $250/head cap. Concise format perfect for mobile approval. No misleading claims or missing critical information.\"\n}\n```",
+ "inputTokens": 261,
+ "outputTokens": 148,
+ "model": "claude-sonnet-4-5"
+}

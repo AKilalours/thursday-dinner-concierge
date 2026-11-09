@@ -1,6 +1,6 @@
 {
- "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date/time, headcount, total cost ($2,638), deposit ($518). Clearly states budget compliance ($132 vs $250 cap), savings from corporate rate, cancellation terms, and flags two important considerations: signing requirement and additional approver needed (Marcus Lee for >$2,500). Concise and actionable.\"\n}\n```",
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date/time, headcount, total cost ($2,638), deposit ($518). Clearly states budget compliance ($132 vs $250 cap), calls out additional approver needed (Marcus Lee for >$2,500), flags legal requirement (private dining agreement), and notes cancellation terms. Concise and actionable.\"\n}\n```",
  "inputTokens": 322,
- "outputTokens": 105,
+ "outputTokens": 103,
  "model": "claude-sonnet-4-5"
 }
