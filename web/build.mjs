@@ -7,9 +7,9 @@ const root = new URL("..", import.meta.url).pathname;
 const shim = join(root, "web/shims/");
 const recDir = join(root, "evals/recordings");
 const recordings = {};
-if (existsSync(recDir)) for (const task of readdirSync(recDir)) {
+if (existsSync(recDir)) for (const task of readdirSync(recDir).sort()) {
   const dir = join(recDir, task);
-  if (!task.startsWith(".") && existsSync(dir) && !task.includes(".")) for (const f of readdirSync(dir)) if (f.endsWith(".json")) recordings[`${task}/${f}`] = readFileSync(join(dir, f), "utf8");
+  if (!task.startsWith(".") && existsSync(dir) && !task.includes(".")) for (const f of readdirSync(dir).sort()) if (f.endsWith(".json")) recordings[`${task}/${f}`] = readFileSync(join(dir, f), "utf8");
 }
 await build({
   entryPoints: [join(root, "web/playground.ts")],

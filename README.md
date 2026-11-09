@@ -22,7 +22,7 @@
 npm install && npm run demo
 ```
 
-**On the live site:** Live desk · Book (slide to approve) · **Availability** (30 venues × 14 nights, priced under policy; click a cell to request, approve and book that exact table) · **Compare** (every offer the agent collected in one sortable table, side-by-side cards, propose any of them) · **Bookings** (receipt with tax, service, preferred rate and deposit; change headcount or night as an approved amendment, or cancel with the venue's refund window applied) · **Seating** (drag guests to seats, flag dietary needs, send the plan to the venue) · **Policy** (drag the caps and approval thresholds, see how many tables it unlocks, replay all 47 requests under the new policy before applying it) · **⌘K** to ask the concierge from any page · Inbox lab · **Fix lab** (replay a real failure with Claude's recorded 1/5 verdict, see the fix, prove it) · **Tools** (call the typed capabilities yourself) · **Judgments** (drag thresholds, force a timeout, watch the fallback) · Controls · Evals · Memory · Spend. Press **▶ Tour** for a hands-free 47-second walkthrough.
+**On the live site:** **Chat** (talk to the concierge, approve its proposal in the thread, then follow up: "make it 14", "move it to Friday", "2 are vegetarian", "cancel it"; every change is an approved proposal run through the typed tools) · Live desk · Book (slide to approve) · **Availability** (30 venues × 14 nights, priced under policy; click a cell to request, approve and book that exact table) · **Compare** (every offer the agent collected in one sortable table, side-by-side cards, propose any of them) · **Bookings** (receipt with tax, service, preferred rate and deposit; change headcount or night as an approved amendment, or cancel with the venue's refund window applied) · **Seating** (drag guests to seats, flag dietary needs, send the plan to the venue) · **Policy** (drag the caps and approval thresholds, see how many tables it unlocks, replay all 47 requests under the new policy before applying it) · **⌘K** to ask the concierge from any page · Inbox lab · **Fix lab** (replay a real failure with Claude's recorded 1/5 verdict, see the fix, prove it) · **Tools** (call the typed capabilities yourself) · **Judgments** (drag thresholds, force a timeout, watch the fallback) · Controls · Evals · Memory · Spend. Press **▶ Tour** for a hands-free one-minute walkthrough.
 
 <details>
 <summary><b>How it works</b></summary>
@@ -100,7 +100,10 @@ ANDE_PSQL="-h localhost -U postgres" npm test  # also on real Postgres
 npm run evals && npm run fuzz
 npm run llm:check                              # one real model call: is the key working?
 npm run build:web                              # rebuild the live playground in docs/
+npm run site:check                             # real-browser check of every page at 3 screen sizes + main flows
 ```
 </details>
+
+The site deploys through `.github/workflows/pages.yml`: it is rebuilt from source and published only after typecheck, tests, evals and the browser check pass.
 
 <sub>All venues, companies and people are fictional. Independent project.</sub>

@@ -71,10 +71,14 @@ function go(page: string) {
   $$<HTMLButtonElement>("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.p === page));
   $$(".page").forEach((p) => p.classList.toggle("on", p.id === `p-${page}`));
   if (page === "bookings") void renderBookings();
+  document.body.classList.remove("menu"); const cur = $$<HTMLButtonElement>("#tabs button").find((b) => b.dataset.p === page); if (cur) $("#menuCur").textContent = cur.textContent!;
+  if (page === "chat") setTimeout(() => $<HTMLInputElement>("#chatIn")?.focus(), 50);
   
   window.scrollTo({ top: 0 });
 }
 $$<HTMLButtonElement>("#tabs button").forEach((b) => b.addEventListener("click", () => go(b.dataset.p!)));
+$("#menuBtn").addEventListener("click", (e) => { e.stopPropagation(); document.body.classList.toggle("menu"); });
+document.addEventListener("click", (e) => { if (document.body.classList.contains("menu") && !(e.target as HTMLElement).closest("#tabs")) document.body.classList.remove("menu"); });
 Object.assign(window, { go, caption: (n: string, t: string) => { const c = $("#caption"); c.style.display = t ? "flex" : "none"; $("#capN").textContent = n; $("#capT").textContent = t; } });
 
 // =====================================================================
@@ -678,20 +682,27 @@ async function tour() {
   touring = true; $("#tourBtn").textContent = "■ Stop tour";
   const step = async (n: string, t: string, page: string, fn: () => Promise<void>) => { if (!touring) return; say(n, t); go(page); await fn(); };
   await step("01 · LIVE DESK", "Requests move from one sentence to a confirmed table.", "desk", async () => { await sleep(9000); });
-  await step("02 · BOOK", "You type it. You approve it. It books and pays.", "book", async () => {
-    $<HTMLButtonElement>("#bSpeed button[data-s='4']").click(); $<HTMLButtonElement>("#go button").click();
-    for (let i = 0; i < 200 && !$(".slide"); i++) await sleep(100); await sleep(900); ($(".slide") as HTMLElement | null)?.click(); for (let i = 0; i < 100 && !$(".ticket"); i++) await sleep(100); await sleep(2000);
+  await step("02 · CHAT", "One sentence in. You approve. Then change it like you'd text a person.", "chat", async () => {
+    const wait = async (sel: string) => { for (let i = 0; i < 200 && touring && !$(sel); i++) await sleep(100); };
+    void chatSend("dinner for 12 with the Acme team next Thursday, somewhere private"); await wait(".cm.card2 [data-k=y]:not([disabled])"); await sleep(1200);
+    $<HTMLButtonElement>(".cm.card2 [data-k=y]:not([disabled])")?.click(); await wait("#chatChips .chip"); await sleep(1500);
+    $<HTMLButtonElement>("#chatChips .chip:nth-child(2)")?.click(); await wait(".cm.card2 [data-k=y]:not([disabled])"); await sleep(1000);
+    $<HTMLButtonElement>(".cm.card2 [data-k=y]:not([disabled])")?.click(); await sleep(2200);
   });
-  await step("03 · FIX LAB", "Find the failure in a real conversation. Fix it. Prove it.", "fix", async () => { for (let i = 0; i < 4 && touring; i++) { $<HTMLButtonElement>("#fixGo").click(); await sleep(2300); } });
-  await step("04 · TOOLS", "Typed tools: bad input rejected, unapproved booking refused.", "tools", async () => {
+  await step("03 · AVAILABILITY", "Every venue, every night, priced under your policy. Click a table to book it.", "avail", async () => {
+    await sleep(1200); ($(".gc.ok") as HTMLElement | null)?.click(); await sleep(900); $("#gReq")?.click();
+    for (let i = 0; i < 100 && touring && !$("#gFlow .slide"); i++) await sleep(100); await sleep(700); ($("#gFlow .slide .lbl") as HTMLElement | null)?.click(); await sleep(2200);
+  });
+  await step("04 · FIX LAB", "Find the failure in a real conversation. Fix it. Prove it.", "fix", async () => { for (let i = 0; i < 4 && touring; i++) { $<HTMLButtonElement>("#fixGo").click(); await sleep(2300); } });
+  await step("05 · TOOLS", "Typed tools: bad input rejected, unapproved booking refused.", "tools", async () => {
     $<HTMLButtonElement>("#toolList button[data-i='1']").click(); await sleep(500); $<HTMLButtonElement>("#toolCall").click(); await sleep(1300);
     $<HTMLButtonElement>("#toolList button[data-i='2']").click(); await sleep(500); $<HTMLButtonElement>("#toolCall").click(); await sleep(1600);
     $<HTMLButtonElement>("#toolApprove").click(); await sleep(1200); $<HTMLButtonElement>("#toolCall").click(); await sleep(1600);
   });
-  await step("05 · JUDGMENTS", "Thresholds, a timeout and a safe fallback.", "judg", async () => { $<HTMLSelectElement>("#jMode").value = "live"; $<HTMLInputElement>("#jTimeout").value = "500"; $<HTMLInputElement>("#jDelay").value = "1500"; void judge(); await sleep(2500); });
-  await step("06 · CONTROLS", "Six safety controls, enforced by Postgres.", "controls", async () => { $<HTMLButtonElement>("#runAll").click(); await sleep(3500); });
-  await step("07 · EVALS", "The CI suite in your browser. Real Claude outputs.", "evals", async () => { $<HTMLButtonElement>("#runEvals").click(); for (let i = 0; i < 300 && !$("#sPass").textContent!.startsWith("47/"); i++) await sleep(100); await sleep(1200); });
-  await step("08 · SPEND", "Policy is code. Drag it and the city changes.", "spend", async () => { for (const v of [180, 140, 300]) { const s = $<HTMLInputElement>("#cap"); s.value = String(v); s.dispatchEvent(new Event("input")); await sleep(900); } });
+  await step("06 · JUDGMENTS", "Thresholds, a timeout and a safe fallback.", "judg", async () => { $<HTMLSelectElement>("#jMode").value = "live"; $<HTMLInputElement>("#jTimeout").value = "500"; $<HTMLInputElement>("#jDelay").value = "1500"; void judge(); await sleep(2500); });
+  await step("07 · CONTROLS", "Six safety controls, enforced by Postgres.", "controls", async () => { $<HTMLButtonElement>("#runAll").click(); await sleep(3500); });
+  await step("08 · EVALS", "The CI suite in your browser. Real Claude outputs.", "evals", async () => { $<HTMLButtonElement>("#runEvals").click(); for (let i = 0; i < 300 && !$("#sPass").textContent!.startsWith("47/"); i++) await sleep(100); await sleep(1200); });
+  await step("09 · POLICY", "Policy is code. Drag it and the city changes.", "spend", async () => { for (const v of [180, 140, 300]) { const s = $<HTMLInputElement>("#cap"); s.value = String(v); s.dispatchEvent(new Event("input")); await sleep(900); } });
   say("", ""); touring = false; $("#tourBtn").textContent = "▶ Tour";
 }
 $("#tourBtn").onclick = () => void tour();
@@ -1090,9 +1101,9 @@ renderPolicy();
 // =====================================================================
 const CMDS: { t: string; sub: string; run: () => void }[] = [
   ...["dinner for 12 with the Acme team next Thursday, somewhere private", "private dinner for 20 with Globex on Nov 19", "team dinner for 8 this Friday under $100 a head", "client lunch for 6 with Initech tomorrow"].map((t) => ({ t, sub: "Ask the concierge", run: () => ask(t) })),
-  ...[["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
+  ...[["chat", "Chat with the concierge"], ["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
 ];
-function ask(t: string) { go("book"); $<HTMLInputElement>("#ask").value = t; $<HTMLFormElement>("#go").requestSubmit(); }
+function ask(t: string) { go("chat"); void chatSend(t); }
 let kSel = 0;
 function kRender() {
   const q = $<HTMLInputElement>("#kIn").value.trim().toLowerCase(), list = CMDS.filter((c) => !q || c.t.toLowerCase().includes(q));
@@ -1108,6 +1119,136 @@ $("#kBtn").onclick = kOpen; $("#kbar").onclick = (e) => { if (e.target === $("#k
 $("#kIn").oninput = () => { kSel = 0; kRender(); };
 $("#kIn").onkeydown = (e) => { const items = kRender(); if (e.key === "ArrowDown") { kSel = (kSel + 1) % items.length; kRender(); e.preventDefault(); } else if (e.key === "ArrowUp") { kSel = (kSel - 1 + items.length) % items.length; kRender(); e.preventDefault(); } else if (e.key === "Enter" && items[kSel]) { kClose(); items[kSel].run(); } else if (e.key === "Escape") kClose(); };
 document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); kOpen(); } });
+
+// =====================================================================
+// CHAT: the booker's thread with the concierge, including follow-ups after booking
+// =====================================================================
+const chatStore = new MemoryStore(); await chatStore.init(venues); chatStore.setNow(NOW); stores.push(chatStore); srcOf.set(chatStore, "Chat");
+interface ChatCtx { runId: string; world: VenueWorld; bookingId: string; v: Venue; room: Venue["rooms"][number]; n: number; date: string; client: string; dietary: string[] }
+let chatCur: ChatCtx | null = null, chatBusy = false, chatN = 0;
+const DAY_IDX: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+const chatLog = () => $("#chatLog");
+function chatScroll() { const c = chatLog(); c.scrollTop = c.scrollHeight; }
+function msg(who: "me" | "bot", html: string, meta = "") {
+  const m = el("div", `cm ${who}`, `<div class="bub">${html}</div>${meta ? `<div class="mt">${meta}</div>` : ""}`); chatLog().append(m); chatScroll(); return m;
+}
+function typing() { const t = el("div", "cm bot typing", `<div class="bub"><i></i><i></i><i></i></div>`); chatLog().append(t); chatScroll(); return t; }
+function chips(list: string[]) {
+  $("#chatChips").innerHTML = list.map((c) => `<button class="chip" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+  $$<HTMLButtonElement>("#chatChips .chip").forEach((b) => b.onclick = () => void chatSend(b.dataset.c!));
+}
+/** A choice card in the thread; resolves with the button the booker taps. */
+function choose(html: string, buttons: [string, string, string][]): Promise<string> {
+  return new Promise((res) => {
+    const card = msg("bot", `${html}<div class="cbtns">${buttons.map(([k, l, cls]) => `<button class="btn ${cls}" data-k="${k}">${l}</button>`).join("")}</div>`);
+    card.classList.add("card2");
+    card.querySelectorAll<HTMLButtonElement>("[data-k]").forEach((b) => b.onclick = () => { card.querySelectorAll("button").forEach((x) => x.setAttribute("disabled", "")); b.classList.add("chosen"); res(b.dataset.k!); });
+  });
+}
+function propCard(v: Venue, roomName: string, date: string, n: number, allIn: number, deposit: number, extra = "") {
+  return `<div class="pc"><div class="pch"><b>${esc(v.name)}</b><span>${esc(v.neighborhood)} · ${esc(v.cuisine)}</span></div><div class="pcg"><div><span>Room</span><b>${esc(roomName)}</b></div><div><span>When</span><b>${when(eventWindow(date, "19:00").startsAt)}, ${date.slice(5)}</b></div><div><span>Guests</span><b>${n}</b></div><div><span>All-in</span><b>${usd(allIn)}</b></div><div><span>Per head</span><b>${usd(Math.round(allIn / n))}</b></div><div><span>Deposit</span><b>${deposit ? usd(deposit) : "none"}</b></div></div>${extra}</div>`;
+}
+async function chatSend(text: string) {
+  text = text.trim(); if (!text || chatBusy) return; chatBusy = true; $<HTMLInputElement>("#chatIn").value = ""; $("#chatChips").innerHTML = "";
+  window.scrollTo({ top: 0 }); msg("me", esc(text), "Priya · now");
+  try {
+    const t = text.toLowerCase();
+    if (chatCur && /\bcancel\b/.test(t)) await chatCancel(chatCur);
+    else if (chatCur && /(make it|change it to|now|actually)\s+(\d{1,2})\b|(\d{1,2})\s+(people|guests|of us)/.test(t) && !/dinner for/.test(t)) {
+      const m = t.match(/(\d{1,2})/)!; await chatAmend(chatCur, Number(m[1]), chatCur.date);
+    } else if (chatCur && /\b(move|change|push|switch).*(sun|mon|tue|wed|thu|fri|sat)/.test(t)) {
+      const d = DAY_IDX[t.match(/(sun|mon|tue|wed|thu|fri|sat)/)![1]], date = NIGHTS.find((x) => weekday(x) === d && x !== chatCur!.date) ?? chatCur.date; await chatAmend(chatCur, chatCur.n, date);
+    } else if (chatCur && /(vegetarian|vegan|gluten|allerg|nut|shellfish)/.test(t)) await chatDiet(chatCur, text);
+    else if (chatCur && /seat/.test(t)) { msg("bot", "Opening the seating chart for this dinner."); setLastBooking({ venue: chatCur.v, roomName: chatCur.room.name, partySize: chatCur.n, date: chatCur.date, dietary: chatCur.dietary, client: chatCur.client, world: chatCur.world, threadId: `thr_${chatCur.runId}_${chatCur.v.id}` }); await sleep(600); go("seating"); }
+    else await chatRequest(text);
+  } finally { chatBusy = false; }
+}
+async function chatRequest(text: string) {
+  const mix: Behavior[] = ["accept", "counter_price", "accept", "injection", "decline", "accept_slow", "counter_capacity"], seen = new Map<string, Behavior>(), off = chatN++;
+  const world = new VenueWorld(venues, (id) => { if (!seen.has(id)) seen.set(id, mix[(seen.size + off) % mix.length]); return seen.get(id)!; }, NOW, 21 + off);
+  const work = msg("bot", `<details class="work" open><summary><span class="spin"></span> Working on it</summary><ol></ol></details>`); const ol = work.querySelector("ol")!;
+  let chain = Promise.resolve(), steps = 0; const offers = new Map<string, Offer>();
+  const onEvent = (e: TraceEvent) => {
+    if (e.kind.startsWith("to_booker")) { if (!/Reply approve or reject/.test(e.text)) chain = chain.then(async () => { const ty = typing(); await sleep(700); ty.remove(); msg("bot", esc(e.text), `Concierge · ${e.kind.endsWith("sms") ? "SMS" : "email"}`); }); return; }
+    if (e.kind === "proposed") return;
+    if (e.kind === "offer" && e.data?.offer) { const o = e.data.offer as Offer; offers.set(o.venueId, o); }
+    chain = chain.then(async () => {
+      steps++; ol.insertAdjacentHTML("beforeend", `<li class="${AGENT[e.agent] ?? ""}${e.kind === "injection_flagged" ? " bad" : ""}"><b>${e.agent}</b>${isAI(e) ? '<span class="ai"></span>' : ""} ${esc(e.text.replace(/ \((model|rules)(, [\d.]+)?\)$/, "").replace(/_/g, " "))}</li>`);
+      work.querySelector("summary")!.innerHTML = `<span class="spin"></span> ${steps} step${steps > 1 ? "s" : ""} · ${esc(e.agent)}`; chatScroll(); await sleep(e.kind === "reply" || e.kind === "offer" ? 380 : 260);
+    });
+  };
+  const depositOf = (v: Venue, p: Proposal) => { const o = offers.get(v.id), d = localDate(p.startsAt), room = v.rooms.find((r) => r.id === p.roomId)!; return checkPolicy(company, reqFor(p.partySize, d, room.private), v, { minSpendCents: o?.minSpendCents ?? (room.private ? room.minSpendCents[weekday(d)] : 0), perHeadCents: o?.perHeadCents ?? null, depositPct: o?.depositPct ?? null, capacity: null }, leadHours(NOW, d, "19:00")).depositCents; };
+  const approver: Approver = async (p, st) => {
+    await chain; const v = venues.find((x) => x.id === p.venueId)!, room = v.rooms.find((r) => r.id === p.roomId)!;
+    if (p.kind === "pay_deposit") { for (const role of p.requiredRoles) await st.decide(p.id, approverFor(role, priya).id, role, "approve"); return "approved"; }
+    for (const role of p.requiredRoles) {
+      const who = approverFor(role, priya);
+      const k = await choose(`${role === "booker" ? "Here's what I'd book:" : `Over ${usd(company.policy.managerApprovalAboveCents)}, so ${esc(who.name)} also signs off.`}${role === "booker" ? propCard(v, room.name, localDate(p.startsAt), p.partySize, p.amountCents, depositOf(v, p)) : ""}`, [["y", role === "booker" ? "Approve" : `Approve as ${esc(who.name.split(" ")[0])}`, "pri"], ["n", "Decline", ""]]);
+      await st.decide(p.id, who.id, role, k === "y" ? "approve" : "reject");
+      if (k !== "y") return "rejected";
+    }
+    return "approved";
+  };
+  const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store: chatStore, world, llm, venues, company, approver, onEvent, shortlistSize: 3 });
+  await chain; work.querySelector("details")!.removeAttribute("open"); work.querySelector("summary")!.innerHTML = `✓ ${steps} steps · ${res.trace.filter((e) => e.kind === "offer").length} offers read · ${world.sent().length} emails sent`;
+  record(res, world);
+  if (res.outcome === "booked" && res.bookingId) {
+    const v = venues.find((x) => x.id === res.chosenVenueId)!, bk = (await chatStore.getBooking(res.bookingId))!, room = v.rooms.find((r) => r.id === bk.roomId)!;
+    chatCur = { runId: res.runId, world, bookingId: res.bookingId, v, room, n: bk.partySize, date: localDate(bk.startsAt), client: res.request?.clientName ?? "Guests", dietary: res.request?.dietary ?? [] };
+    toast("Booked", `${v.name} · ${bk.partySize} guests`); renderGrid();
+    chips([`Make it ${bk.partySize + 2 <= room.listedCapacity ? bk.partySize + 2 : bk.partySize - 2} people`, "Move it to Friday", "2 guests are vegetarian", "Arrange seating", "Cancel it"]);
+  } else chips(["dinner for 12 with the Acme team next Thursday, somewhere private", "team dinner for 8 this Friday under $100 a head"]);
+}
+async function chatAmend(c: ChatCtx, n: number, date: string) {
+  const min = c.room.private ? c.room.minSpendCents[weekday(date)] : 0;
+  const pol = checkPolicy(company, reqFor(n, date, c.room.private), c.v, { minSpendCents: min, perHeadCents: null, depositPct: null, capacity: null }, leadHours(NOW, date, "19:00"));
+  const ty = typing(); await sleep(800); ty.remove();
+  if (n > c.room.listedCapacity) { msg("bot", `${esc(c.room.name)} seats ${c.room.listedCapacity}, so ${n} won't fit. Want me to look for a bigger room elsewhere? Just say “private dinner for ${n} …”.`); chips([`Make it ${c.room.listedCapacity} people`, "Cancel it"]); return; }
+  if (c.v.closedDays.includes(weekday(date))) { msg("bot", `${esc(c.v.name)} is closed that night.`); chips(["Move it to Thursday", "Cancel it"]); return; }
+  if (!pol.onPolicy) { msg("bot", `That breaks policy: ${esc(pol.violations.join("; "))}.`); chips(["Cancel it"]); return; }
+  const old = (await chatStore.getProposal((await chatStore.getBooking(c.bookingId))!.proposalId))!.amountCents, delta = pol.estimate.allInCents - old;
+  const k = await choose(`${[n !== c.n ? `${c.n} → <b>${n}</b> guests` : "", date !== c.date ? `move to <b>${when(eventWindow(date, "19:00").startsAt)}, ${date.slice(5)}</b>` : ""].filter(Boolean).join(", ").replace(/^./, (x) => x.toUpperCase())}. ${usd(old)} → <b>${usd(pol.estimate.allInCents)}</b> (${delta >= 0 ? "+" : "−"}${usd(Math.abs(delta))}). The deposit carries over.`, [["y", pol.requiredRoles.length > 1 ? "Approve (and ask manager)" : "Approve change", "pri"], ["n", "Keep as is", ""]]);
+  if (k !== "y") { msg("bot", "Kept as is."); chips(["Arrange seating", "Cancel it"]); return; }
+  const ctxT = await mgmtCtx(chatStore), win = eventWindow(date, "19:00");
+  const { proposalId } = await call(ctxT, "changes", createProposal, { runId: "changes", actorId: priya.id, principalId: dana.id, venueId: c.v.id, roomId: c.room.id, ...win, partySize: n, kind: "amend", amountCents: pol.estimate.allInCents, payeeId: null, requiredRoles: pol.requiredRoles, summary: `Change ${c.bookingId}`, expiresAt: new Date(Date.parse(NOW) + 48 * 3_600_000).toISOString(), replacesBookingId: c.bookingId }) as { proposalId: string };
+  for (const role of pol.requiredRoles) await chatStore.decide(proposalId, approverFor(role, priya).id, role, "approve");
+  try {
+    const out = await call(ctxT, "changes", amendBooking, { proposalId }) as { bookingId: string; replaced: string };
+    changedTo.set(out.replaced, out.bookingId); carried.set(out.bookingId, out.replaced);
+    c.world.send(c.v.id, `thr_${c.runId}_${c.v.id}`, "Change to our booking", `Hi ${c.v.name} team, could we update our reservation to ${n} guests on ${date} at 7 pm? Thank you.`, "answer");
+    Object.assign(c, { bookingId: out.bookingId, n, date });
+    msg("bot", `Done. ${esc(c.v.name)} now has you for <b>${n}</b> on <b>${when(win.startsAt)}</b>. I've emailed the venue.`, "Concierge · confirmed"); toast("Booking changed", `${c.v.name} · ${n} guests · ${date}`); renderGrid();
+  } catch (e) {
+    msg("bot", e instanceof StoreError && e.code === "double_booked" ? `${esc(c.room.name)} is already taken that night, so the database refused the change. Your original booking is untouched.` : esc(String(e)));
+  }
+  chips([`Make it ${n + 2 <= c.room.listedCapacity ? n + 2 : n - 2} people`, "Move it to Saturday", "Arrange seating", "Cancel it"]);
+}
+async function chatCancel(c: ChatCtx) {
+  const hrs = Math.round((Date.parse(eventWindow(c.date, "19:00").startsAt) - Date.parse(NOW)) / 3_600_000), free = hrs >= c.v.cancellationHours;
+  const paid = paidFor(chatStore, c.bookingId);
+  const k = await choose(`Cancel ${esc(c.v.name)} on ${when(eventWindow(c.date, "19:00").startsAt)}? ${free ? `You're outside the ${c.v.cancellationHours} h window, so ${paid ? `the ${usd(paid)} deposit comes back` : "there's no charge"}.` : `It's ${hrs} h away, inside the ${c.v.cancellationHours} h window: ${paid ? `the ${usd(paid)} deposit is forfeited` : "no deposit was paid"}.`}`, [["y", "Cancel booking", "danger"], ["n", "Keep it", ""]]);
+  if (k !== "y") { msg("bot", "Kept."); chips(["Arrange seating"]); return; }
+  const ctxT = await mgmtCtx(chatStore), win = eventWindow(c.date, "19:00");
+  const { proposalId } = await call(ctxT, "changes", createProposal, { runId: "changes", actorId: priya.id, principalId: dana.id, venueId: c.v.id, roomId: c.room.id, ...win, partySize: c.n, kind: "cancel", amountCents: 0, payeeId: null, requiredRoles: ["booker"], summary: `Cancel ${c.bookingId}`, expiresAt: new Date(Date.parse(NOW) + 48 * 3_600_000).toISOString(), replacesBookingId: c.bookingId }) as { proposalId: string };
+  await chatStore.decide(proposalId, priya.id, "booker", "approve");
+  const out = await call(ctxT, "changes", cancelBooking, { proposalId }) as { depositRefundable: boolean };
+  cancelledHow.set(c.bookingId, paid ? (out.depositRefundable ? "refunded" : "deposit forfeited") : "no charge");
+  c.world.send(c.v.id, `thr_${c.runId}_${c.v.id}`, "Cancellation", `Hi ${c.v.name} team, we need to cancel our ${c.date} reservation. Sorry for the change.`, "answer");
+  msg("bot", `Cancelled, and I've let ${esc(c.v.name)} know.`, "Concierge · cancelled"); toast("Booking cancelled", `${c.v.name} · ${cancelledHow.get(c.bookingId)}`, out.depositRefundable ? "ok" : "warn");
+  chatCur = null; renderGrid(); chips(["dinner for 12 with the Acme team next Thursday, somewhere private", "client lunch for 6 with Initech tomorrow"]);
+}
+async function chatDiet(c: ChatCtx, text: string) {
+  const n = Number(text.match(/(\d+)/)?.[1] ?? 1), kind = text.toLowerCase().match(/(vegetarian|vegan|gluten|nut|shellfish)/)?.[1] ?? "dietary";
+  for (let i = 0; i < n; i++) c.dietary.push(kind === "gluten" ? "gluten-free" : kind === "nut" ? "nut allergy" : kind === "shellfish" ? "shellfish allergy" : kind);
+  c.world.send(c.v.id, `thr_${c.runId}_${c.v.id}`, "Dietary needs", `Hi ${c.v.name} team, for our ${c.date} dinner: ${n} guest${n > 1 ? "s" : ""} ${kind === "vegetarian" || kind === "vegan" ? `are ${kind}` : `need ${kind === "gluten" ? "gluten-free" : `${kind}-free`} dishes`}. Thank you.`, "answer");
+  await mem.remember({ companyId: company.id, scope: "company", ownerUserId: priya.id, subject: c.client, fact: `${n} ${kind} guest${n > 1 ? "s" : ""} at the ${c.date} dinner (${c.v.name})`, source: "chat" });
+  const ty = typing(); await sleep(700); ty.remove();
+  msg("bot", `Noted: ${n} ${esc(kind)}. I've told ${esc(c.v.name)} and saved it for ${esc(c.client)} so next time it's in the request automatically.`, "Concierge · venue emailed"); void renderMems();
+  chips(["Arrange seating", `Make it ${c.n + 2 <= c.room.listedCapacity ? c.n + 2 : c.n - 2} people`, "Cancel it"]);
+}
+$<HTMLFormElement>("#chatForm").addEventListener("submit", (e) => { e.preventDefault(); void chatSend($<HTMLInputElement>("#chatIn").value); });
+msg("bot", `Hi Priya. Tell me who's coming, when, and anything that matters. I'll find the venue, handle the emails, and only book once you approve.`, "Concierge");
+chips(["dinner for 12 with the Acme team next Thursday, somewhere private", "private dinner for 20 with Globex on Nov 19", "team dinner for 8 this Friday under $100 a head", "japanese dinner for 8 with Wayne Enterprises on Nov 24, private"]);
 
 // ---------- start ----------
 if (!new URLSearchParams(location.search).has("still")) void deskLoop();

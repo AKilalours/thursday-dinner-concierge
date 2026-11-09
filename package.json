@@ -4,7 +4,9 @@
   "description": "A concierge agent with sourcing, comparison and venue-coordination subagents that turns one sentence into a confirmed, paid, on-policy booking, with every consequential action gated by a booker-approved proposal.",
   "type": "module",
   "private": true,
-  "engines": { "node": ">=22.18" },
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "demo": "node --env-file-if-exists=.env src/cli/demo.ts",
     "test": "node --test --test-reporter=spec test/*.test.ts",
@@ -16,7 +18,8 @@
     "judge:calibrate": "node --env-file-if-exists=.env evals/calibrate.ts",
     "typecheck": "tsc --noEmit",
     "build:web": "node web/build.mjs",
-    "db:schema": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f db/schema.sql"
+    "db:schema": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f db/schema.sql",
+    "site:check": "node scripts/site-check.mjs"
   },
   "dependencies": {
     "zod": "^3.25.0"
