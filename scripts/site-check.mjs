@@ -68,6 +68,11 @@ await page.click(".gc.ok"); await page.click("#gReq");
 await page.waitForSelector("#gFlow .slide", { timeout: 15000 }); await slideAll(page, "#gFlow");
 await page.waitForSelector("#gFlow .gstep.ok", { timeout: 10000 }).catch(() => fail(1440, "availability: booking did not complete"));
 
+await page.evaluate(() => window.go("calendar")); await page.waitForTimeout(400);
+await page.click(".calb"); await page.click('.cald[data-d="2026-11-17"]');
+await page.waitForSelector(".modal [data-k=y]", { timeout: 5000 }).then(() => page.click(".modal [data-k=y]")).catch(() => {});
+await page.waitForSelector(".toast", { timeout: 5000 }).catch(() => fail(1440, "calendar: moving a dinner gave no result"));
+
 await page.evaluate(() => window.go("bookings")); await page.waitForTimeout(400);
 const rows = await page.$$eval("#bkTable tbody tr", (r) => r.length);
 if (rows < 2) fail(1440, `bookings: expected the chat and availability bookings, saw ${rows}`);

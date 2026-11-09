@@ -257,6 +257,16 @@ table.ctable tr.bkr{cursor:pointer}table.ctable tr.bkr:hover td{background:#fbf6
 .chatchips{padding:8px 14px 0;display:flex;flex-wrap:wrap;gap:6px}.chatchips:empty{display:none}
 .chatform{display:flex;gap:8px;padding:12px 14px}.chatform input{flex:1;min-width:0;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;background:#fff}
 @media (max-width:700px){.chatwrap{height:calc(100vh - 90px);border-radius:14px}.cm{max-width:92%}.pcg{grid-template-columns:repeat(2,1fr)}}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.calh{font:700 11px Inter;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);padding:4px 6px}
+.cald{min-height:118px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:5px;transition:background .15s,transform .15s}.cald.off{background:#f6f1ea;opacity:.55}.cald.today{border-color:var(--wine)}.cald.over{background:#f3eadc;transform:scale(1.03);border-color:var(--gold)}.cald.no{animation:shake .4s;border-color:var(--rose)}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.caln{font:800 15px Fraunces,Georgia,serif;color:var(--ink)}.cald.today .caln{color:var(--wine)}
+.calb{border-left:4px solid var(--c);background:#fff;border-radius:8px;padding:5px 7px;font-size:12px;cursor:grab;box-shadow:0 2px 6px #0001;overflow:hidden}.calb b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.calb span{color:var(--dim)}.calb.drag{opacity:.4}.calb.pick{outline:2px solid var(--gold)}
+.caladd{margin-top:auto;border:1px dashed #d9cbb7;background:none;border-radius:8px;padding:4px;font:600 11.5px Inter;color:#b3a08c;opacity:0;transition:opacity .15s}.cald:hover .caladd{opacity:1}
+.modal{position:fixed;inset:0;background:#2a1a1f66;backdrop-filter:blur(3px);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px}.mbox{width:min(440px,100%);background:var(--paper);border-radius:20px;padding:20px;box-shadow:0 30px 80px #0005;animation:tin .25s}.mbox .vt{font:700 21px Fraunces,Georgia,serif;color:var(--wine2)}.mbox .vs{font-size:13px;color:var(--dim)}
+.mv{display:flex;align-items:center;gap:12px;margin:14px 0 4px}.mv div{flex:1;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px}.mv span{display:block;font-size:11px;color:var(--dim)}.mv i{font-style:normal;color:var(--wine);font-size:20px}
+b.up{color:#a3203c}b.dn{color:var(--sage)}
+@media (max-width:700px){.cal{gap:3px}.cald{min-height:84px;padding:4px;border-radius:9px}.calb{padding:3px 4px;font-size:10px}.calb span{display:none}.caln{font-size:12px}.calh{font-size:9px;padding:2px}.caladd{opacity:1;font-size:10px}}
 </style>
 </head>
 <body>
@@ -266,7 +276,7 @@ table.ctable tr.bkr{cursor:pointer}table.ctable tr.bkr:hover td{background:#fbf6
   <nav class="tabs" id="tabs">
     <div class="ws"><i>N</i><div>Northwind Labs<small>Priya Raman · EA to Dana Whitfield</small></div></div>
     <span class="tsep">Concierge</span><button data-p="chat">Chat</button><button class="on" data-p="desk">Live desk</button><button data-p="book">Book step by step</button>
-    <span class="tsep">Plan</span><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="seating">Seating</button>
+    <span class="tsep">Plan</span><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
     <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button>
     <span class="tsep">Under the hood</span><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
     <div class="navfoot">Built for Ande · AI Engineer<br>Independent project · fictional data</div>
@@ -342,6 +352,11 @@ table.ctable tr.bkr{cursor:pointer}table.ctable tr.bkr:hover td{background:#fbf6
   <div class="chatlog" id="chatLog"></div>
   <div class="chips chatchips" id="chatChips"></div>
   <form id="chatForm" class="chatform"><input id="chatIn" autocomplete="off" placeholder="Message the concierge… e.g. dinner for 12 with Acme next Thursday, somewhere private"><button class="btn pri">Send</button></form></div>
+</section>
+
+<section class="page" id="p-calendar">
+  <div class="ph"><div><h1>Calendar</h1><p class="lead" id="calHint"></p></div><button class="btn" onclick="go('avail')">Find a table →</button></div>
+  <div class="cal" id="calGrid"></div>
 </section>
 
 <section class="page" id="p-bookings">

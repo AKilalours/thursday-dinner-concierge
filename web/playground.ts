@@ -71,6 +71,7 @@ function go(page: string) {
   $$<HTMLButtonElement>("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.p === page));
   $$(".page").forEach((p) => p.classList.toggle("on", p.id === `p-${page}`));
   if (page === "bookings") void renderBookings();
+  if (page === "calendar") void renderCal();
   document.body.classList.remove("menu"); const cur = $$<HTMLButtonElement>("#tabs button").find((b) => b.dataset.p === page); if (cur) $("#menuCur").textContent = cur.textContent!;
   if (page === "chat") setTimeout(() => $<HTMLInputElement>("#chatIn")?.focus(), 50);
   
@@ -1101,7 +1102,7 @@ renderPolicy();
 // =====================================================================
 const CMDS: { t: string; sub: string; run: () => void }[] = [
   ...["dinner for 12 with the Acme team next Thursday, somewhere private", "private dinner for 20 with Globex on Nov 19", "team dinner for 8 this Friday under $100 a head", "client lunch for 6 with Initech tomorrow"].map((t) => ({ t, sub: "Ask the concierge", run: () => ask(t) })),
-  ...[["chat", "Chat with the concierge"], ["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
+  ...[["chat", "Chat with the concierge"], ["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["calendar", "Calendar"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
 ];
 function ask(t: string) { go("chat"); void chatSend(t); }
 let kSel = 0;
@@ -1249,6 +1250,69 @@ async function chatDiet(c: ChatCtx, text: string) {
 $<HTMLFormElement>("#chatForm").addEventListener("submit", (e) => { e.preventDefault(); void chatSend($<HTMLInputElement>("#chatIn").value); });
 msg("bot", `Hi Priya. Tell me who's coming, when, and anything that matters. I'll find the venue, handle the emails, and only book once you approve.`, "Concierge");
 chips(["dinner for 12 with the Acme team next Thursday, somewhere private", "private dinner for 20 with Globex on Nov 19", "team dinner for 8 this Friday under $100 a head", "japanese dinner for 8 with Wayne Enterprises on Nov 24, private"]);
+
+// =====================================================================
+// CALENDAR: drag a dinner to another night; the move is an approved amendment
+// =====================================================================
+function modal(html: string, buttons: [string, string, string][]): Promise<string> {
+  return new Promise((res) => {
+    const m = el("div", "modal", `<div class="mbox">${html}<div class="cbtns">${buttons.map(([k, l, c]) => `<button class="btn ${c}" data-k="${k}">${l}</button>`).join("")}</div></div>`);
+    document.body.append(m);
+    const done = (k: string) => { m.remove(); res(k); };
+    m.querySelectorAll<HTMLButtonElement>("[data-k]").forEach((b) => b.onclick = () => done(b.dataset.k!));
+    m.onclick = (e) => { if (e.target === m) done("n"); };
+  });
+}
+const CAL_DAYS = Array.from({ length: 21 }, (_, i) => addDays("2026-11-09", i));
+let calPick: string | null = null;
+async function renderCal() {
+  const rows = (await bkRows()).filter((r) => r.status === "confirmed");
+  const MON = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  $("#calGrid").innerHTML = MON.map((d) => `<div class="calh">${d}</div>`).join("") + CAL_DAYS.map((d) => {
+    const inRange = NIGHTS.includes(d), today = d === "2026-11-09", list = rows.filter((r) => localDate(r.startsAt) === d);
+    return `<div class="cald ${inRange ? "" : "off"} ${today ? "today" : ""}" data-d="${d}"><div class="caln">${Number(d.slice(8))}${today ? " · today" : ""}</div>${list.map((r) =>
+      `<div class="calb ${calPick === r.id ? "pick" : ""}" draggable="true" data-id="${r.id}" style="--c:${["#7b1e3a", "#3f7d5a", "#5b6b8c", "#8a6212", "#a8502f"][venues.indexOf(r.v) % 5]}"><b>${esc(r.v.name)}</b><span>${r.partySize} · ${usd(r.approved)}</span></div>`).join("")}${inRange && !list.length ? `<button class="caladd" data-d="${d}">+ dinner</button>` : ""}</div>`;
+  }).join("");
+  $("#calHint").textContent = calPick ? "Now tap the night to move it to." : rows.length ? "Drag a dinner to another night (or tap it, then tap a night)." : "No dinners yet. Tap + on any night to book one.";
+  $$<HTMLElement>(".calb").forEach((b) => {
+    b.addEventListener("dragstart", (e) => { e.dataTransfer!.setData("text/plain", b.dataset.id!); b.classList.add("drag"); });
+    b.addEventListener("dragend", () => b.classList.remove("drag"));
+    b.addEventListener("click", (e) => { e.stopPropagation(); calPick = calPick === b.dataset.id ? null : b.dataset.id!; void renderCal(); });
+  });
+  $$<HTMLElement>(".cald:not(.off)").forEach((c) => {
+    c.addEventListener("dragover", (e) => { e.preventDefault(); c.classList.add("over"); });
+    c.addEventListener("dragleave", () => c.classList.remove("over"));
+    c.addEventListener("drop", (e) => { e.preventDefault(); c.classList.remove("over"); void calMove(e.dataTransfer!.getData("text/plain"), c.dataset.d!); });
+    c.addEventListener("click", () => { if (calPick) { const id = calPick; calPick = null; void calMove(id, c.dataset.d!); } });
+  });
+  $$<HTMLButtonElement>(".caladd").forEach((b) => b.onclick = (e) => { e.stopPropagation(); const d = b.dataset.d!; go("chat"); void chatSend(`private dinner for 12 with Acme on Nov ${Number(d.slice(8))}`); });
+}
+async function calMove(id: string, date: string) {
+  const r = (await bkRows()).find((x) => x.id === id); if (!r || localDate(r.startsAt) === date) return void renderCal();
+  const DAYS3 = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], label = `${DAYS3[weekday(date)]} Nov ${Number(date.slice(8))}`;
+  const shake = (msg: string) => { toast("Can't move it", msg, "bad"); $(`.cald[data-d="${date}"]`)?.classList.add("no"); setTimeout(() => void renderCal(), 600); };
+  if (r.v.closedDays.includes(weekday(date))) return shake(`${r.v.name} is closed on ${DAYS3[weekday(date)]}s`);
+  const min = r.room.private ? r.room.minSpendCents[weekday(date)] : 0;
+  const pol = checkPolicy(company, reqFor(r.partySize, date, r.room.private), r.v, { minSpendCents: min, perHeadCents: null, depositPct: null, capacity: null }, leadHours(NOW, date, "19:00"));
+  if (!pol.onPolicy) return shake(pol.violations.join("; "));
+  const delta = pol.estimate.allInCents - r.approved;
+  const k = await modal(`<div class="vt">Move ${esc(r.v.name)}?</div><div class="vs">${esc(r.room.name)} · ${r.partySize} guests</div>
+    <div class="mv"><div><span>From</span><b>${when(r.startsAt)}, Nov ${Number(localDate(r.startsAt).slice(8))}</b></div><i>→</i><div><span>To</span><b>${label}, 7 pm</b></div></div>
+    <div class="rcpt"><div><span>All-in now</span><b>${usd(r.approved)}</b></div><div><span>All-in on ${label}</span><b>${usd(pol.estimate.allInCents)}</b></div><div class="t"><span>Difference</span><b class="${delta > 0 ? "up" : "dn"}">${delta >= 0 ? "+" : "−"}${usd(Math.abs(delta))}</b></div></div>
+    <div class="cs" style="margin-top:8px">${pol.requiredRoles.map((x) => approverFor(x, priya).name).join(" + ")} approve${pol.requiredRoles.length > 1 ? "" : "s"}. Cancel and rebook happen in one transaction; if the room is taken, nothing changes.</div>`,
+    [["y", "Approve move", "pri"], ["n", "Keep it", ""]]);
+  if (k !== "y") return void renderCal();
+  const ctxT = await mgmtCtx(r.store), win = eventWindow(date, "19:00");
+  const { proposalId } = await call(ctxT, "changes", createProposal, { runId: "changes", actorId: priya.id, principalId: dana.id, venueId: r.v.id, roomId: r.room.id, ...win, partySize: r.partySize, kind: "amend", amountCents: pol.estimate.allInCents, payeeId: null, requiredRoles: pol.requiredRoles, summary: `Move ${r.id} to ${date}`, expiresAt: new Date(Date.parse(NOW) + 48 * 3_600_000).toISOString(), replacesBookingId: r.id }) as { proposalId: string };
+  for (const role of pol.requiredRoles) await r.store.decide(proposalId, approverFor(role, priya).id, role, "approve");
+  try {
+    const out = await call(ctxT, "changes", amendBooking, { proposalId }) as { bookingId: string; replaced: string };
+    changedTo.set(out.replaced, out.bookingId); carried.set(out.bookingId, out.replaced);
+    toast("Moved", `${r.v.name} → ${label}`); renderGrid(); void renderCal();
+  } catch (e) {
+    shake(e instanceof StoreError && e.code === "double_booked" ? `${r.room.name} is already booked on ${label}. The database rolled it back; your dinner stays put.` : String(e));
+  }
+}
 
 // ---------- start ----------
 if (!new URLSearchParams(location.search).has("still")) void deskLoop();
