@@ -58,9 +58,34 @@ export class MemoryStore implements Store {
     return structuredClone(p);
   }
 
+  async getBooking(id: string) { const b = this.bookings.find((x) => x.id === id); return b ? structuredClone(b) : null; }
+
+  async amend(proposalId: string, newBookingId: string) {
+    const p = this.proposals.get(proposalId);
+    if (!p || p.kind !== "amend" || p.status !== "approved") throw new StoreError("not_approved", "amendment needs an approved amend proposal");
+    const old = this.bookings.find((x) => x.id === p.replacesBookingId);
+    if (!old || old.status !== "confirmed") throw new StoreError("mismatch", "amendment must replace a confirmed booking");
+    old.status = "cancelled";
+    try {
+      await this.book({ id: newBookingId, proposalId: p.id, venueId: p.venueId, roomId: p.roomId, startsAt: p.startsAt, endsAt: p.endsAt, partySize: p.partySize });
+    } catch (e) {
+      old.status = "confirmed"; // same as the database: the whole change rolls back
+      throw e;
+    }
+  }
+
+  async cancel(proposalId: string) {
+    const p = this.proposals.get(proposalId);
+    if (!p || p.kind !== "cancel" || p.status !== "approved") throw new StoreError("not_approved", "cancellation needs an approved cancel proposal");
+    const b = this.bookings.find((x) => x.id === p.replacesBookingId);
+    if (!b || b.status !== "confirmed") throw new StoreError("mismatch", "cancellation must target a confirmed booking");
+    b.status = "cancelled";
+    p.status = "executed";
+  }
+
   async book(b: BookingRow) {
     const p = this.proposals.get(b.proposalId);
-    if (!p || p.kind !== "book" || p.status !== "approved") throw new StoreError("not_approved", "booking needs an approved book proposal");
+    if (!p || (p.kind !== "book" && p.kind !== "amend") || p.status !== "approved") throw new StoreError("not_approved", "booking needs an approved book proposal");
     if (p.expiresAt < this.now) throw new StoreError("expired", `proposal ${p.id} expired`);
     if (b.venueId !== p.venueId || b.roomId !== p.roomId || b.partySize !== p.partySize
         || Date.parse(b.startsAt) !== Date.parse(p.startsAt) || Date.parse(b.endsAt) !== Date.parse(p.endsAt)) {

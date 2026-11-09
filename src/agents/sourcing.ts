@@ -46,7 +46,7 @@ export async function source(ctx: Ctx, req: BookingRequest, exclude: Set<string>
     const room = rooms[0];
     const min = Math.max(room.minSpendCents[day], k.quotedMinByWeekday.get(day) ?? 0);
     // Lunch and drinks in the dining room carry no room minimum.
-    const est = estimate(req.partySize, perHeadFor(v, req.kind), room.private ? min : 0);
+    const est = estimate(req.partySize, perHeadFor(v, req.kind), room.private ? min : 0, v.preferredRatePct);
     if (est.perHeadAllInCents > cap) { drop("over the per-head limit"); continue; }
 
     const parts: Record<string, number> = {
@@ -58,13 +58,14 @@ export async function source(ctx: Ctx, req: BookingRequest, exclude: Set<string>
       fit: Math.round(15 * (req.partySize / room.listedCapacity)),
       responsiveness: k.medianReplyHours === null ? 5 : k.medianReplyHours <= 3 ? 10 : k.medianReplyHours <= 12 ? 5 : 0,
       reliability: -(k.declines * 4 + k.noReplies * 6 + k.injectionFlags * 25),
+      preferred: v.preferredRatePct ? 8 : 0,
       variety: hosted.includes(v.id) ? -8 : 0,
     };
     out.push({ venue: v, roomId: room.id, score: Object.values(parts).reduce((a, b) => a + b, 0), parts, estimatePerHeadCents: est.perHeadAllInCents });
   }
   out.sort((a, b) => b.score - a.score || a.venue.id.localeCompare(b.venue.id));
   await log(ctx, "sourcing", "sourced", `${out.length} venues fit; dropped ${Object.entries(dropped).map(([k, n]) => `${n} ${k}`).join(", ") || "none"}`, {
-    top: out.slice(0, 5).map((c) => ({ venue: c.venue.name, score: c.score, parts: c.parts })),
+    top: out.slice(0, 5).map((c) => ({ venue: c.venue.name, venueId: c.venue.id, score: c.score, parts: c.parts, perHead: c.estimatePerHeadCents, preferredRatePct: c.venue.preferredRatePct, neighborhood: c.venue.neighborhood })),
   });
   return out;
 }

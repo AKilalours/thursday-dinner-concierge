@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,769), and deposit (none). Budget compliance clearly stated ($147/head under $250 cap). Key risks flagged: signing requirement for private dining agreement. Cancellation policy included. Concise and actionable for quick approval.\"\n}\n```",
+ "inputTokens": 316,
+ "outputTokens": 95,
+ "model": "claude-sonnet-4-5"
+}

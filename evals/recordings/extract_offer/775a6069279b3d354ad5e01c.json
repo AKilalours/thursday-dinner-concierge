@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"proposedDate\": \"2026-11-12\",\n  \"proposedTime\": \"19:00\",\n  \"proposedPartySize\": 12,\n  \"proposedRoom\": \"Garden Room\",\n  \"roomCapacity\": 18,\n  \"minimumSpend\": 160920,\n  \"minimumSpendAppliesTo\": \"food and beverage before tax and gratuity\",\n  \"depositRequired\": 80460,\n  \"depositPercentage\": 50,\n  \"holdDurationHours\": 48,\n  \"agreementRequired\": true,\n  \"requestedPaymentDestination\": null\n}\n```",
+ "inputTokens": 224,
+ "outputTokens": 160,
+ "model": "claude-sonnet-4-5"
+}

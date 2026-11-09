@@ -18,7 +18,9 @@ export const replyTriage = (llm: LLM, mode: Mode = "rules") => new Classifier<st
     if (has(body, /unfortunately|fully (booked|committed)|not able to accommodate|unable to host|no availability|can't do|cannot accommodate/)
       && !has(body, /could (do|offer)|instead|alternatively|would work|we have/)) return { label: "decline", confidence: 0.9, reason: "decline phrasing" };
     if (has(body, /instead|alternatively|could offer|the closest we|only (seats|fits|holds)|would need to be|minimum (has|would) (gone|go|be) up|revised/)) return { label: "counter", confidence: 0.8, reason: "alternative offered" };
-    if (has(body, /(deposit|payment|invoice|wire|pay)\b.*(link|below|attached|account|routing|zelle|venmo)/s) && !has(body, /available|happy to (host|hold)/)) return { label: "payment_request", confidence: 0.85, reason: "asks for payment" };
+    // An offer that also mentions payment (or hides injected bank details) is still an offer; it must not be lost.
+    const offerish = /available|happy to (host|hold)|we can (host|do|hold)|pencil(led)? (you|it) in|on hold for you|would love to host/;
+    if (has(body, /(deposit|payment|invoice|wire|pay)\b.*(link|below|attached|account|routing|zelle|venmo)/s) && !has(body, offerish)) return { label: "payment_request", confidence: 0.85, reason: "asks for payment" };
     if (has(body, /available|happy to (host|hold)|we can (host|do|hold)|pencil(led)? (you|it) in|on hold for you|would love to host/)) return { label: "offer", confidence: 0.85, reason: "availability confirmed" };
     if (has(body, /\?\s*$|could you (confirm|let us know)|can you (confirm|share)|what time|how many/m)) return { label: "question", confidence: 0.7, reason: "asks a question" };
     return { label: "needs_human", confidence: 0.3, reason: "no clear signal" };

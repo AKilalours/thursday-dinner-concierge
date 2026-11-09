@@ -117,5 +117,51 @@ for (const [name, make] of storeFactories()) {
       await s.saveToolCall({ key: "k", runId: "run_1", tool: "search_venues", actorId: "a", principalId: "p", input: {}, output: { first: false } });
       assert.deepEqual((await s.findToolCall("k"))?.output, { first: true });
     });
+    it("an amendment needs approval, swaps the booking atomically, and frees the old slot", async () => {
+      const s = await fresh(make);
+      await s.createProposal(proposal());
+      await s.decide("prop_1", "usr_priya", "booker", "approve");
+      await s.book(booking);
+      const later = { startsAt: "2026-11-13T00:30:00.000Z", endsAt: "2026-11-13T03:30:00.000Z" };
+      await s.createProposal(proposal({ id: "prop_amend", kind: "amend", partySize: 14, ...later, replacesBookingId: "bk_1" }));
+      await assert.rejects(s.amend("prop_amend", "bk_2"), code("not_approved"));
+      await s.decide("prop_amend", "usr_priya", "booker", "approve");
+      await s.amend("prop_amend", "bk_2");
+      assert.equal((await s.getBooking("bk_1"))!.status, "cancelled");
+      const nb = (await s.getBooking("bk_2"))!;
+      assert.equal(nb.status, "confirmed"); assert.equal(nb.partySize, 14);
+    });
+
+    it("a failed amendment rolls back and the original booking survives", async () => {
+      const s = await fresh(make);
+      await s.createProposal(proposal());
+      await s.decide("prop_1", "usr_priya", "booker", "approve");
+      await s.book(booking);
+      // Someone else holds the room at the new time.
+      const other = { startsAt: "2026-11-14T00:00:00.000Z", endsAt: "2026-11-14T03:00:00.000Z" };
+      await s.createProposal(proposal({ id: "prop_o", ...other }));
+      await s.decide("prop_o", "usr_sam", "booker", "approve");
+      await s.book({ ...booking, id: "bk_o", proposalId: "prop_o", ...other });
+      await s.createProposal(proposal({ id: "prop_amend", kind: "amend", ...other, replacesBookingId: "bk_1" }));
+      await s.decide("prop_amend", "usr_priya", "booker", "approve");
+      await assert.rejects(s.amend("prop_amend", "bk_2"), code("double_booked"));
+      assert.equal((await s.getBooking("bk_1"))!.status, "confirmed");
+      assert.equal(await s.getBooking("bk_2"), null);
+    });
+
+    it("a cancellation needs its own approval and frees the room", async () => {
+      const s = await fresh(make);
+      await s.createProposal(proposal());
+      await s.decide("prop_1", "usr_priya", "booker", "approve");
+      await s.book(booking);
+      await s.createProposal(proposal({ id: "prop_cancel", kind: "cancel", replacesBookingId: "bk_1" }));
+      await assert.rejects(s.cancel("prop_cancel"), code("not_approved"));
+      await s.decide("prop_cancel", "usr_priya", "booker", "approve");
+      await s.cancel("prop_cancel");
+      assert.equal((await s.getBooking("bk_1"))!.status, "cancelled");
+      await s.createProposal(proposal({ id: "prop_3" }));
+      await s.decide("prop_3", "usr_sam", "booker", "approve");
+      await s.book({ ...booking, id: "bk_3", proposalId: "prop_3" });
+    });
   });
 }

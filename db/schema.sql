@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS tool_calls (
 CREATE TABLE IF NOT EXISTS proposals (
   id text PRIMARY KEY,
   run_id text NOT NULL REFERENCES runs(id),
-  kind text NOT NULL CHECK (kind IN ('book', 'pay_deposit')),
+  kind text NOT NULL CHECK (kind IN ('book', 'pay_deposit', 'amend', 'cancel')),
+  replaces_booking_id text,
   actor_id text NOT NULL,
   principal_id text NOT NULL,
   venue_id text NOT NULL REFERENCES venues(id),
@@ -118,7 +119,7 @@ CREATE OR REPLACE FUNCTION check_booking() RETURNS trigger AS $$
 DECLARE p proposals%ROWTYPE;
 BEGIN
   SELECT * INTO p FROM proposals WHERE id = NEW.proposal_id FOR UPDATE;
-  IF p.kind <> 'book' OR p.status <> 'approved' THEN
+  IF p.kind NOT IN ('book', 'amend') OR p.status <> 'approved' THEN
     RAISE EXCEPTION 'booking needs an approved book proposal (got % %)', p.kind, p.status USING ERRCODE = 'insufficient_privilege';
   END IF;
   IF p.expires_at < coalesce(nullif(current_setting('app.now', true), '')::timestamptz, now()) THEN
@@ -133,6 +134,41 @@ BEGIN
 END $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 DROP TRIGGER IF EXISTS bookings_check ON bookings;
 CREATE TRIGGER bookings_check BEFORE INSERT ON bookings FOR EACH ROW EXECUTE FUNCTION check_booking();
+
+-- Changes after booking. An amendment cancels the old booking and inserts the new one in one transaction,
+-- so a failed change can never leave the booker with nothing. A cancellation needs its own approval too.
+CREATE OR REPLACE FUNCTION amend_booking(p_proposal text, p_new_booking text) RETURNS text AS $$
+DECLARE p proposals%ROWTYPE; old bookings%ROWTYPE;
+BEGIN
+  SELECT * INTO p FROM proposals WHERE id = p_proposal FOR UPDATE;
+  IF p.kind <> 'amend' OR p.status <> 'approved' THEN
+    RAISE EXCEPTION 'amendment needs an approved amend proposal' USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  SELECT * INTO old FROM bookings WHERE id = p.replaces_booking_id FOR UPDATE;
+  IF old.id IS NULL OR old.status <> 'confirmed' THEN
+    RAISE EXCEPTION 'amendment must replace a confirmed booking' USING ERRCODE = 'check_violation';
+  END IF;
+  UPDATE bookings SET status = 'cancelled' WHERE id = old.id;
+  INSERT INTO bookings (id, proposal_id, venue_id, room_id, during, party_size)
+    VALUES (p_new_booking, p.id, p.venue_id, p.room_id, tstzrange(p.starts_at, p.ends_at), p.party_size);
+  RETURN p_new_booking;
+END $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION cancel_booking(p_proposal text) RETURNS text AS $$
+DECLARE p proposals%ROWTYPE; b bookings%ROWTYPE;
+BEGIN
+  SELECT * INTO p FROM proposals WHERE id = p_proposal FOR UPDATE;
+  IF p.kind <> 'cancel' OR p.status <> 'approved' THEN
+    RAISE EXCEPTION 'cancellation needs an approved cancel proposal' USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  SELECT * INTO b FROM bookings WHERE id = p.replaces_booking_id FOR UPDATE;
+  IF b.id IS NULL OR b.status <> 'confirmed' THEN
+    RAISE EXCEPTION 'cancellation must target a confirmed booking' USING ERRCODE = 'check_violation';
+  END IF;
+  UPDATE bookings SET status = 'cancelled' WHERE id = b.id;
+  UPDATE proposals SET status = 'executed' WHERE id = p.id;
+  RETURN b.id;
+END $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TABLE IF NOT EXISTS payments (
   id text PRIMARY KEY,

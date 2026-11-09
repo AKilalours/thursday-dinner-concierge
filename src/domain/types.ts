@@ -43,6 +43,8 @@ export const Venue = z.object({
   neighborhood: z.string(),
   cuisine: z.string(),
   perHeadCents: Cents,
+  /** Negotiated corporate discount at partner venues, applied to the food and beverage subtotal. */
+  preferredRatePct: z.number().min(0).max(30),
   rooms: z.array(Room),
   email: z.string().email(),
   payeeId: z.string(),
@@ -104,7 +106,7 @@ export const Company = z.object({
 });
 export type Company = z.infer<typeof Company>;
 
-export const ProposalKind = z.enum(["book", "pay_deposit"]);
+export const ProposalKind = z.enum(["book", "pay_deposit", "amend", "cancel"]);
 export type ProposalKind = z.infer<typeof ProposalKind>;
 
 export const ProposalStatus = z.enum(["pending", "approved", "rejected", "expired", "executed"]);
@@ -127,6 +129,8 @@ export const Proposal = z.object({
   status: ProposalStatus,
   summary: z.string(),
   expiresAt: Iso,
+  /** For amend and cancel: the booking this changes. */
+  replacesBookingId: z.string().nullable().optional(),
 });
 export type Proposal = z.infer<typeof Proposal>;
 

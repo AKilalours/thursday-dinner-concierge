@@ -71,6 +71,7 @@ function mapError(e: unknown): never {
     : /is not required/.test(m) ? "role_not_required"
     : /not pending|duplicate key value violates unique constraint "approvals_pkey"/.test(m) ? "not_pending"
     : /needs an approved/.test(m) ? "not_approved"
+    : /must replace a confirmed|must target a confirmed/.test(m) ? "mismatch"
     : /not the payee on file/.test(m) ? "payee_mismatch"
     : /exceeds the approved amount/.test(m) ? "over_amount"
     : /conflicting key value violates exclusion constraint/.test(m) ? "double_booked"
@@ -86,7 +87,7 @@ function toProposal(r: Record<string, any>): Proposal {
     id: r.id, runId: r.run_id, kind: r.kind, actorId: r.actor_id, principalId: r.principal_id, venueId: r.venue_id,
     roomId: r.room_id, startsAt: new Date(r.starts_at).toISOString(), endsAt: new Date(r.ends_at).toISOString(),
     partySize: r.party_size, amountCents: Number(r.amount_cents), payeeId: r.payee_id, requiredRoles: r.required_roles,
-    approvedRoles: r.approved_roles, status: r.status, summary: r.summary, expiresAt: new Date(r.expires_at).toISOString(),
+    approvedRoles: r.approved_roles, status: r.status, summary: r.summary, expiresAt: new Date(r.expires_at).toISOString(), replacesBookingId: r.replaces_booking_id,
   };
 }
 
@@ -140,10 +141,10 @@ export class PgStore implements Store {
 
   async createProposal(p: Proposal) {
     await this.q(`INSERT INTO proposals (id, run_id, kind, actor_id, principal_id, venue_id, room_id, starts_at, ends_at,
-        party_size, amount_cents, payee_id, required_roles, summary, expires_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, nullif($12, ''), string_to_array($13, ','), $14, $15)`,
+        party_size, amount_cents, payee_id, required_roles, summary, expires_at, replaces_booking_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, nullif($12, ''), string_to_array($13, ','), $14, $15, nullif($16, ''))`,
       [p.id, p.runId, p.kind, p.actorId, p.principalId, p.venueId, p.roomId, p.startsAt, p.endsAt, p.partySize,
-        p.amountCents, p.payeeId ?? "", p.requiredRoles.join(","), p.summary, p.expiresAt]);
+        p.amountCents, p.payeeId ?? "", p.requiredRoles.join(","), p.summary, p.expiresAt, p.replacesBookingId ?? ""]);
   }
 
   async getProposal(id: string) {
@@ -163,6 +164,20 @@ export class PgStore implements Store {
     await this.q(`INSERT INTO bookings (id, proposal_id, venue_id, room_id, during, party_size)
       VALUES ($1, $2, $3, $4, tstzrange($5::timestamptz, $6::timestamptz), $7)`,
       [b.id, b.proposalId, b.venueId, b.roomId, b.startsAt, b.endsAt, b.partySize]);
+  }
+
+  async getBooking(id: string) {
+    const rows = await this.q("SELECT id, proposal_id, venue_id, room_id, lower(during) AS s, upper(during) AS e, party_size, status FROM bookings WHERE id = $1", [id]);
+    const r = rows[0];
+    return r ? { id: r.id, proposalId: r.proposal_id, venueId: r.venue_id, roomId: r.room_id, startsAt: new Date(r.s).toISOString(), endsAt: new Date(r.e).toISOString(), partySize: r.party_size, status: r.status } : null;
+  }
+
+  async amend(proposalId: string, newBookingId: string) {
+    await this.q("SELECT amend_booking($1, $2) AS id", [proposalId, newBookingId]);
+  }
+
+  async cancel(proposalId: string) {
+    await this.q("SELECT cancel_booking($1) AS id", [proposalId]);
   }
 
   async pay(p: PaymentRow) {

@@ -12,6 +12,7 @@
     "evals": "node evals/run.ts",
     "fuzz": "node evals/fuzz.ts 300",
     "evals:live": "ANDE_LLM_MODE=record node evals/run.ts",
+    "llm:check": "node evals/check.ts",
     "judge:calibrate": "node evals/calibrate.ts",
     "typecheck": "tsc --noEmit",
     "build:web": "node web/build.mjs",

@@ -10,12 +10,14 @@ export function perHeadFor(venue: Venue, kind: string): number {
   return Math.round(venue.perHeadCents * (KIND_FACTOR[kind] ?? 1));
 }
 
-export interface Estimate { subtotalCents: number; allInCents: number; perHeadAllInCents: number }
+export interface Estimate { subtotalCents: number; allInCents: number; perHeadAllInCents: number; savingsCents: number }
 
-export function estimate(partySize: number, perHeadCents: number, minSpendCents: number): Estimate {
-  const subtotal = Math.max(minSpendCents, perHeadCents * partySize);
+/** Spend the minimum or the menu, whichever is higher, less any preferred corporate rate, plus tax and service. */
+export function estimate(partySize: number, perHeadCents: number, minSpendCents: number, preferredRatePct = 0): Estimate {
+  const list = Math.max(minSpendCents, perHeadCents * partySize);
+  const subtotal = Math.round(list * (1 - preferredRatePct / 100));
   const allIn = Math.round(subtotal * ALL_IN);
-  return { subtotalCents: subtotal, allInCents: allIn, perHeadAllInCents: Math.round(allIn / partySize) };
+  return { subtotalCents: subtotal, allInCents: allIn, perHeadAllInCents: Math.round(allIn / partySize), savingsCents: Math.round((list - subtotal) * ALL_IN) };
 }
 
 export interface PolicyResult {
@@ -29,7 +31,7 @@ export interface PolicyResult {
 export function checkPolicy(company: Company, req: BookingRequest, venue: Venue, offer: Pick<Offer, "minSpendCents" | "perHeadCents" | "depositPct" | "capacity">, leadHours: number): PolicyResult {
   const p = company.policy;
   const perHead = offer.perHeadCents ?? perHeadFor(venue, req.kind);
-  const est = estimate(req.partySize, perHead, offer.minSpendCents ?? 0);
+  const est = estimate(req.partySize, perHead, offer.minSpendCents ?? 0, venue.preferredRatePct);
   const depositPct = offer.depositPct ?? venue.depositPct;
   const violations: string[] = [];
   if (p.blockedVenueIds.includes(venue.id)) violations.push(`${venue.name} is on the company's blocked list`);

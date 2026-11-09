@@ -36,6 +36,11 @@ export interface Store {
   /** The approver path. In Postgres it runs under a role the agent does not have. */
   decide(proposalId: string, userId: string, role: Role, decision: "approve" | "reject"): Promise<Proposal>;
   book(b: BookingRow): Promise<void>;
+  getBooking(id: string): Promise<(BookingRow & { status: "confirmed" | "cancelled" }) | null>;
+  /** Cancel the old booking and create the amended one, atomically, against an approved amend proposal. */
+  amend(proposalId: string, newBookingId: string): Promise<void>;
+  /** Cancel a booking against an approved cancel proposal. */
+  cancel(proposalId: string): Promise<void>;
   pay(p: PaymentRow): Promise<void>;
   addFact(f: VenueFact): Promise<void>;
   facts(venueId: string): Promise<VenueFact[]>;

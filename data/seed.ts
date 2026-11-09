@@ -51,6 +51,7 @@ export function buildVenues(seed = 7): Venue[] {
       neighborhood: NEIGHBORHOODS[i % NEIGHBORHOODS.length],
       cuisine: CUISINES[(i * 3) % CUISINES.length],
       perHeadCents: money(perHead),
+      preferredRatePct: i % 3 === 1 ? 12 + (i % 4) : 0, // about a third are partners with 12-15% corporate rates
       rooms,
       email: `events@${name.toLowerCase().replace(/[^a-z]+/g, "")}.example`,
       payeeId: `payee_${id}`,

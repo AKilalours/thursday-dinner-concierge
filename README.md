@@ -1,6 +1,6 @@
 <h1 align="center">Thursday Dinner Concierge</h1>
 
-<p align="center"><b>One sentence in. A booked, paid, on-policy dinner out.<br>Nothing happens until you approve.</b></p>
+<p align="center"><b>One sentence in. A booked, paid, on-policy dinner out.<br>Nothing happens until you approve.</b><br><sub>Built for the Ande AI Engineer role · independent project</sub></p>
 
 <p align="center">
   <a href="https://akilalours.github.io/thursday-dinner-concierge/"><b>▶ Try it live</b></a> ·
@@ -9,13 +9,13 @@
   <img src="https://img.shields.io/badge/Postgres-16-336791" alt="Postgres 16">
 </p>
 
-<p align="center"><img src="docs/img/demo.gif" width="860" alt="Four agents book a private dinner, ignore a prompt injection in a venue's email, wait for approval, then four attacks on the database are blocked"></p>
+<p align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="docs/img/demo.gif" width="900" alt="Six chapters: a live city of agents, booking with approval, a prompt injection treated as data, attacks blocked by the database, 45 evals and 300 random worlds, and memory"></a><br><sub><a href="docs/img/demo.mp4">▶ 30-second video</a> · <a href="https://akilalours.github.io/thursday-dinner-concierge/">open the live app</a></sub></p>
 
 <table align="center"><tr>
 <td align="center"><h3>45/45</h3>eval scenarios</td>
-<td align="center"><h3>0 / 2,015</h3>safety failures<br>in random worlds</td>
-<td align="center"><h3>81</h3>tests, incl.<br>real Postgres</td>
-<td align="center"><h3>4</h3>bugs caught →<br>permanent cases</td>
+<td align="center"><h3>0 / 2,013</h3>safety failures<br>in random worlds</td>
+<td align="center"><h3>88</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>5</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
 
 ```bash
@@ -40,6 +40,8 @@ flowchart LR
 | | |
 |---|---|
 | **Agents** | Concierge + sourcing, comparison, venue-coordination subagents. Follow up on silence, widen the search, re-plan, fall through after a double booking. |
+| **Changes after booking** | Amendments and cancellations are proposals too; an amendment swaps the booking atomically and rolls back if the new slot is taken. |
+| **Spend control** | Policy as code: per-head caps, manager thresholds, notice; preferred corporate rates (12-15%) applied and reported. |
 | **Typed tools** | zod in and out, run as the EA *for* the executive, idempotent, audited. `book` / `pay_deposit` need an approved proposal. |
 | **Evals** | 45 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
 | **Memory** | Every venue reply leaves facts ("the Library really seats 10"). Sourcing uses them next time. Private memories protected by row-level security. |
@@ -54,6 +56,7 @@ flowchart LR
 | No booking or payment without every approval | `BEFORE INSERT` triggers |
 | The agent can never approve | separate `ande_approver` role |
 | Booking = exactly what was approved | trigger compares venue, room, party, time |
+| Changes need approval, and never leave you with nothing | `amend_booking()` runs cancel + rebook in one transaction |
 | No double booking | `EXCLUDE USING gist` |
 | Pay only the payee on file, once | trigger + idempotency key |
 | Private memories stay private | row-level security |
@@ -69,6 +72,7 @@ flowchart LR
 | R2 | "the Library only seats 10" read as the offered room's capacity |
 | R3 | Table for 4 priced as a private room → escalated as over budget |
 | R4 | "Nov 18 at 7:30pm" parsed as a party of 18 |
+| R5 | An offer carrying injected bank details was triaged as a payment request, losing the offer |
 </details>
 
 <details>
@@ -87,6 +91,7 @@ npm run demo -- --ask "private dinner for 20 with Globex on Nov 19"   # you appr
 npm test                                       # unit + contract + end to end
 ANDE_PSQL="-h localhost -U postgres" npm test  # also on real Postgres
 npm run evals && npm run fuzz
+npm run llm:check                              # one real model call: is the key working?
 npm run build:web                              # rebuild the live playground in docs/
 ```
 </details>

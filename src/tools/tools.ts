@@ -13,8 +13,8 @@ export const sendVenueEmail = tool({
   description: "Email a venue's events team: an inquiry, a follow-up, or an answer to their question.",
   consequential: false,
   input: z.object({
-    venueId: z.string(), threadId: z.string(), kind: z.enum(["inquiry", "follow_up", "answer"]), body: z.string().min(10),
-    meta: z.object({ date: z.string(), time: z.string(), partySize: z.number().int(), privateRoom: z.boolean() }).optional(),
+    venueId: z.string(), threadId: z.string(), kind: z.enum(["inquiry", "follow_up", "answer", "change", "cancel"]), body: z.string().min(10),
+    meta: z.object({ date: z.string(), time: z.string(), partySize: z.number().int(), privateRoom: z.boolean(), roomId: z.string().optional() }).optional(),
   }),
   output: z.object({ messageId: z.string(), sentAt: z.string() }),
   async run(ctx, i) {

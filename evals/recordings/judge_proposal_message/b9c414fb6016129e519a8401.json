@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"Excellent message. All essentials are clearly stated: venue (Casa Verbena), room (Wine Cellar), date (Thu Nov 12), time (7 pm), headcount (12 guests with Acme), cost breakdown (minimum $1,097, estimated total $1,769, per-head $147), and deposit (none). The date ambiguity is explicitly flagged with clear alternative. Additional value-adds (corporate discount saving $288, free cancellation terms, under budget cap) are mentioned without overstatement. The contract signing requirement is transparently disclosed as part of approval. Perfect for quick mobile decision-making.\"\n}\n```",
+ "inputTokens": 302,
+ "outputTokens": 162,
+ "model": "claude-sonnet-4-5"
+}

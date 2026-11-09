@@ -2,60 +2,26 @@
 // npm run evals:live       call the model and record every output, so CI can replay them
 // node evals/run.ts --only v03,r05
 import { mkdirSync, writeFileSync } from "node:fs";
-import { buildVenues, COMPANY, user } from "../data/seed.ts";
-import { carefulApprover, runConcierge } from "../src/agents/concierge.ts";
-import type { Approver, RunResult } from "../src/agents/concierge.ts";
+import type { RunResult } from "../src/agents/concierge.ts";
 import { llmFromEnv } from "../src/llm/client.ts";
-import { VenueWorld } from "../src/sim/world.ts";
-import type { Behavior } from "../src/sim/world.ts";
-import { MemoryStore } from "../src/store/memory.ts";
-import { grade } from "./graders.ts";
 import type { Check } from "./graders.ts";
 import { judgeMessage } from "./judge.ts";
+import { runScenario } from "./runner.ts";
 import { SCENARIOS } from "./scenarios.ts";
-import type { Scenario } from "./scenarios.ts";
 
 const only = process.argv.includes("--only") ? new Set(process.argv[process.argv.indexOf("--only") + 1].split(",")) : null;
 const llm = llmFromEnv();
-const venues = buildVenues();
-const priya = user("usr_priya");
-const dana = user("usr_dana");
-const localDate = (iso: string) => new Date(Date.parse(iso) - 5 * 3_600_000).toISOString().slice(0, 10);
-
-function approverFor(s: Scenario): Approver {
-  if (s.approver === "rejects") return async (p, st) => { await st.decide(p.id, priya.id, "booker", "reject"); return "rejected"; };
-  return async (p, st) => carefulApprover(priya, { partySize: s.expect.partySize ?? p.partySize, date: s.expect.date ?? localDate(p.startsAt), privateRoom: !!s.expect.privateRoom },
-    { managerResponds: s.approver !== "manager_silent" })(p, st);
-}
 
 interface Row { id: string; group: string; checks: Check[]; result: RunResult; emails: number; hours: number; judge: number | null }
 const rows: Row[] = [];
 
 for (const s of SCENARIOS) {
   if (only && !only.has(s.id)) continue;
-  const today = s.today ?? "2026-11-09";
-  // Behaviors are assigned by contact order, so a scenario can say "the first two venues never reply".
-  const assigned = new Map<string, Behavior>();
-  let order: Behavior[] = s.warmup?.order ?? [];
-  const world = new VenueWorld(venues, (id) => {
-    if (!assigned.has(id)) assigned.set(id, order[assigned.size] ?? "accept");
-    return assigned.get(id)!;
-  }, `${today}T15:00:00.000Z`, 11);
-  const store = new MemoryStore();
-  await store.init(venues);
-  const base = { actor: priya, principal: dana, today, store, world, llm, venues, company: COMPANY };
-  let warmupRunId: string | null = null;
-  if (s.warmup) {
-    const w = await runConcierge({ ...base, text: s.warmup.text, approver: approverFor({ ...s, expect: { outcome: "booked" } }) });
-    warmupRunId = w.runId;
-    order = [...Array(assigned.size).fill("accept"), ...(s.order ?? [])];
-  } else order = s.order ?? [];
-  const t0 = Date.parse(world.now);
-  const result = await runConcierge({ ...base, text: s.text, approver: approverFor(s), smsOptedOut: s.smsOptedOut ? new Set([priya.id]) : new Set() });
-  const checks = await grade(s, result, store, world, venues, COMPANY, warmupRunId);
-  const proposalMsg = result.messagesToBooker.find((m) => /Reply approve or reject/.test(m));
+  const r = await runScenario(s, llm);
+  const proposalMsg = r.result.messagesToBooker.find((m) => /Reply approve or reject/.test(m));
   const judged = proposalMsg && llm.mode !== "off" ? await judgeMessage(llm, s.text, proposalMsg) : null;
-  rows.push({ id: s.id, group: s.group, checks, result, emails: world.sent().filter((m) => m.threadId.includes(result.runId)).length, hours: (Date.parse(world.now) - t0) / 3_600_000, judge: judged?.score ?? null });
+  rows.push({ id: s.id, group: s.group, checks: r.checks, result: r.result, emails: r.emails, hours: r.hours, judge: judged?.score ?? null });
+  process.stderr.write(`${r.checks.every((c) => c.pass) ? "✓" : "✗"} ${s.id.padEnd(6)} ${r.result.outcome.padEnd(20)} parse: ${r.result.parseDecidedBy}${judged ? ` · judge ${judged.score}/5` : ""}\n`);
 }
 
 const inv = rows.flatMap((r) => r.checks.filter((c) => c.kind === "invariant"));

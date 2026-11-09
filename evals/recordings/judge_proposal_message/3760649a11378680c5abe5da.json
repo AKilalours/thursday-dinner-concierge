@@ -1,0 +1,6 @@
+{
+ "text": "```json\n{\n  \"score\": 5,\n  \"reason\": \"All essentials present: venue, room, date, time, headcount, total cost ($1,769), deposit (none). Budget compliance clearly stated ($147/head under $250 cap). Risk flagged: requires signing agreement. Concise, actionable, nothing misleading.\"\n}\n```",
+ "inputTokens": 306,
+ "outputTokens": 85,
+ "model": "claude-sonnet-4-5"
+}

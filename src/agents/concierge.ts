@@ -153,6 +153,7 @@ async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, inp
   ].filter(Boolean);
   const summary = `${v.name}, ${room.name}, ${human(req.date!)} at ${clock(req.time)}, ${req.partySize} guests${req.clientName ? ` with ${req.clientName}` : ""}. `
     + `Minimum ${usd(opt.minSpendCents)}; about ${usd(opt.policy.estimate.allInCents)} all-in (${usd(opt.policy.estimate.perHeadAllInCents)} a head, under the ${usd(ctx.company.policy.perHeadCapCents[req.kind])} cap). `
+    + (v.preferredRatePct ? `Preferred corporate rate: ${v.preferredRatePct}% off, saving about ${usd(opt.policy.estimate.savingsCents)}. ` : "")
     + `Deposit ${opt.policy.depositCents ? usd(opt.policy.depositCents) : "none"}; free cancellation until ${v.cancellationHours} h before.`;
 
   const base = { runId: ctx.runId, actorId: ctx.actor.id, principalId: ctx.principal.id, venueId: v.id, roomId: room.id, ...win, partySize: req.partySize, requiredRoles: opt.policy.requiredRoles, expiresAt };
