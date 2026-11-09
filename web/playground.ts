@@ -72,6 +72,7 @@ function go(page: string) {
   $$(".page").forEach((p) => p.classList.toggle("on", p.id === `p-${page}`));
   if (page === "bookings") void renderBookings();
   if (page === "calendar") void renderCal();
+  if (page === "explore") renderExplore();
   document.body.classList.remove("menu"); const cur = $$<HTMLButtonElement>("#tabs button").find((b) => b.dataset.p === page); if (cur) $("#menuCur").textContent = cur.textContent!;
   if (page === "chat") setTimeout(() => $<HTMLInputElement>("#chatIn")?.focus(), 50);
   
@@ -690,9 +691,9 @@ async function tour() {
     $<HTMLButtonElement>("#chatChips .chip:nth-child(2)")?.click(); await wait(".cm.card2 [data-k=y]:not([disabled])"); await sleep(1000);
     $<HTMLButtonElement>(".cm.card2 [data-k=y]:not([disabled])")?.click(); await sleep(2200);
   });
-  await step("03 · AVAILABILITY", "Every venue, every night, priced under your policy. Click a table to book it.", "avail", async () => {
-    await sleep(1200); ($(".gc.ok") as HTMLElement | null)?.click(); await sleep(900); $("#gReq")?.click();
-    for (let i = 0; i < 100 && touring && !$("#gFlow .slide"); i++) await sleep(100); await sleep(700); ($("#gFlow .slide .lbl") as HTMLElement | null)?.click(); await sleep(2200);
+  await step("03 · EXPLORE", "Filter the network on the map, shortlist, send one RFP. Offers land side by side.", "explore", async () => {
+    await sleep(1000); for (let i = 0; i < 3 && touring; i++) { ($(".heart:not([disabled]):not(.on)") as HTMLElement | null)?.click(); await sleep(450); }
+    await sleep(500); $("#xRfp")?.click(); for (let i = 0; i < 100 && touring && !$("#p-compare.on"); i++) await sleep(100); await sleep(2800);
   });
   await step("04 · FIX LAB", "Find the failure in a real conversation. Fix it. Prove it.", "fix", async () => { for (let i = 0; i < 4 && touring; i++) { $<HTMLButtonElement>("#fixGo").click(); await sleep(2300); } });
   await step("05 · TOOLS", "Typed tools: bad input rejected, unapproved booking refused.", "tools", async () => {
@@ -1102,7 +1103,7 @@ renderPolicy();
 // =====================================================================
 const CMDS: { t: string; sub: string; run: () => void }[] = [
   ...["dinner for 12 with the Acme team next Thursday, somewhere private", "private dinner for 20 with Globex on Nov 19", "team dinner for 8 this Friday under $100 a head", "client lunch for 6 with Initech tomorrow"].map((t) => ({ t, sub: "Ask the concierge", run: () => ask(t) })),
-  ...[["chat", "Chat with the concierge"], ["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["calendar", "Calendar"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
+  ...[["chat", "Chat with the concierge"], ["explore", "Explore venues on the map"], ["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["calendar", "Calendar"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
 ];
 function ask(t: string) { go("chat"); void chatSend(t); }
 let kSel = 0;
@@ -1216,13 +1217,21 @@ async function chatAmend(c: ChatCtx, n: number, date: string) {
   try {
     const out = await call(ctxT, "changes", amendBooking, { proposalId }) as { bookingId: string; replaced: string };
     changedTo.set(out.replaced, out.bookingId); carried.set(out.bookingId, out.replaced);
-    c.world.send(c.v.id, `thr_${c.runId}_${c.v.id}`, "Change to our booking", `Hi ${c.v.name} team, could we update our reservation to ${n} guests on ${date} at 7 pm? Thank you.`, "answer");
+    c.world.send(c.v.id, `thr_${c.runId}_${c.v.id}`, "Change to our booking", `Hi ${c.v.name} team, could we update our reservation to ${n} guests on ${date} at 7 pm? Thank you.`, "change", { date, time: "19:00", partySize: n, privateRoom: c.room.private, roomId: c.room.id });
+    venueReply(c);
     Object.assign(c, { bookingId: out.bookingId, n, date });
     msg("bot", `Done. ${esc(c.v.name)} now has you for <b>${n}</b> on <b>${when(win.startsAt)}</b>. I've emailed the venue.`, "Concierge · confirmed"); toast("Booking changed", `${c.v.name} · ${n} guests · ${date}`); renderGrid();
   } catch (e) {
     msg("bot", e instanceof StoreError && e.code === "double_booked" ? `${esc(c.room.name)} is already taken that night, so the database refused the change. Your original booking is untouched.` : esc(String(e)));
   }
   chips([`Make it ${n + 2 <= c.room.listedCapacity ? n + 2 : n - 2} people`, "Move it to Saturday", "Arrange seating", "Cancel it"]);
+}
+/** The venue's own answer arrives a little later in the thread, quoted, the way it would in a real inbox. */
+function venueReply(c: ChatCtx) {
+  setTimeout(() => {
+    const r = c.world.advance(3).filter((m) => m.venueId === c.v.id).at(-1); if (!r) return;
+    msg("bot", `<div class="vq"><b>${esc(c.v.name)} replied</b>${esc(r.body.split("\n").filter(Boolean).slice(1, 3).join(" ")).slice(0, 260)}</div>`, `Venue email · ${when(r.at)}`);
+  }, 2200);
 }
 async function chatCancel(c: ChatCtx) {
   const hrs = Math.round((Date.parse(eventWindow(c.date, "19:00").startsAt) - Date.parse(NOW)) / 3_600_000), free = hrs >= c.v.cancellationHours;
@@ -1234,7 +1243,8 @@ async function chatCancel(c: ChatCtx) {
   await chatStore.decide(proposalId, priya.id, "booker", "approve");
   const out = await call(ctxT, "changes", cancelBooking, { proposalId }) as { depositRefundable: boolean };
   cancelledHow.set(c.bookingId, paid ? (out.depositRefundable ? "refunded" : "deposit forfeited") : "no charge");
-  c.world.send(c.v.id, `thr_${c.runId}_${c.v.id}`, "Cancellation", `Hi ${c.v.name} team, we need to cancel our ${c.date} reservation. Sorry for the change.`, "answer");
+  c.world.send(c.v.id, `thr_${c.runId}_${c.v.id}`, "Cancellation", `Hi ${c.v.name} team, we need to cancel our ${c.date} reservation. Sorry for the change.`, "cancel", { date: c.date, time: "19:00", partySize: c.n, privateRoom: c.room.private, roomId: c.room.id });
+  venueReply(c);
   msg("bot", `Cancelled, and I've let ${esc(c.v.name)} know.`, "Concierge · cancelled"); toast("Booking cancelled", `${c.v.name} · ${cancelledHow.get(c.bookingId)}`, out.depositRefundable ? "ok" : "warn");
   chatCur = null; renderGrid(); chips(["dinner for 12 with the Acme team next Thursday, somewhere private", "client lunch for 6 with Initech tomorrow"]);
 }
@@ -1313,6 +1323,128 @@ async function calMove(id: string, date: string) {
     shake(e instanceof StoreError && e.code === "double_booked" ? `${r.room.name} is already booked on ${label}. The database rolled it back; your dinner stays put.` : String(e));
   }
 }
+
+// =====================================================================
+// EXPLORE: the venue network on a map you can pan, zoom and filter; shortlist, then RFP
+// =====================================================================
+const XB: Record<string, [number, number, number, number]> = { Midtown: [60, 10, 160, 58], Chelsea: [20, 76, 92, 56], Flatiron: [120, 76, 100, 56], "West Village": [20, 140, 92, 56], SoHo: [120, 140, 100, 56], Tribeca: [20, 204, 92, 56], "Financial District": [120, 204, 100, 70], Williamsburg: [262, 110, 74, 96] };
+const xPos = new Map<string, [number, number]>();
+{ const per: Record<string, number> = {}; for (const v of venues) { const [x, y, w, h] = XB[v.neighborhood], k = per[v.neighborhood] = (per[v.neighborhood] ?? 0) + 1, cols = Math.max(2, Math.floor((w - 16) / 22)); xPos.set(v.id, [x + 14 + ((k - 1) % cols) * 22, y + 28 + Math.floor((k - 1) / cols) * Math.min(18, (h - 32) / 2)]); } }
+const CUISINES = [...new Set(venues.map((v) => v.cuisine))].sort();
+const xF = { n: 12, date: NIGHTS[3], priv: true, cuisines: new Set<string>(), hoods: new Set<string>(), maxHead: 25000, sort: "fit" };
+let xView = { x: 0, y: 0, w: 340, h: 290 }, xHover: string | null = null, xOpen: string | null = null;
+const xShort = new Set<string>();
+function xFit(v: Venue) {
+  const d = xF.date, wd = weekday(d);
+  if (company.policy.blockedVenueIds.includes(v.id)) return { k: "blocked" as const, why: "blocked by policy" };
+  if (v.closedDays.includes(wd)) return { k: "closed" as const, why: "closed that night" };
+  const room = v.rooms.filter((r) => (xF.priv ? r.private : true) && r.listedCapacity >= xF.n).sort((a, b) => a.listedCapacity - b.listedCapacity)[0];
+  if (!room) return { k: "noroom" as const, why: `no ${xF.priv ? "private " : ""}room for ${xF.n}` };
+  const min = room.private ? room.minSpendCents[wd] : 0;
+  const pol = checkPolicy(company, reqFor(xF.n, d, xF.priv), v, { minSpendCents: min, perHeadCents: null, depositPct: null, capacity: null }, leadHours(NOW, d, "19:00"));
+  const ph = pol.estimate.perHeadAllInCents;
+  return { k: !pol.onPolicy ? "over" as const : ph > xF.maxHead ? "budget" as const : pol.requiredRoles.includes("manager") ? "mgr" as const : "ok" as const, room, min, pol, ph, why: pol.onPolicy ? "" : pol.violations[0] };
+}
+const xPass = (v: Venue) => (!xF.cuisines.size || xF.cuisines.has(v.cuisine)) && (!xF.hoods.size || xF.hoods.has(v.neighborhood));
+const XCOL: Record<string, string> = { ok: "#3f7d5a", mgr: "#c98a12", over: "#c9b8a4", budget: "#c9b8a4", noroom: "#e6dccd", closed: "#e6dccd", blocked: "#c2455d" };
+function renderExplore() {
+  const all = venues.map((v) => ({ v, f: xFit(v), pass: xPass(v) }));
+  const shown = all.filter((x) => x.pass);
+  // map
+  let s = `<rect x="232" y="-50" width="22" height="400" fill="#e4ecf2"/><text x="243" y="150" font-family="Inter" font-size="7" fill="#9fb3c4" transform="rotate(90 243 150)" letter-spacing=".2em">EAST RIVER</text>`;
+  for (const [h, [x, y, w, hh]] of Object.entries(XB)) s += `<g class="hood ${xF.hoods.has(h) ? "on" : ""}" data-h="${h}"><rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="8"/><text x="${x + 7}" y="${y + 14}">${(h === "Financial District" ? "FIDI" : h === "Williamsburg" ? "WILLIAMSBURG" : h).toUpperCase()}</text></g>`;
+  const [ox, oy] = [XB.Flatiron[0] + XB.Flatiron[2] - 10, XB.Flatiron[1] + 10];
+  s += `<g class="office"><rect x="${ox - 5}" y="${oy - 5}" width="10" height="10" rx="2"/><text x="${ox + 6}" y="${oy - 8}" text-anchor="end">Northwind HQ</text></g>`;
+  for (const { v, f, pass } of all) {
+    const [x, y] = xPos.get(v.id)!, ok = f.k === "ok" || f.k === "mgr", cap = "room" in f && f.room ? f.room.listedCapacity : 8;
+    s += `<g class="xpin ${pass ? "" : "dim"} ${xHover === v.id || xOpen === v.id ? "hot" : ""} ${xShort.has(v.id) ? "short" : ""}" data-v="${v.id}" transform="translate(${x} ${y})"><circle r="${ok ? 4 + Math.min(4, cap / 8) : 4}" fill="${pass ? XCOL[f.k] : "#eee6da"}"/>${xShort.has(v.id) ? `<circle r="${ok ? 8 + Math.min(4, cap / 8) : 8}" class="ring2"/>` : ""}${ok && pass ? `<text y="-8">$${Math.round(f.ph! / 100)}</text>` : ""}</g>`;
+  }
+  $("#xMap").setAttribute("viewBox", `${xView.x} ${xView.y} ${xView.w} ${xView.h}`); $("#xMap").innerHTML = s;
+  // list
+  const ord = [...shown].sort((a, b) => {
+    const rank = (x: typeof a) => ({ ok: 0, mgr: 1, budget: 2, over: 3, noroom: 4, closed: 5, blocked: 6 })[x.f.k];
+    if (xF.sort === "price") return ((a.f as { ph?: number }).ph ?? 1e9) - ((b.f as { ph?: number }).ph ?? 1e9);
+    if (xF.sort === "name") return a.v.name.localeCompare(b.v.name);
+    return rank(a) - rank(b) || ((a.f as { ph?: number }).ph ?? 0) - ((b.f as { ph?: number }).ph ?? 0);
+  });
+  const fit = shown.filter((x) => x.f.k === "ok" || x.f.k === "mgr").length;
+  $("#xCount").innerHTML = `<b>${fit}</b> of ${shown.length} venues fit · ${xF.n} guests · ${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][weekday(xF.date)]} Nov ${Number(xF.date.slice(8))}`;
+  $("#xList").innerHTML = ord.map(({ v, f }) => { const ok = f.k === "ok" || f.k === "mgr";
+    return `<div class="xr ${ok ? "" : "no"} ${xHover === v.id ? "hot" : ""} ${xOpen === v.id ? "open" : ""}" data-v="${v.id}"><i style="background:${XCOL[f.k]}"></i><div><b>${esc(v.name)}</b><span>${esc(v.neighborhood)} · ${esc(v.cuisine)}${v.preferredRatePct ? ` · <em>−${v.preferredRatePct}%</em>` : ""}</span></div>
+      <div class="xp">${ok ? `<b>${usd(f.ph!)}</b><span>per head</span>` : `<span>${esc(f.why)}</span>`}</div><button class="heart ${xShort.has(v.id) ? "on" : ""}" data-h="${v.id}" ${ok ? "" : "disabled"} title="Shortlist">♥</button></div>`; }).join("");
+  // shortlist tray
+  $("#xTray").innerHTML = xShort.size ? `<div class="xchips">${[...xShort].map((id) => `<span class="pill">${esc(venues.find((v) => v.id === id)!.name)} <a data-x="${id}">×</a></span>`).join("")}</div><button class="btn pri" id="xRfp">Send RFP to ${xShort.size} venue${xShort.size > 1 ? "s" : ""} →</button>` : `<span class="cs">Tap ♥ on up to 6 venues, then send them one request for proposal.</span>`;
+  wireExplore();
+}
+function wireExplore() {
+  const hover = (id: string | null) => { if (xHover === id) return; xHover = id; $$(".xpin").forEach((p) => p.classList.toggle("hot", (p as HTMLElement).dataset.v === id || (p as HTMLElement).dataset.v === xOpen)); $$(".xr").forEach((r) => r.classList.toggle("hot", (r as HTMLElement).dataset.v === id)); };
+  $$<HTMLElement>(".xr").forEach((r) => { r.onmouseenter = () => hover(r.dataset.v!); r.onmouseleave = () => hover(null); r.onclick = (e) => { if ((e.target as HTMLElement).closest(".heart")) return; xOpen = r.dataset.v!; renderExplore(); void xDrawer(); }; });
+  $$<SVGGElement>(".xpin").forEach((p) => { p.onmouseenter = () => hover(p.dataset.v!); p.onmouseleave = () => hover(null); p.onclick = () => { xOpen = p.dataset.v!; renderExplore(); void xDrawer(); $(`.xr[data-v="${xOpen}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }; });
+  $$<SVGGElement>(".hood").forEach((h) => h.onclick = () => { const n = h.dataset.h!; xF.hoods.has(n) ? xF.hoods.delete(n) : xF.hoods.add(n); renderHoodChips(); renderExplore(); });
+  $$<HTMLButtonElement>(".heart").forEach((b) => b.onclick = () => { const id = b.dataset.h!; if (xShort.has(id)) xShort.delete(id); else if (xShort.size < 6) xShort.add(id); else toast("Shortlist is full", "Six venues per request", "warn"); renderExplore(); if (xOpen) void xDrawer(); });
+  $$<HTMLElement>("#xTray [data-x]").forEach((a) => a.onclick = () => { xShort.delete(a.dataset.x!); renderExplore(); });
+  $("#xRfp")?.addEventListener("click", () => void xRfp());
+}
+function renderHoodChips() { $("#xHoods").innerHTML = Object.keys(XB).map((h) => `<button class="chip ${xF.hoods.has(h) ? "on" : ""}" data-hh="${h}">${h}</button>`).join(""); $$<HTMLButtonElement>("[data-hh]").forEach((b) => b.onclick = () => { const n = b.dataset.hh!; xF.hoods.has(n) ? xF.hoods.delete(n) : xF.hoods.add(n); renderHoodChips(); renderExplore(); }); }
+async function xDrawer() {
+  if (!xOpen) { $("#xDrawer").classList.remove("on"); return; }
+  const v = venues.find((x) => x.id === xOpen)!, f = xFit(v), L = await learned(v.id), ok = f.k === "ok" || f.k === "mgr";
+  const fq = (r: Venue["rooms"][number]) => Math.min(100, Math.round((xF.n / r.listedCapacity) * 100));
+  $("#xDrawer").classList.add("on");
+  $("#xDrawer").innerHTML = `<button class="xclose" id="xClose">×</button><div class="vt">${esc(v.name)}</div><div class="vs">${esc(v.neighborhood)} · ${esc(v.cuisine)} · menu ${usd(v.perHeadCents)} a head</div>
+    <div>${ok ? `<span class="pill g">Fits · ${usd(f.ph!)}/head</span>` : `<span class="pill r">${esc(f.why)}</span>`}${v.preferredRatePct ? `<span class="pill y">Preferred −${v.preferredRatePct}%</span>` : ""}${v.contractRequired ? `<span class="pill">Contract</span>` : ""}${L.inj ? `<span class="pill r">Injection seen</span>` : ""}</div>
+    <div class="pt" style="margin-top:12px">Rooms for ${xF.n}</div>${v.rooms.map((r) => `<div class="xroom ${r.listedCapacity < xF.n ? "small" : ""}"><div><b>${esc(r.name)}</b>${r.private ? '<span class="pill">private</span>' : ""}<span class="cs">${L.cap.has(r.id) ? `<s>${r.listedCapacity}</s> really ${L.cap.get(r.id)}` : r.listedCapacity} seats · min ${r.private ? usd(r.minSpendCents[weekday(xF.date)]) : "none"}</span></div><div class="bar2"><i style="width:${fq(r)}%"></i></div></div>`).join("")}
+    <dl class="kv" style="margin-top:10px"><dt>Deposit</dt><dd>${v.depositPct}%</dd><dt>Free cancel</dt><dd>${v.cancellationHours} h before</dd><dt>Closed</dt><dd>${v.closedDays.length ? v.closedDays.map((d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]).join(", ") : "never"}</dd><dt>Reply time</dt><dd>${L.replies.length ? `~${Math.round(L.replies.reduce((a, b) => a + b, 0) / L.replies.length)} h (learned)` : "not seen yet"}</dd></dl>
+    <div class="row" style="margin-top:12px"><button class="btn ${xShort.has(v.id) ? "" : "pri"}" id="xHeart" ${ok ? "" : "disabled"}>${xShort.has(v.id) ? "Remove from shortlist" : "♥ Shortlist"}</button><button class="btn" id="xBook" ${ok ? "" : "disabled"}>Book via chat</button></div>`;
+  $("#xClose").onclick = () => { xOpen = null; renderExplore(); void xDrawer(); };
+  $("#xHeart").onclick = () => { xShort.has(v.id) ? xShort.delete(v.id) : xShort.size < 6 && xShort.add(v.id); renderExplore(); void xDrawer(); };
+  $("#xBook").onclick = () => { go("chat"); void chatSend(`${xF.priv ? "private " : ""}dinner for ${xF.n} with Acme on Nov ${Number(xF.date.slice(8))} at ${v.name}`); };
+}
+async function xRfp() {
+  const btn = $<HTMLButtonElement>("#xRfp"); btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Emailing ${xShort.size} venues…`;
+  const store = new MemoryStore(); await store.init(venues); store.setNow(NOW); stores.push(store); srcOf.set(store, "Explore");
+  const runId = `rfp_${Math.random().toString(36).slice(2, 7)}`; await store.createRun({ id: runId });
+  const mix: Behavior[] = ["accept", "counter_price", "injection", "accept", "decline", "accept"], ids = [...xShort], beh = new Map(ids.map((id, i) => [id, mix[i % mix.length]]));
+  const world = new VenueWorld(venues, (id) => beh.get(id) ?? "accept", NOW, 41 + ids.length);
+  const req = reqFor(xF.n, xF.date, xF.priv), ctxT = toolCtx(store, world, runId), inj = injection(llm);
+  for (const id of ids) { const v = venues.find((x) => x.id === id)!; await call(ctxT, "explore", sendVenueEmail, { venueId: id, threadId: `thr_${runId}_${id}`, kind: "inquiry", body: `Hello ${v.name} team, could you host ${xF.n} guests${xF.priv ? " in a private room" : ""} on ${xF.date} at 7 pm for Northwind Labs?`, meta: { date: xF.date, time: "19:00", partySize: xF.n, privateRoom: xF.priv } }); }
+  const replies = world.advance(6), rows: Cmp[] = [];
+  for (const id of ids) {
+    const v = venues.find((x) => x.id === id)!, r = replies.find((m) => m.venueId === id);
+    if (!r) continue;
+    const tri = await replyTriage(llm).classify(r.body); if (tri.label === "decline") { toast(`${v.name} declined`, "Fully committed that night", "warn"); continue; }
+    const { offer, decidedBy } = await extractOffer(llm, r.body, v, r.id, "2026-11-09", true);
+    const fit = xFit(v), rm = v.rooms.find((x) => x.name === offer.roomName) ?? ("room" in fit && fit.room ? fit.room : v.rooms[0]), min = offer.minSpendCents ?? (rm.private ? rm.minSpendCents[weekday(xF.date)] : 0);
+    const pol = checkPolicy(company, req, v, { ...offer, minSpendCents: min }, leadHours(NOW, xF.date, "19:00"));
+    const injected = (await inj.classify(r.body)).label === "injection";
+    rows.push({ v, roomId: rm.id, roomName: rm.name, seats: offer.capacity ?? rm.listedCapacity, min, pol, ai: decidedBy === "model", why: pol.onPolicy ? (xF.priv && !rm.private ? "not private" : null) : pol.violations.join("; "), injected, agentPick: false });
+  }
+  const best = rows.filter((r) => !r.why).sort((a, b) => a.pol.estimate.perHeadAllInCents - b.pol.estimate.perHeadAllInCents)[0]; if (best) best.agentPick = true;
+  cmpRows = rows; cmpSel = new Set(rows.filter((r) => !r.why).slice(0, 4).map((r) => r.v.id)); cmpCtx = { store, world, runId, req };
+  $<HTMLInputElement>("#cmpAsk").value = `${xF.priv ? "private " : ""}dinner for ${xF.n} on ${xF.date} (RFP to your shortlist)`;
+  xShort.clear(); renderExplore(); go("compare"); cmpRender(); toast("Offers are in", `${rows.length} replies read · cheapest marked`);
+}
+// filters
+$<HTMLInputElement>("#xN").oninput = (e) => { xF.n = Number((e.target as HTMLInputElement).value); $("#xNv").textContent = String(xF.n); renderExplore(); void xDrawer(); };
+$<HTMLInputElement>("#xMax").oninput = (e) => { xF.maxHead = Number((e.target as HTMLInputElement).value); $("#xMaxv").textContent = usd(xF.maxHead); renderExplore(); void xDrawer(); };
+$<HTMLInputElement>("#xPriv").onchange = (e) => { xF.priv = (e.target as HTMLInputElement).checked; renderExplore(); void xDrawer(); };
+$("#xDate").innerHTML = NIGHTS.map((d) => `<option value="${d}" ${d === xF.date ? "selected" : ""}>${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][weekday(d)]} Nov ${Number(d.slice(8))}</option>`).join("");
+$<HTMLSelectElement>("#xDate").onchange = (e) => { xF.date = (e.target as HTMLSelectElement).value; renderExplore(); void xDrawer(); };
+$("#xCuis").innerHTML = CUISINES.map((c) => `<button class="chip" data-cu="${c}">${c}</button>`).join("");
+$$<HTMLButtonElement>("[data-cu]").forEach((b) => b.onclick = () => { const c = b.dataset.cu!; xF.cuisines.has(c) ? xF.cuisines.delete(c) : xF.cuisines.add(c); b.classList.toggle("on"); renderExplore(); });
+$$<HTMLButtonElement>("#xSort button").forEach((b) => b.onclick = () => { $$("#xSort button").forEach((x) => x.classList.remove("on")); b.classList.add("on"); xF.sort = b.dataset.s!; renderExplore(); });
+// pan and zoom
+{
+  const svg = $("#xMap") as unknown as SVGSVGElement; let drag: { x: number; y: number; vx: number; vy: number } | null = null;
+  const clamp = () => { xView.w = Math.max(80, Math.min(340, xView.w)); xView.h = xView.w * 290 / 340; xView.x = Math.max(-20, Math.min(360 - xView.w, xView.x)); xView.y = Math.max(-20, Math.min(310 - xView.h, xView.y)); svg.setAttribute("viewBox", `${xView.x} ${xView.y} ${xView.w} ${xView.h}`); };
+  const zoom = (f: number, cx = 0.5, cy = 0.5) => { const nw = xView.w * f, nh = nw * 290 / 340; xView.x += (xView.w - nw) * cx; xView.y += (xView.h - nh) * cy; xView.w = nw; clamp(); };
+  svg.addEventListener("wheel", (e) => { e.preventDefault(); const r = svg.getBoundingClientRect(); zoom(e.deltaY > 0 ? 1.15 : 0.87, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }, { passive: false });
+  svg.addEventListener("pointerdown", (e) => { if ((e.target as Element).closest(".xpin,.hood")) return; drag = { x: e.clientX, y: e.clientY, vx: xView.x, vy: xView.y }; svg.setPointerCapture(e.pointerId); svg.classList.add("grab"); });
+  svg.addEventListener("pointermove", (e) => { if (!drag) return; const r = svg.getBoundingClientRect(); xView.x = drag.vx - (e.clientX - drag.x) * xView.w / r.width; xView.y = drag.vy - (e.clientY - drag.y) * xView.h / r.height; clamp(); });
+  svg.addEventListener("pointerup", () => { drag = null; svg.classList.remove("grab"); });
+  $("#xIn").onclick = () => zoom(0.75); $("#xOut").onclick = () => zoom(1.33); $("#xReset").onclick = () => { xView = { x: 0, y: 0, w: 340, h: 290 }; clamp(); };
+}
+renderHoodChips(); renderExplore();
 
 // ---------- start ----------
 if (!new URLSearchParams(location.search).has("still")) void deskLoop();

@@ -267,6 +267,24 @@ table.ctable tr.bkr{cursor:pointer}table.ctable tr.bkr:hover td{background:#fbf6
 .mv{display:flex;align-items:center;gap:12px;margin:14px 0 4px}.mv div{flex:1;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px}.mv span{display:block;font-size:11px;color:var(--dim)}.mv i{font-style:normal;color:var(--wine);font-size:20px}
 b.up{color:#a3203c}b.dn{color:var(--sage)}
 @media (max-width:700px){.cal{gap:3px}.cald{min-height:84px;padding:4px;border-radius:9px}.calb{padding:3px 4px;font-size:10px}.calb span{display:none}.caln{font-size:12px}.calh{font-size:9px;padding:2px}.caladd{opacity:1;font-size:10px}}
+.xf{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:8px}.xf label{display:flex;align-items:center;gap:8px;font:600 13px Inter;color:var(--dim)}.xf b{color:var(--ink);min-width:24px}.xf select{border:1px solid var(--line);border-radius:10px;padding:6px 8px;background:var(--paper)}.xf input[type=range]{accent-color:var(--wine)}
+.xc{margin:4px 0}.chip.on{background:var(--wine);color:#fff;border-color:var(--wine)}
+.xwrap{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:14px;margin-top:8px}
+.xmapw{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:18px;overflow:hidden}#xMap{width:100%;height:560px;display:block;cursor:grab;touch-action:none;background:#fbf8f2}#xMap.grab{cursor:grabbing}
+.hood rect{fill:#f3eee6;stroke:#e6dccd;transition:fill .15s;cursor:pointer}.hood:hover rect{fill:#efe6d8}.hood.on rect{fill:#f6e7ea;stroke:var(--wine)}.hood text{font:700 7px Inter;fill:#a39380;letter-spacing:.06em;pointer-events:none}
+.office rect{fill:#2b1d24}.office text{font:700 6px Inter;fill:#2b1d24}
+.xpin{cursor:pointer;transition:opacity .2s}.xpin circle{stroke:#fff;stroke-width:1.5;transition:r .15s}.xpin.dim{opacity:.25}.xpin text{font:700 5.5px JetBrains Mono,monospace;fill:#2b1d24;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke:#fbf8f2;stroke-width:2}.xpin.hot circle:first-child{stroke:var(--wine);stroke-width:2.5}.xpin.hot{filter:drop-shadow(0 2px 3px #0004)}.ring2{fill:none;stroke:var(--wine)!important;stroke-dasharray:2 1.5;animation:sp 6s linear infinite}
+.xzoom{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:4px}.xzoom button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--paper);font:700 16px Inter;color:var(--wine)}
+.xlg{position:absolute;left:10px;bottom:8px;right:10px;background:#fffdf8e6;border-radius:10px;padding:5px 8px;flex-wrap:wrap}
+.xdrawer{position:absolute;top:10px;right:10px;width:300px;max-height:calc(100% - 60px);overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 16px 40px #0002;transform:translateX(340px);transition:transform .25s}.xdrawer.on{transform:none}.xdrawer .vt{font:700 19px Fraunces,Georgia,serif;color:var(--wine2)}.xdrawer .vs{font-size:12px;color:var(--dim);margin-bottom:6px}
+.xclose{position:absolute;right:8px;top:6px;border:0;background:none;font-size:20px;color:var(--dim)}
+.xroom{display:grid;grid-template-columns:1fr 70px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed #eadfce;font-size:13px}.xroom .cs{display:block;font-size:11.5px}.xroom.small{opacity:.5}.bar2{height:6px;background:#f1e9dc;border-radius:4px;overflow:hidden}.bar2 i{display:block;height:100%;background:var(--sage)}.xroom.small .bar2 i{background:var(--rose)}
+.xside{display:flex;flex-direction:column;min-height:0}.xlist{flex:1;overflow:auto;max-height:470px;margin:8px 0;display:flex;flex-direction:column;gap:6px}
+.xr{display:grid;grid-template-columns:10px 1fr auto 30px;gap:10px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:9px 10px;cursor:pointer;transition:all .12s}.xr>i{width:10px;height:10px;border-radius:50%}.xr b{display:block;font-size:13.5px}.xr span{font-size:11.5px;color:var(--dim)}.xr em{color:var(--sage);font-style:normal;font-weight:700}.xr.hot,.xr.open{border-color:var(--wine);background:#fbf3f0}.xr.no{opacity:.55}.xp{text-align:right}.xp b{font:700 15px Inter}
+.heart{border:1px solid var(--line);background:none;border-radius:50%;width:30px;height:30px;color:#cdbca7;font-size:14px}.heart.on{background:var(--rose);border-color:var(--rose);color:#fff;animation:pop .3s}.heart:disabled{opacity:.3}@keyframes pop{50%{transform:scale(1.3)}}
+.xtray{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}.xchips{display:flex;flex-wrap:wrap;gap:4px}.xchips a{cursor:pointer;margin-left:4px;color:var(--rose)}
+.vq{border-left:3px solid #5b6b8c;padding-left:10px;font-size:13.5px;color:#4d4038}.vq b{display:block;color:#5b6b8c;font-size:12px;margin-bottom:2px}
+@media (max-width:900px){.xc{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.xc .chip{flex:none}.xwrap{grid-template-columns:1fr}#xMap{height:380px}.xdrawer{width:auto;left:10px}.xlist{max-height:none}}
 </style>
 </head>
 <body>
@@ -276,7 +294,7 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
   <nav class="tabs" id="tabs">
     <div class="ws"><i>N</i><div>Northwind Labs<small>Priya Raman · EA to Dana Whitfield</small></div></div>
     <span class="tsep">Concierge</span><button data-p="chat">Chat</button><button class="on" data-p="desk">Live desk</button><button data-p="book">Book step by step</button>
-    <span class="tsep">Plan</span><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
+    <span class="tsep">Plan</span><button data-p="explore">Explore</button><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
     <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button>
     <span class="tsep">Under the hood</span><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
     <div class="navfoot">Built for Ande · AI Engineer<br>Independent project · fictional data</div>
@@ -352,6 +370,14 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
   <div class="chatlog" id="chatLog"></div>
   <div class="chips chatchips" id="chatChips"></div>
   <form id="chatForm" class="chatform"><input id="chatIn" autocomplete="off" placeholder="Message the concierge… e.g. dinner for 12 with Acme next Thursday, somewhere private"><button class="btn pri">Send</button></form></div>
+</section>
+
+<section class="page" id="p-explore">
+  <div class="xf"><label>Guests <input type="range" id="xN" min="2" max="40" value="12"><b id="xNv">12</b></label><label>Night <select id="xDate"></select></label><label><input type="checkbox" id="xPriv" checked> Private</label><label>Max per head <input type="range" id="xMax" min="5000" max="40000" step="1000" value="25000"><b id="xMaxv">$250</b></label></div>
+  <div class="chips xc" id="xCuis"></div><div class="chips xc" id="xHoods"></div>
+  <div class="xwrap"><div class="xmapw"><svg id="xMap" viewBox="0 0 340 290"></svg><div class="xzoom"><button id="xIn">+</button><button id="xOut">−</button><button id="xReset">⟲</button></div>
+      <div class="lg xlg"><span><i style="background:#3f7d5a"></i>In policy</span><span><i style="background:#c98a12"></i>Manager signs</span><span><i style="background:#c9b8a4"></i>Over cap / budget</span><span><i style="background:#c2455d"></i>Blocked</span><span>Drag to pan · scroll to zoom · tap a neighborhood to filter</span></div><div class="xdrawer" id="xDrawer"></div></div>
+    <div class="xside"><div class="row" style="justify-content:space-between"><div id="xCount" class="cs"></div><div class="seg" id="xSort"><button data-s="fit" class="on">Best fit</button><button data-s="price">Price</button><button data-s="name">A–Z</button></div></div><div class="xlist" id="xList"></div><div class="xtray" id="xTray"></div></div></div>
 </section>
 
 <section class="page" id="p-calendar">

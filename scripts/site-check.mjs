@@ -77,6 +77,10 @@ await page.evaluate(() => window.go("bookings")); await page.waitForTimeout(400)
 const rows = await page.$$eval("#bkTable tbody tr", (r) => r.length);
 if (rows < 2) fail(1440, `bookings: expected the chat and availability bookings, saw ${rows}`);
 
+await page.evaluate(() => window.go("explore")); await page.waitForTimeout(300);
+for (let i = 0; i < 3; i++) await page.click(".heart:not([disabled]):not(.on)");
+await page.click("#xRfp"); await page.waitForSelector("#p-compare.on table.ctable tbody tr", { timeout: 20000 }).catch(() => fail(1440, "explore: RFP to the shortlist produced no offers"));
+
 await page.evaluate(() => window.go("compare")); await page.click("#cmpGo");
 await page.waitForSelector("table.ctable tbody tr", { timeout: 30000 }).catch(() => fail(1440, "compare: no offers"));
 
