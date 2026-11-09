@@ -1,0 +1,31 @@
+{
+  "name": "thursday-dinner-concierge",
+  "version": "0.1.0",
+  "description": "A concierge agent with sourcing, comparison and venue-coordination subagents that turns one sentence into a confirmed, paid, on-policy booking, with every consequential action gated by a booker-approved proposal.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "demo": "node src/cli/demo.ts",
+    "test": "node --test --test-reporter=spec test/*.test.ts",
+    "test:pg": "node --test --test-reporter=spec --test-concurrency=1 test/*.test.ts",
+    "evals": "node evals/run.ts",
+    "fuzz": "node evals/fuzz.ts 300",
+    "evals:live": "ANDE_LLM_MODE=record node evals/run.ts",
+    "judge:calibrate": "node evals/calibrate.ts",
+    "typecheck": "tsc --noEmit",
+    "build:web": "node web/build.mjs",
+    "db:schema": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f db/schema.sql"
+  },
+  "dependencies": {
+    "zod": "^3.25.0"
+  },
+  "optionalDependencies": {
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.8.0"
+  }
+}
