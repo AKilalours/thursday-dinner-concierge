@@ -23,6 +23,8 @@ import type { PolicyResult } from "../src/policy/policy.ts";
 import { addDays, weekday } from "../src/time.ts";
 import { extractOffer } from "../src/parse/offer.ts";
 import { VenueWorld } from "../src/sim/world.ts";
+import { HOODS, OFFICE, RealMap, venueLatLng } from "./realmap.ts";
+import type { LatLng } from "./realmap.ts";
 import type { Behavior, Message } from "../src/sim/world.ts";
 import { MemoryStore } from "../src/store/memory.ts";
 import { StoreError } from "../src/store/store.ts";
@@ -1383,6 +1385,8 @@ async function calMove(id: string, date: string) {
 // EXPLORE: the venue network on a map you can pan, zoom and filter; shortlist, then RFP
 // =====================================================================
 const XB: Record<string, [number, number, number, number]> = { Midtown: [60, 10, 160, 58], Chelsea: [20, 76, 92, 56], Flatiron: [120, 76, 100, 56], "West Village": [20, 140, 92, 56], SoHo: [120, 140, 100, 56], Tribeca: [20, 204, 92, 56], "Financial District": [120, 204, 100, 70], Williamsburg: [262, 110, 74, 96] };
+const vLL = new Map<string, LatLng>();
+{ const per: Record<string, number> = {}; for (const v of venues) { const k = per[v.neighborhood] = (per[v.neighborhood] ?? 0) + 1; vLL.set(v.id, venueLatLng(v.neighborhood, k - 1)); } }
 const xPos = new Map<string, [number, number]>();
 { const per: Record<string, number> = {}; for (const v of venues) { const [x, y, w, h] = XB[v.neighborhood], k = per[v.neighborhood] = (per[v.neighborhood] ?? 0) + 1, cols = Math.max(2, Math.floor((w - 16) / 22)); xPos.set(v.id, [x + 14 + ((k - 1) % cols) * 22, y + 28 + Math.floor((k - 1) / cols) * Math.min(18, (h - 32) / 2)]); } }
 const CUISINES = [...new Set(venues.map((v) => v.cuisine))].sort();
@@ -1402,19 +1406,25 @@ function xFit(v: Venue) {
 }
 const xPass = (v: Venue) => (!xF.cuisines.size || xF.cuisines.has(v.cuisine)) && (!xF.hoods.size || xF.hoods.has(v.neighborhood));
 const XCOL: Record<string, string> = { ok: "#3f7d5a", mgr: "#c98a12", over: "#c9b8a4", budget: "#c9b8a4", noroom: "#e6dccd", closed: "#e6dccd", blocked: "#c2455d" };
+const xm = new RealMap($("#xReal"), { center: [40.728, -73.99], zoom: 13, interactive: true });
+let xAll: { v: Venue; f: ReturnType<typeof xFit>; pass: boolean }[] = [];
+function renderXMap(all = xAll) {
+  xAll = all; const [w, h] = xm.size(); const svg = $("#xMap"); svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  let s = "";
+  for (const [hn, ll] of Object.entries(HOODS)) { const [x, y] = xm.toPoint(ll); s += `<text class="hlab ${xF.hoods.has(hn) ? "on" : ""}" data-h="${hn}" x="${x}" y="${y + 5}">${hn.toUpperCase()}</text>`; }
+  const [ox, oy] = xm.toPoint(OFFICE); s += `<g class="office" transform="translate(${ox} ${oy})"><rect x="-7" y="-7" width="14" height="14" rx="3"/><text y="-11">HQ</text></g>`;
+  for (const { v, f, pass } of all) {
+    const [x, y] = xm.toPoint(vLL.get(v.id)!), ok = f.k === "ok" || f.k === "mgr";
+    if (x < -20 || y < -20 || x > w + 20 || y > h + 20) continue;
+    s += `<g class="xpin ${pass ? "" : "dim"} ${xHover === v.id || xOpen === v.id ? "hot" : ""} ${xShort.has(v.id) ? "short" : ""}" data-v="${v.id}" data-nodrag transform="translate(${x} ${y})">${ok && pass ? `<rect class="pl" x="-19" y="-27" width="38" height="17" rx="8.5" fill="${XCOL[f.k]}"/><text y="-15">$${Math.round(f.ph! / 100)}</text>` : ""}<circle r="${ok ? 6.5 : 5}" fill="${pass ? XCOL[f.k] : "#d9d0c3"}"/>${xShort.has(v.id) ? `<circle r="11" class="ring2"/>` : ""}</g>`;
+  }
+  svg.innerHTML = s; wireXMap();
+}
+xm.onChange(() => { if (xAll.length) renderXMap(); });
 function renderExplore() {
   const all = venues.map((v) => ({ v, f: xFit(v), pass: xPass(v) }));
   const shown = all.filter((x) => x.pass);
-  // map
-  let s = `<rect x="232" y="-50" width="22" height="400" fill="#e4ecf2"/><text x="243" y="150" font-family="Inter" font-size="7" fill="#9fb3c4" transform="rotate(90 243 150)" letter-spacing=".2em">EAST RIVER</text>`;
-  for (const [h, [x, y, w, hh]] of Object.entries(XB)) s += `<g class="hood ${xF.hoods.has(h) ? "on" : ""}" data-h="${h}"><rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="8"/><text x="${x + 7}" y="${y + 14}">${(h === "Financial District" ? "FIDI" : h === "Williamsburg" ? "WILLIAMSBURG" : h).toUpperCase()}</text></g>`;
-  const [ox, oy] = [XB.Flatiron[0] + XB.Flatiron[2] - 10, XB.Flatiron[1] + 10];
-  s += `<g class="office"><rect x="${ox - 5}" y="${oy - 5}" width="10" height="10" rx="2"/><text x="${ox + 6}" y="${oy - 8}" text-anchor="end">Northwind HQ</text></g>`;
-  for (const { v, f, pass } of all) {
-    const [x, y] = xPos.get(v.id)!, ok = f.k === "ok" || f.k === "mgr", cap = "room" in f && f.room ? f.room.listedCapacity : 8;
-    s += `<g class="xpin ${pass ? "" : "dim"} ${xHover === v.id || xOpen === v.id ? "hot" : ""} ${xShort.has(v.id) ? "short" : ""}" data-v="${v.id}" transform="translate(${x} ${y})"><circle r="${ok ? 4 + Math.min(4, cap / 8) : 4}" fill="${pass ? XCOL[f.k] : "#eee6da"}"/>${xShort.has(v.id) ? `<circle r="${ok ? 8 + Math.min(4, cap / 8) : 8}" class="ring2"/>` : ""}${ok && pass ? `<text y="-8">$${Math.round(f.ph! / 100)}</text>` : ""}</g>`;
-  }
-  $("#xMap").setAttribute("viewBox", `${xView.x} ${xView.y} ${xView.w} ${xView.h}`); $("#xMap").innerHTML = s;
+  renderXMap(all);
   // list
   const ord = [...shown].sort((a, b) => {
     const rank = (x: typeof a) => ({ ok: 0, mgr: 1, budget: 2, over: 3, noroom: 4, closed: 5, blocked: 6 })[x.f.k];
@@ -1433,12 +1443,16 @@ function renderExplore() {
 }
 function wireExplore() {
   const hover = (id: string | null) => { if (xHover === id) return; xHover = id; $$(".xpin").forEach((p) => p.classList.toggle("hot", (p as HTMLElement).dataset.v === id || (p as HTMLElement).dataset.v === xOpen)); $$(".xr").forEach((r) => r.classList.toggle("hot", (r as HTMLElement).dataset.v === id)); };
-  $$<HTMLElement>(".xr").forEach((r) => { r.onmouseenter = () => hover(r.dataset.v!); r.onmouseleave = () => hover(null); r.onclick = (e) => { if ((e.target as HTMLElement).closest(".heart")) return; xOpen = r.dataset.v!; renderExplore(); void xDrawer(); }; });
-  $$<SVGGElement>(".xpin").forEach((p) => { p.onmouseenter = () => hover(p.dataset.v!); p.onmouseleave = () => hover(null); p.onclick = () => { xOpen = p.dataset.v!; renderExplore(); void xDrawer(); $(`.xr[data-v="${xOpen}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }; });
-  $$<SVGGElement>(".hood").forEach((h) => h.onclick = () => { const n = h.dataset.h!; xF.hoods.has(n) ? xF.hoods.delete(n) : xF.hoods.add(n); renderHoodChips(); renderExplore(); });
+  $$<HTMLElement>(".xr").forEach((r) => { r.onmouseenter = () => hover(r.dataset.v!); r.onmouseleave = () => hover(null); r.onclick = (e) => { if ((e.target as HTMLElement).closest(".heart")) return; xOpen = r.dataset.v!; xm.setView(vLL.get(xOpen)!, Math.max(xm.zoom, 15)); renderExplore(); void xDrawer(); }; });
+
   $$<HTMLButtonElement>(".heart").forEach((b) => b.onclick = () => { const id = b.dataset.h!; if (xShort.has(id)) xShort.delete(id); else if (xShort.size < 6) xShort.add(id); else toast("Shortlist is full", "Six venues per request", "warn"); renderExplore(); if (xOpen) void xDrawer(); });
   $$<HTMLElement>("#xTray [data-x]").forEach((a) => a.onclick = () => { xShort.delete(a.dataset.x!); renderExplore(); });
   $("#xRfp")?.addEventListener("click", () => void xRfp());
+}
+function wireXMap() {
+  const hover = (id: string | null) => { xHover = id; $$(".xpin").forEach((p) => p.classList.toggle("hot", (p as HTMLElement).dataset.v === id || (p as HTMLElement).dataset.v === xOpen)); $$(".xr").forEach((r) => r.classList.toggle("hot", (r as HTMLElement).dataset.v === id)); };
+  $$<SVGGElement>(".xpin").forEach((p) => { p.onmouseenter = () => hover(p.dataset.v!); p.onmouseleave = () => hover(null); p.onclick = () => { xOpen = p.dataset.v!; renderExplore(); void xDrawer(); $(`.xr[data-v="${xOpen}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }; });
+  $$<SVGTextElement>(".hlab").forEach((t) => t.onclick = () => { const n = t.dataset.h!; xF.hoods.has(n) ? xF.hoods.delete(n) : xF.hoods.add(n); renderHoodChips(); renderExplore(); });
 }
 function renderHoodChips() { $("#xHoods").innerHTML = Object.keys(XB).map((h) => `<button class="chip ${xF.hoods.has(h) ? "on" : ""}" data-hh="${h}">${h}</button>`).join(""); $$<HTMLButtonElement>("[data-hh]").forEach((b) => b.onclick = () => { const n = b.dataset.hh!; xF.hoods.has(n) ? xF.hoods.delete(n) : xF.hoods.add(n); renderHoodChips(); renderExplore(); }); }
 async function xDrawer() {
@@ -1488,17 +1502,8 @@ $<HTMLSelectElement>("#xDate").onchange = (e) => { xF.date = (e.target as HTMLSe
 $("#xCuis").innerHTML = CUISINES.map((c) => `<button class="chip" data-cu="${c}">${c}</button>`).join("");
 $$<HTMLButtonElement>("[data-cu]").forEach((b) => b.onclick = () => { const c = b.dataset.cu!; xF.cuisines.has(c) ? xF.cuisines.delete(c) : xF.cuisines.add(c); b.classList.toggle("on"); renderExplore(); });
 $$<HTMLButtonElement>("#xSort button").forEach((b) => b.onclick = () => { $$("#xSort button").forEach((x) => x.classList.remove("on")); b.classList.add("on"); xF.sort = b.dataset.s!; renderExplore(); });
-// pan and zoom
-{
-  const svg = $("#xMap") as unknown as SVGSVGElement; let drag: { x: number; y: number; vx: number; vy: number } | null = null;
-  const clamp = () => { xView.w = Math.max(80, Math.min(340, xView.w)); xView.h = xView.w * 290 / 340; xView.x = Math.max(-20, Math.min(360 - xView.w, xView.x)); xView.y = Math.max(-20, Math.min(310 - xView.h, xView.y)); svg.setAttribute("viewBox", `${xView.x} ${xView.y} ${xView.w} ${xView.h}`); };
-  const zoom = (f: number, cx = 0.5, cy = 0.5) => { const nw = xView.w * f, nh = nw * 290 / 340; xView.x += (xView.w - nw) * cx; xView.y += (xView.h - nh) * cy; xView.w = nw; clamp(); };
-  svg.addEventListener("wheel", (e) => { e.preventDefault(); const r = svg.getBoundingClientRect(); zoom(e.deltaY > 0 ? 1.15 : 0.87, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }, { passive: false });
-  svg.addEventListener("pointerdown", (e) => { if ((e.target as Element).closest(".xpin,.hood")) return; drag = { x: e.clientX, y: e.clientY, vx: xView.x, vy: xView.y }; svg.setPointerCapture(e.pointerId); svg.classList.add("grab"); });
-  svg.addEventListener("pointermove", (e) => { if (!drag) return; const r = svg.getBoundingClientRect(); xView.x = drag.vx - (e.clientX - drag.x) * xView.w / r.width; xView.y = drag.vy - (e.clientY - drag.y) * xView.h / r.height; clamp(); });
-  svg.addEventListener("pointerup", () => { drag = null; svg.classList.remove("grab"); });
-  $("#xIn").onclick = () => zoom(0.75); $("#xOut").onclick = () => zoom(1.33); $("#xReset").onclick = () => { xView = { x: 0, y: 0, w: 340, h: 290 }; clamp(); };
-}
+$("#xIn").onclick = () => xm.zoomBy(1); $("#xOut").onclick = () => xm.zoomBy(-1); $("#xReset").onclick = () => xm.fit([...vLL.values(), OFFICE], 30);
+requestAnimationFrame(() => xm.fit([...vLL.values(), OFFICE], 30));
 renderHoodChips(); renderExplore();
 
 
@@ -1545,28 +1550,37 @@ function mailtoFor(v: Venue, roomName: string, startsAt: string, n: number, allI
 // =====================================================================
 // HOME: one sentence in; the agents work across the city; you approve on your phone
 // =====================================================================
-const HQ: [number, number] = [XB.Flatiron[0] + XB.Flatiron[2] - 10, XB.Flatiron[1] + 10];
+let HQ: [number, number] = [0, 0];
+const hPos = new Map<string, [number, number]>();
+const hm = new RealMap($("#hReal"), { center: [40.728, -73.99], zoom: 13 });
+let hVH = 290;
+function hLayout() {
+  const [w, h] = hm.size(); if (!w) return; const k = 340 / w; hVH = Math.round(h * k);
+  for (const v of venues) { const [x, y] = hm.toPoint(vLL.get(v.id)!); hPos.set(v.id, [x * k, y * k]); }
+  const [ox, oy] = hm.toPoint(OFFICE); HQ = [ox * k, oy * k];
+}
 const vByName = (t: string) => venues.filter((v) => t.startsWith(v.name) || t.includes(` ${v.name}`) || t.includes(`${v.name},`) || t.includes(`${v.name}'s`)).sort((a, b) => b.name.length - a.name.length)[0];
 let hBusy = false, hRuns = 0, hWorld: VenueWorld | null = null;
 const SVGNS = "http://www.w3.org/2000/svg";
 function hMap() {
-  let s = `<defs><radialGradient id="hglow"><stop offset="0" stop-color="#c98a12" stop-opacity=".55"/><stop offset="1" stop-color="#c98a12" stop-opacity="0"/></radialGradient></defs><rect x="232" y="-60" width="22" height="420" fill="#e4ecf2"/>`;
-  for (const [h, [x, y, w, hh]] of Object.entries(XB)) s += `<g class="hhood"><rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="8"/><text x="${x + 7}" y="${y + 13}">${(h === "Financial District" ? "FIDI" : h).toUpperCase()}</text></g>`;
+  hLayout(); const k = 340 / Math.max(1, hm.size()[0]);
+  let s = `<defs><radialGradient id="hglow"><stop offset="0" stop-color="#c98a12" stop-opacity=".55"/><stop offset="1" stop-color="#c98a12" stop-opacity="0"/></radialGradient></defs>`;
+  for (const [hn, ll] of Object.entries(HOODS)) { const [x, y] = hm.toPoint(ll); s += `<text class="hlab2" x="${x * k}" y="${y * k - 9}">${hn === "Financial District" ? "FIDI" : hn.toUpperCase()}</text>`; }
   s += `<g id="hLines"></g>`;
-  for (const v of venues) { const [x, y] = xPos.get(v.id)!; s += `<g class="hp" id="hp_${v.id}" transform="translate(${x} ${y})"><circle class="halo" r="11" fill="url(#hglow)"/><circle class="dot" r="3.6"/><g class="tag"></g></g>`; }
+  for (const v of venues) { const [x, y] = hPos.get(v.id)!; s += `<g class="hp" id="hp_${v.id}" transform="translate(${x} ${y})"><circle class="halo" r="11" fill="url(#hglow)"/><circle class="dot" r="3.6"/><g class="tag"></g></g>`; }
   s += `<g class="hq" transform="translate(${HQ[0]} ${HQ[1]})"><circle class="pulse" r="6"/><rect x="-5" y="-5" width="10" height="10" rx="2.5"/><text y="-9">HQ</text></g><g id="hFly"></g>`;
-  $("#hMap").innerHTML = s;
+  $("#hMap").setAttribute("viewBox", `0 0 340 ${hVH}`); $("#hMap").innerHTML = s;
 }
 const hp = (id: string) => $(`#hp_${id}`) as unknown as SVGGElement;
 function hTag(id: string, text: string, cls: string) {
   const g = hp(id); if (!g) return; g.setAttribute("class", `hp ${cls}`);
-  const tag = g.querySelector(".tag")! as SVGGElement, w = text.length * 3.4 + 8, [x, y] = xPos.get(id)!;
-  if (!tag.dataset.side) { const near = [...$$<SVGGElement>(".hp .tag[data-side='up']")].some((t) => { const o = t.closest(".hp")!.id.slice(3); if (o === id) return false; const [ox, oy] = xPos.get(o)!; return Math.abs(ox - x) < 34 && Math.abs(oy - y) < 14; }); tag.dataset.side = near ? "down" : "up"; }
+  const tag = g.querySelector(".tag")! as SVGGElement, w = text.length * 3.4 + 8, [x, y] = hPos.get(id)!;
+  if (!tag.dataset.side) { const near = [...$$<SVGGElement>(".hp .tag[data-side='up']")].some((t) => { const o = t.closest(".hp")!.id.slice(3); if (o === id) return false; const [ox, oy] = hPos.get(o)!; return Math.abs(ox - x) < 34 && Math.abs(oy - y) < 14; }); tag.dataset.side = near ? "down" : "up"; }
   const dy = tag.dataset.side === "down" ? 20 : 0;
   tag.innerHTML = `<rect x="${-w / 2}" y="${-17 + dy}" width="${w}" height="10" rx="5"/><text y="${-10 + dy}">${esc(text)}</text>`;
 }
 function hPath(id: string) {
-  const [x, y] = xPos.get(id)!, [hx, hy] = HQ, mx = (x + hx) / 2, my = Math.min(y, hy) - 30;
+  const [x, y] = hPos.get(id)!, [hx, hy] = HQ, mx = (x + hx) / 2, my = Math.min(y, hy) - 30;
   const p = document.createElementNS(SVGNS, "path"); p.setAttribute("d", `M${hx} ${hy} Q${mx} ${my} ${x} ${y}`); p.setAttribute("class", "hline"); p.id = `hl_${id}`;
   $("#hLines").append(p); const L = p.getTotalLength(); p.style.strokeDasharray = `${L}`; p.style.strokeDashoffset = `${L}`; void p.getBoundingClientRect(); p.style.strokeDashoffset = "0"; return p;
 }
@@ -1584,7 +1598,7 @@ function hCount(id: string, n: number) { const e = $(`#${id}`); e.textContent = 
 async function hRun(text: string) {
   if (hBusy || !text.trim()) return; hBusy = true; hRuns++;
   const btn = $<HTMLButtonElement>("#hGo"); btn.disabled = true; $<HTMLInputElement>("#hIn").value = text;
-  hMap(); $("#hPhone").innerHTML = `<div class="ph-s">Concierge is on it…</div>`; $("#hRes").innerHTML = ""; $("#hMap").classList.add("live"); $("#hMap").classList.remove("done");
+  hMap(); $("#hPhone").innerHTML = `<div class="ph-s">Concierge is on it…</div>`; $("#hRes").innerHTML = ""; $("#hMap").classList.add("running"); $("#hMap").classList.remove("done");
   const c = { mail: 0, rep: 0, off: 0, inj: 0 }; ["hcMail", "hcRep", "hcOff", "hcInj"].forEach((i) => ($(`#${i}`).textContent = "0"));
   const store = new MemoryStore(); await store.init(venues); stores.push(store); srcOf.set(store, "Home");
   const pool: Behavior[] = ["accept", "injection", "counter_price", "decline", "accept", "accept_slow", "counter_capacity"], seen = new Map<string, Behavior>();
@@ -1637,7 +1651,7 @@ async function hRun(text: string) {
   const ph = $("#hPhone");
   if (res.outcome === "booked" && res.chosenVenueId) {
     const v = venues.find((x) => x.id === res.chosenVenueId)!, bk = (await store.getBooking(res.bookingId!))!, room = v.rooms.find((r) => r.id === bk.roomId)!;
-    const [x, y] = xPos.get(v.id)!; const p = document.createElementNS(SVGNS, "path"); p.setAttribute("d", `M${HQ[0]} ${HQ[1]} L${x} ${y}`); p.setAttribute("class", "hwin"); $("#hLines").append(p);
+    const [x, y] = hPos.get(v.id)!; const p = document.createElementNS(SVGNS, "path"); p.setAttribute("d", `M${HQ[0]} ${HQ[1]} L${x} ${y}`); p.setAttribute("class", "hwin"); $("#hLines").append(p);
     ph.insertAdjacentHTML("beforeend", `<div class="ph-ok"><div class="ph-check">✓</div><b>Booked</b><span>${esc(v.name)} · ${when(bk.startsAt)}</span><span>${res.paymentId ? "Deposit paid to venue on file" : "No deposit"}</span></div>`);
     confetti(); toast("Booked", `${v.name} · ${bk.partySize} guests`);
     setLastBooking({ venue: v, roomName: room.name, partySize: bk.partySize, date: localDate(bk.startsAt), dietary: res.request?.dietary ?? [], client: res.request?.clientName ?? "Guests", world, threadId: `thr_${res.runId}_${v.id}` });
@@ -1649,7 +1663,7 @@ async function hRun(text: string) {
     ph.insertAdjacentHTML("beforeend", `<div class="ph-bot">${esc(last.length > 220 ? last.slice(0, 218) + "…" : last)}</div>`);
     $("#hRes").innerHTML = `<button class="btn" onclick="go('chat')">Answer in chat</button>`;
   }
-  ph.scrollTop = ph.scrollHeight; $("#hMap").classList.remove("live"); btn.disabled = false; hBusy = false;
+  ph.scrollTop = ph.scrollHeight; $("#hMap").classList.remove("running"); btn.disabled = false; hBusy = false;
 }
 function confetti() {
   const box = $("#hConf"); const cols = ["#7b1e3a", "#c98a12", "#3f7d5a", "#5b6b8c", "#e7c27d"];
@@ -1661,7 +1675,8 @@ $("#hChips").innerHTML = HPH.slice(0, 3).map((t) => `<button class="chip" data-t
 $$<HTMLButtonElement>("#hChips .chip").forEach((b) => b.onclick = () => void hRun(b.dataset.t!));
 $("#hMap").addEventListener("click", (e) => { const g = (e.target as Element).closest(".hp"); if (!g || !hWorld) return; const id = g.id.slice(3), v = venues.find((x) => x.id === id)!; if (hWorld.sent().some((m) => m.venueId === id)) showThreads(hWorld, v.name, id); });
 $<HTMLFormElement>("#hForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $<HTMLInputElement>("#hIn").value || $<HTMLInputElement>("#hIn").placeholder; void hRun(v); });
-hMap();
+hm.onChange(() => { if (!hBusy && !$("#hMap .hp.cand")) hMap(); });
+requestAnimationFrame(() => { hm.fit([...vLL.values(), OFFICE], 24); hMap(); });
 
 // =====================================================================
 // VOICE: say the request

@@ -235,7 +235,7 @@ table.ctable tr.bkr{cursor:pointer}table.ctable tr.bkr:hover td{background:#fbf6
  .bar .tabs{position:fixed;left:0;top:0;bottom:0;width:236px;flex-direction:column;align-items:stretch;border-radius:0;border:0;border-right:1px solid var(--line);background:#fbf7f0;padding:14px 12px;gap:1px;overflow-y:auto;z-index:20;max-width:none;order:0}
  .bar .tabs button{text-align:left;border-radius:10px;padding:8px 12px;font-size:14px}.bar .tabs button:hover:not(.on){background:#f1e9dc}
  .bar .tabs .tsep{border:0;margin:14px 0 4px;padding:0 12px;font-size:10px}
- .ws{display:flex;gap:10px;align-items:center;padding:6px 8px 12px;border-bottom:1px solid var(--line);margin-bottom:4px;font:700 14px Inter}.ws i{width:34px;height:34px;border-radius:10px;background:var(--wine);color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-family:Fraunces,Georgia,serif;font-size:17px}.ws small{display:block;font:500 11.5px Inter;color:var(--dim)}
+ .ws{display:flex;gap:10px;align-items:center;padding:6px 8px 12px;border-bottom:1px solid var(--line);margin-bottom:4px;font:700 14px Inter}.ws i{width:34px;height:34px;border-radius:50%;background:var(--wine);color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font:700 13px Inter;flex:none}.ws small{display:block;font:500 11.5px Inter;color:var(--dim)}
  .ws .demo{font:700 9px Inter;text-transform:uppercase;letter-spacing:.06em;background:#f1e9dc;color:#8c7c6f;border-radius:5px;padding:1px 5px;vertical-align:2px}
  .navfoot{display:block;margin-top:auto;padding:14px 12px 4px;font-size:11px;color:#b3a08c;line-height:1.5}
  .bar{max-width:1280px}
@@ -275,9 +275,9 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 .hood rect{fill:#f3eee6;stroke:#e6dccd;transition:fill .15s;cursor:pointer}.hood:hover rect{fill:#efe6d8}.hood.on rect{fill:#f6e7ea;stroke:var(--wine)}.hood text{font:700 7px Inter;fill:#a39380;letter-spacing:.06em;pointer-events:none}
 .office rect{fill:#2b1d24}.office text{font:700 6px Inter;fill:#2b1d24}
 .xpin{cursor:pointer;transition:opacity .2s}.xpin circle{stroke:#fff;stroke-width:1.5;transition:r .15s}.xpin.dim{opacity:.25}.xpin text{font:700 5.5px JetBrains Mono,monospace;fill:#2b1d24;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke:#fbf8f2;stroke-width:2}.xpin.hot circle:first-child{stroke:var(--wine);stroke-width:2.5}.xpin.hot{filter:drop-shadow(0 2px 3px #0004)}.ring2{fill:none;stroke:var(--wine)!important;stroke-dasharray:2 1.5;animation:sp 6s linear infinite}
-.xzoom{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:4px}.xzoom button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--paper);font:700 16px Inter;color:var(--wine)}
-.xlg{position:absolute;left:10px;bottom:8px;right:10px;background:#fffdf8e6;border-radius:10px;padding:5px 8px;flex-wrap:wrap}
-.xdrawer{position:absolute;top:10px;right:10px;width:300px;max-height:calc(100% - 60px);overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 16px 40px #0002;transform:translateX(340px);transition:transform .25s}.xdrawer.on{transform:none}.xdrawer .vt{font:700 19px Fraunces,Georgia,serif;color:var(--wine2)}.xdrawer .vs{font-size:12px;color:var(--dim);margin-bottom:6px}
+.xzoom{position:absolute;z-index:4;left:10px;top:10px;display:flex;flex-direction:column;gap:4px}.xzoom button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--paper);font:700 16px Inter;color:var(--wine)}
+.xlg{position:absolute;z-index:4;left:10px;bottom:8px;right:10px;background:#fffdf8e6;border-radius:10px;padding:5px 8px;flex-wrap:wrap}
+.xdrawer{position:absolute;z-index:5;top:10px;right:10px;width:300px;max-height:calc(100% - 60px);overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 16px 40px #0002;transform:translateX(340px);transition:transform .25s}.xdrawer.on{transform:none}.xdrawer .vt{font:700 19px Fraunces,Georgia,serif;color:var(--wine2)}.xdrawer .vs{font-size:12px;color:var(--dim);margin-bottom:6px}
 .xclose{position:absolute;right:8px;top:6px;border:0;background:none;font-size:20px;color:var(--dim)}
 .xroom{display:grid;grid-template-columns:1fr 70px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed #eadfce;font-size:13px}.xroom .cs{display:block;font-size:11.5px}.xroom.small{opacity:.5}.bar2{height:6px;background:#f1e9dc;border-radius:4px;overflow:hidden}.bar2 i{display:block;height:100%;background:var(--sage)}.xroom.small .bar2 i{background:var(--rose)}
 .xside{display:flex;flex-direction:column;min-height:0}.xlist{flex:1;overflow:auto;max-height:470px;margin:8px 0;display:flex;flex-direction:column;gap:6px}
@@ -300,7 +300,7 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 .hp .tag rect{fill:#2b1d24}.hp .tag text{font:700 5.6px Inter;fill:#fff;text-anchor:middle}.hp.offer .tag rect{fill:#3f7d5a}.hp.inj .tag rect{fill:#c2455d}.hp.offer.inj .dot{fill:#3f7d5a;stroke:#c2455d;stroke-width:1.6}.hp.no .tag rect{fill:#a39380}.hp.win .tag rect{fill:var(--wine)}.hp .tag{animation:tagin .3s cubic-bezier(.2,1.6,.4,1)}@keyframes tagin{from{transform:translateY(4px) scale(.6);opacity:0}}
 .hline{fill:none;stroke:#c98a12;stroke-width:.8;stroke-dasharray:2 2;opacity:.75;transition:stroke-dashoffset .7s ease}.hwin{stroke:var(--wine);stroke-width:2;fill:none;stroke-linecap:round;stroke-dasharray:400;stroke-dashoffset:400;animation:draw 1s forwards}@keyframes draw{to{stroke-dashoffset:0}}
 .env rect{fill:#fff;stroke:#c98a12;stroke-width:.8}.env path{fill:none;stroke:#c98a12;stroke-width:.7}.env.in rect,.env.in path{stroke:#3f7d5a}.env.bad rect,.env.bad path{stroke:#c2455d}.env.bad rect{fill:#fde8ec}
-.hq rect{fill:#2b1d24}.hq text{font:800 6px Inter;fill:#2b1d24;text-anchor:middle}.hq .pulse{fill:#7b1e3a;opacity:0}#hMap.live .hq .pulse{animation:hq 1.4s ease-out infinite}@keyframes hq{0%{opacity:.5;transform:scale(.5)}100%{opacity:0;transform:scale(3.2)}}
+.hq rect{fill:#2b1d24}.hq text{font:800 6px Inter;fill:#2b1d24;text-anchor:middle}.hq .pulse{fill:#7b1e3a;opacity:0}#hMap.running .hq .pulse{animation:hq 1.4s ease-out infinite}@keyframes hq{0%{opacity:.5;transform:scale(.5)}100%{opacity:0;transform:scale(3.2)}}
 .hcount{position:absolute;top:12px;right:12px;display:flex;gap:6px}.hcount div{background:#fffdf8ee;border:1px solid var(--line);border-radius:12px;padding:6px 10px;text-align:center;min-width:62px}.hcount b{display:block;font:800 20px Fraunces,Georgia,serif;color:var(--ink)}.hcount span{font:600 10px Inter;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}.hcount .r b{color:var(--rose)}.hcount b.tick{animation:tick .4s}@keyframes tick{40%{transform:scale(1.35);color:var(--wine)}}
 .hsteps{position:absolute;left:12px;right:12px;bottom:12px;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;background:#fffdf8ee;border:1px solid var(--line);border-radius:14px;padding:6px}.hsteps div{position:relative;text-align:center;font:600 11.5px Inter;color:#b9a893;padding:6px 2px;border-radius:9px;transition:all .3s}.hsteps .on{background:var(--wine);color:#fff;box-shadow:0 4px 14px #7b1e3a44}.hsteps .done{color:var(--sage)}.hsteps .done:before{content:"✓ "}
 .hphone{position:relative;background:#1f1519;border-radius:40px;padding:12px;box-shadow:0 30px 60px #2b1d2440,inset 0 0 0 2px #3a2a31;display:flex;flex-direction:column;min-height:540px}
@@ -318,8 +318,9 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 .hres{display:flex;gap:6px;justify-content:center;padding:10px 4px 2px}.hres .btn{padding:7px 12px;font-size:13px}.hres:empty{display:none}
 .conf{position:absolute;inset:0;pointer-events:none;overflow:visible}.conf i{position:absolute;top:60%;width:8px;height:12px;border-radius:2px;animation:conf 1.5s cubic-bezier(.2,.7,.4,1) forwards}@keyframes conf{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
 @media (max-width:1000px){.hgrid{grid-template-columns:1fr}.hstage,#hMap{min-height:380px}.hphone{min-height:420px}.hcount div{min-width:0;padding:4px 7px}.hcount b{font-size:16px}.hsteps{grid-template-columns:repeat(3,1fr)}.hform input{font-size:16px}}
+.simtag{font:600 11px Inter;color:#8c7c6f;border:1px dashed #d9cbb7;border-radius:99px;padding:3px 9px;vertical-align:middle;margin-left:6px}
 .livebadge{display:inline-flex;align-items:center;gap:6px;font:600 13px Inter;color:var(--dim);background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:4px 10px;vertical-align:middle;margin-left:8px}.livebadge b{color:var(--ink)}
-.live{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3f7d5a;box-shadow:0 0 0 0 #3f7d5a88;animation:livep 1.6s infinite;margin-right:5px;vertical-align:1px}@keyframes livep{70%{box-shadow:0 0 0 7px #3f7d5a00}100%{box-shadow:0 0 0 0 #3f7d5a00}}
+span.live{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3f7d5a;box-shadow:0 0 0 0 #3f7d5a88;animation:livep 1.6s infinite;margin-right:5px;vertical-align:1px}@keyframes livep{70%{box-shadow:0 0 0 7px #3f7d5a00}100%{box-shadow:0 0 0 0 #3f7d5a00}}
 .board{display:grid;grid-template-columns:repeat(6,minmax(170px,1fr));gap:10px;overflow-x:auto;padding-bottom:6px}.board:has(.kcol.bad){grid-template-columns:repeat(7,minmax(170px,1fr))}
 .kcol{background:#f3ece1;border-radius:16px;padding:8px;min-height:420px;display:flex;flex-direction:column}.kcol.need{background:#f8ecd6}.kcol.ok{background:#e6f0e8}.kcol.bad{background:#f6e3e6}
 .kch{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;font:700 11.5px Inter;text-transform:uppercase;letter-spacing:.05em;color:#8c7c6f}.kch b{background:#fff;border-radius:99px;padding:1px 8px;color:var(--ink)}
@@ -342,6 +343,17 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px;margin-top:12px;background:#fff}
 @media (max-width:1099px){.livepill{margin-left:0;order:5}}
 @media (max-width:700px){.livepill{display:none}}
+.rmap{position:relative;overflow:hidden;background:#eef0ea;touch-action:none;user-select:none}.rmap.grab{cursor:grabbing}.rtiles{position:absolute;inset:0;pointer-events:none}.rtile{position:absolute;left:0;top:0;width:256px;height:256px;opacity:0;transition:opacity .3s;filter:saturate(.75) sepia(.12)}.rtile.on{opacity:1}
+.rmap.offline{background:repeating-linear-gradient(45deg,#f1ebe1 0 12px,#f4efe7 12px 24px)}
+.rattr{position:absolute;right:6px;bottom:4px;font:500 10px Inter;color:#6d5d51;background:#ffffffcc;border-radius:5px;padding:1px 6px;z-index:3}.rattr a{color:inherit}
+.rfill{position:absolute;inset:0}
+#hMap{position:absolute;inset:0;width:100%;height:100%;min-height:0;z-index:2;pointer-events:none}#hMap .hp{pointer-events:auto}
+.hlab2{font:800 5.4px Inter;fill:#2b1d24;opacity:.45;text-anchor:middle;letter-spacing:.08em;paint-order:stroke;stroke:#fff;stroke-width:1.4px}
+#xReal{border-radius:18px;cursor:grab}#xMap{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;background:none}#xMap .xpin,#xMap .hlab{pointer-events:auto}
+.hlab{font:800 14px Inter;fill:#2b1d24;opacity:.28;text-anchor:middle;letter-spacing:.08em;cursor:pointer;paint-order:stroke;stroke:#fff;stroke-width:3px}.hlab.on{fill:var(--wine);opacity:1}
+#xMap .xpin text{font:800 10.5px Inter;fill:#fff;text-anchor:middle;stroke:none}#xMap .xpin circle{stroke:#fff;stroke-width:2.5}#xMap .xpin.hot{filter:drop-shadow(0 3px 6px #0005)}#xMap .xpin.hot circle:first-of-type{stroke:var(--wine)}#xMap .office rect{fill:#2b1d24}#xMap .office text{font:800 11px Inter;fill:#2b1d24;text-anchor:middle;paint-order:stroke;stroke:#fff;stroke-width:3px}
+.xmapw{height:560px}
+@media (max-width:900px){.xmapw{height:400px}}
 </style>
 </head>
 <body>
@@ -349,7 +361,7 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
   <div class="logo"><i></i><div>Thursday Dinner<small>Built for Ande · AI Engineer · <a href="https://github.com/AKilalours/thursday-dinner-concierge">code</a></small></div></div>
   <button class="menuBtn" id="menuBtn" aria-label="Menu"><span>☰</span><b id="menuCur">Live desk</b></button>
   <nav class="tabs" id="tabs">
-    <div class="ws" title="A fictional customer account for the demo"><i>N</i><div>Northwind Labs <span class="demo">demo</span><small>Signed in as Priya · EA</small></div></div>
+    <div class="ws" title="Demo workspace: Northwind Labs is a fictional customer company"><i>AL</i><div>Akila Lourdes<small>Northwind Labs <span class="demo">demo</span></small></div></div>
     <span class="tsep">Concierge</span><button class="on" data-p="home">Home</button><button data-p="chat">Chat</button><button data-p="desk">Live desk</button>
     <span class="tsep">Plan</span><button data-p="explore">Explore</button><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
     <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button>
@@ -364,14 +376,14 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
   <form id="hForm" class="hform"><span class="hstar">✳</span><input id="hIn" autocomplete="off" placeholder="dinner for 12 with the Acme team next Thursday, somewhere private"><button type="button" class="micb" id="hMic" title="Say it">🎙</button><button class="btn pri" id="hGo">Book</button></form>
   <div class="chips hchips" id="hChips"></div>
   <div class="hgrid">
-    <div class="hstage"><svg id="hMap" viewBox="0 0 340 290"></svg>
+    <div class="hstage"><div id="hReal" class="rfill"></div><svg id="hMap" viewBox="0 0 340 290"></svg>
       <div class="hcount"><div><b id="hcMail">0</b><span>emails</span></div><div><b id="hcRep">0</b><span>replies</span></div><div><b id="hcOff">0</b><span>offers</span></div><div class="r"><b id="hcInj">0</b><span>injections</span></div></div>
       <div class="hsteps" id="hSteps"><div>Understand</div><div>Shortlist</div><div>Email</div><div>Compare</div><div>Approve</div><div>Booked</div></div></div>
     <div class="hphone"><div class="ph-top"><span>9:41</span><b>Concierge</b><span>●●●</span></div><div class="ph-body" id="hPhone"><div class="ph-s">Type one sentence. Nothing books until you slide.</div></div><div class="hres" id="hRes"></div><div id="hConf" class="conf"></div></div>
   </div>
 </section>
 <section class="page" id="p-desk">
-  <div class="ph"><div><h1>Live desk <span class="livebadge"><span class="live"></span><b id="dLive">0</b> in flight</span></h1></div>
+  <div class="ph"><div><h1>Live desk <span class="livebadge"><span class="live"></span><b id="dLive">0</b> in flight</span> <span class="simtag" title="Requests come from the eval set on a loop; venues are simulated. Every decision is the real agent code.">simulated traffic</span></h1></div>
     <div class="row"><span class="clock2" id="dClock">Mon 10 am</span><div class="seg" id="dSpeed"><button data-s="1">1×</button><button data-s="2" class="on">2×</button><button data-s="4">4×</button></div><button class="btn" id="dPause">Pause</button><button class="btn pri" id="dReplay">Restart</button></div></div>
   <div class="kpis">
     <div class="kpi" style="--c:var(--wine)"><div class="k">Requests</div><b id="kReq">0</b></div>
@@ -437,7 +449,7 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
 <section class="page" id="p-explore">
   <div class="xf"><label>Guests <input type="range" id="xN" min="2" max="40" value="12"><b id="xNv">12</b></label><label>Night <select id="xDate"></select></label><label><input type="checkbox" id="xPriv" checked> Private</label><label>Max per head <input type="range" id="xMax" min="5000" max="40000" step="1000" value="25000"><b id="xMaxv">$250</b></label></div>
   <div class="chips xc" id="xCuis"></div><div class="chips xc" id="xHoods"></div>
-  <div class="xwrap"><div class="xmapw"><svg id="xMap" viewBox="0 0 340 290"></svg><div class="xzoom"><button id="xIn">+</button><button id="xOut">−</button><button id="xReset">⟲</button></div>
+  <div class="xwrap"><div class="xmapw"><div id="xReal" class="rfill"><svg id="xMap"></svg></div><div class="xzoom"><button id="xIn">+</button><button id="xOut">−</button><button id="xReset">⟲</button></div>
       <div class="lg xlg"><span><i style="background:#3f7d5a"></i>In policy</span><span><i style="background:#c98a12"></i>Manager signs</span><span><i style="background:#c9b8a4"></i>Over cap / budget</span><span><i style="background:#c2455d"></i>Blocked</span><span>Drag to pan · scroll to zoom · tap a neighborhood to filter</span></div><div class="xdrawer" id="xDrawer"></div></div>
     <div class="xside"><div class="row" style="justify-content:space-between"><div id="xCount" class="cs"></div><div class="seg" id="xSort"><button data-s="fit" class="on">Best fit</button><button data-s="price">Price</button><button data-s="name">A–Z</button></div></div><div class="xlist" id="xList"></div><div class="xtray" id="xTray"></div></div></div>
 </section>

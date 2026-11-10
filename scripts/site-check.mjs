@@ -54,7 +54,9 @@ for (const [w, h] of [[1440, 900], [1024, 768], [390, 844]]) {
 // 2. The main flows, end to end, through the real agent, tools and store.
 console.log("flows");
 const page = await open(1440, 900);
-await page.fill("#hIn", "dinner for 12 with the Acme team next Thursday, somewhere private"); await page.click("#hGo"); await page.waitForSelector("#hSl .slide", { timeout: 30000 }).catch(() => fail(1440, "home: no proposal reached the phone"));
+await page.fill("#hIn", "dinner for 12 with the Acme team next Thursday, somewhere private"); await page.click("#hGo");
+await page.waitForTimeout(1500);
+{ const bg = await page.$eval("#hMap", (e) => getComputedStyle(e).backgroundColor); if (!/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) fail(1440, `home: the map overlay is painted over the map (${bg})`); } await page.waitForSelector("#hSl .slide", { timeout: 30000 }).catch(() => fail(1440, "home: no proposal reached the phone"));
 await page.click("#hSl .slide .lbl"); await page.waitForSelector(".ph-ok", { timeout: 15000 }).catch(() => fail(1440, "home: booking did not complete"));
 { const dl = page.waitForEvent("download", { timeout: 5000 }).catch(() => null); await page.click("#hIcs"); const d = await dl; if (!d || !d.suggestedFilename().endsWith(".ics")) fail(1440, "home: calendar invite did not download"); }
 await page.click("#hMails"); await page.waitForSelector(".modal .mm", { timeout: 5000 }).catch(() => fail(1440, "home: email threads did not open"));
