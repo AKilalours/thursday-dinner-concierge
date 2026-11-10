@@ -90,7 +90,7 @@ Object.assign(window, { go, caption: (n: string, t: string) => { const c = $("#c
 const STAGES = ["Understand", "Shortlist", "Email venues", "Compare", "Approval", "Confirmed"];
 const PIN: Record<string, string> = { cand: "#5b6b8c", mail: "#c98a12", offer: "#3f7d5a", decl: "#b9ad9f", inj: "#c2455d", win: "#7b1e3a" };
 interface DeskRow { venueId: string; name: string; state: "cand" | "mail" | "offer" | "decl" | "inj" | "win"; room: string; min: string; perHead: string; note: string; ai: boolean }
-interface DeskReq { s: (typeof SCENARIOS)[number]; status: string; tone: string; stage: number; acts: TraceEvent[]; rows: Map<string, DeskRow>; parsed: Record<string, unknown> | null; ai: number; done: boolean }
+interface DeskReq { s: (typeof SCENARIOS)[number]; status: string; tone: string; stage: number; acts: TraceEvent[]; rows: Map<string, DeskRow>; parsed: Record<string, unknown> | null; ai: number; done: boolean; t0: number; need: boolean; needLeft: number; needText: string; decide?: (d: "approve" | "reject") => void; world?: VenueWorld; runId?: string }
 const DESK = ["p01", "p04", "v03", "p05", "c04", "p08", "p12", "reg06"].map(scen);
 let actsShown = { sel: -1, n: 0 };
 let desk: DeskReq[] = [], sel = 0, deskGen = 0, deskSpeed = 2, deskPaused = false;
@@ -127,11 +127,34 @@ async function venueCard(id: string) {
     <div>${v.preferredRatePct ? `<span class="pill y">Preferred −${v.preferredRatePct}%</span>` : ""}${company.policy.blockedVenueIds.includes(v.id) ? `<span class="pill r">Blocked</span>` : `<span class="pill g">In-Policy</span>`}${v.contractRequired ? `<span class="pill">Contract</span>` : ""}${L.inj ? `<span class="pill r">Injection seen</span>` : ""}</div>
     <dl class="kv">${v.rooms.map((r) => `<dt>${esc(r.name)}</dt><dd>${L.cap.has(r.id) ? `<s>${r.listedCapacity}</s> → ${L.cap.get(r.id)} seats <span class="pill y">learned</span>` : `${r.listedCapacity} seats`}</dd>`).join("")}<dt>Deposit</dt><dd>${v.depositPct}%</dd><dt>Typical reply</dt><dd>${L.replies.length ? `${L.replies.at(-1)} h` : "—"}</dd></dl>`;
 }
-function renderQueue() {
-  $("#queue").innerHTML = desk.map((r, i) => `<button class="qi ${i === sel ? "on" : ""}" data-i="${i}"><div class="qh"><span class="av">PR</span><b>${esc(r.s.text)}</b></div>
-    <div class="qm"><span class="st ${r.tone}">${esc(r.status)}</span>${r.ai ? `<span class="ai">${r.ai}</span>` : ""}</div><div class="prog"><i style="width:${r.done ? 100 : (r.stage / 5) * 100}%" class="${r.tone}"></i></div></button>`).join("");
-  $$<HTMLButtonElement>("#queue .qi").forEach((b) => b.onclick = () => { sel = Number(b.dataset.i); renderQueue(); renderDetail(); });
+const COLS: [string, string][] = [["Understanding", "run0"], ["Sourcing", "run1"], ["Waiting on venues", "run2"], ["Comparing", "run3"], ["Needs you", "need"], ["Confirmed", "ok"]];
+const colOf = (r: DeskReq) => r.done ? (r.tone === "ok" ? 5 : 6) : r.need ? 4 : Math.min(r.stage, 3);
+const VPIP: Record<string, string> = { cand: "#cfc3b3", mail: "#c98a12", offer: "#3f7d5a", decl: "#bfb2a2", inj: "#c2455d", win: "#7b1e3a" };
+function cardHtml(r: DeskReq, i: number) {
+  const p = r.parsed as { partySize?: number; date?: string; privateRoom?: boolean; clientName?: string | null } | null;
+  const d = p?.date ? `${DAYS[weekday(p.date)]} ${Number(p.date.slice(8))}` : "";
+  const pips = [...r.rows.values()].map((o) => `<i style="background:${VPIP[o.state]}" title="${esc(o.name)}: ${esc(o.note)}"></i>`).join("");
+  const el2 = Math.max(0, Math.round((Date.now() - r.t0) / 1000));
+  return `<div class="kc ${i === sel && dOpen ? "on" : ""} ${r.need ? "need" : ""} ${r.tone === "bad" ? "bad" : ""}" data-i="${i}" title="${esc(r.s.text)}">
+    <div class="kh"><span class="kav">${esc((p?.clientName ?? "TM").slice(0, 2).toUpperCase())}</span><div><b>${p ? `${p.partySize ?? "?"} guests${p.privateRoom ? " 🔒" : ""}` : "New request"}</b><span>${p ? `${esc(p.clientName ?? "Team")} · ${d}` : esc(r.s.text.slice(0, 34)) + "…"}</span></div>${r.ai ? `<em class="kai" title="Claude decisions">✳${r.ai}</em>` : ""}</div>
+    ${pips ? `<div class="kp">${pips}</div>` : ""}
+    ${r.need ? `<div class="kact"><button class="btn pri" data-ok="${i}">Approve</button><button class="btn" data-no="${i}">Decline</button><span class="kring" style="--t:${r.needLeft}"><b>${r.needLeft}</b></span></div><div class="kwin">${esc(r.needText)}</div>` : ""}
+    <div class="kf"><span>${r.done ? (r.tone === "ok" ? "✓ booked" : esc(r.status)) : `<span class="live"></span>${esc(r.status)}`}</span><span class="kt" data-t0="${r.t0}">${el2 < 60 ? `${el2}s` : `${Math.floor(el2 / 60)}m`}</span></div></div>`;
 }
+function renderQueue() {
+  const cols = [...COLS, ["Needs attention", "bad"] as [string, string]];
+  const by = cols.map(() => [] as number[]); desk.forEach((r, i) => by[colOf(r)].push(i));
+  const board = $("#board"), first = new Map<string, DOMRect>(); board.querySelectorAll<HTMLElement>(".kc").forEach((c) => first.set(c.dataset.i!, c.getBoundingClientRect()));
+  board.innerHTML = cols.map(([name, cls], c) => (c === 6 && !by[6].length) ? "" : `<div class="kcol ${cls}"><div class="kch"><span>${name}</span><b>${by[c].length}</b></div><div class="kcards">${by[c].slice(c === 5 ? -6 : 0).reverse().map((i) => cardHtml(desk[i], i)).join("") || '<div class="kempty"></div>'}</div></div>`).join("");
+  // FLIP: cards glide to their new column instead of jumping.
+  board.querySelectorAll<HTMLElement>(".kc").forEach((c) => { const f = first.get(c.dataset.i!); if (!f) { c.classList.add("enter"); return; } const l = c.getBoundingClientRect(), dx = f.left - l.left, dy = f.top - l.top; if (dx || dy) { c.style.transform = `translate(${dx}px,${dy}px)`; c.style.transition = "none"; requestAnimationFrame(() => { c.style.transition = "transform .55s cubic-bezier(.2,.8,.2,1)"; c.style.transform = ""; }); } });
+  board.querySelectorAll<HTMLElement>(".kc").forEach((c) => c.onclick = (e) => { if ((e.target as HTMLElement).closest("button")) return; sel = Number(c.dataset.i); dOpen = true; $("#dDrawer").classList.add("on"); actsShown = { sel: -1, n: 0 }; renderQueue(); renderDetail(); });
+  board.querySelectorAll<HTMLButtonElement>("[data-ok]").forEach((b) => b.onclick = () => desk[Number(b.dataset.ok)].decide?.("approve"));
+  board.querySelectorAll<HTMLButtonElement>("[data-no]").forEach((b) => b.onclick = () => desk[Number(b.dataset.no)].decide?.("reject"));
+  $("#dLive").textContent = String(desk.filter((r) => !r.done).length);
+}
+let dOpen = false;
+setInterval(() => $$<HTMLElement>(".kt").forEach((t) => { const s2 = Math.round((Date.now() - Number(t.dataset.t0)) / 1000); t.textContent = s2 < 60 ? `${s2}s` : `${Math.floor(s2 / 60)}m`; }), 1000);
 const ICON: Record<string, string> = { concierge: "✦", sourcing: "⌕", coordination: "✉", comparison: "⚖" };
 function renderDetail() {
   const r = desk[sel]; if (!r) return;
@@ -171,30 +194,47 @@ function apply(r: DeskReq, e: TraceEvent) {
 }
 async function deskRun(i: number, g: number) {
   const r = desk[i], s = r.s, seen = new Map<string, Behavior>(), order = s.order ?? [];
-  const world = new VenueWorld(venues, (id) => { if (!seen.has(id)) seen.set(id, order[seen.size] ?? "accept"); return seen.get(id)!; }, "2026-11-09T15:00:00.000Z", 11);
-  const store = new MemoryStore(); await store.init(venues); stores.push(store);
-  const events: TraceEvent[] = [];
-  const res = await runConcierge({ text: s.text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm, venues, company, onEvent: (e) => events.push(e),
-    approver: async (p, st) => carefulApprover(priya, { partySize: p.partySize, date: localDate(p.startsAt), privateRoom: false })(p, st) });
-  for (const e of events) {
-    if (g !== deskGen) return;
-    apply(r, e); $("#dClock").textContent = when(e.at);
-    if (e.kind === "proposed") { renderQueue(); if (sel === i) renderDetail(); await dsleep(1400); r.acts.push({ ...e, kind: "approved_sim", agent: "concierge", text: "Priya approved on her phone (simulated booker)" }); }
-    renderQueue(); if (sel === i) renderDetail();
-    await dsleep(["reply", "offer", "injection_flagged"].includes(e.kind) ? 650 : 900);
-  }
-  if (!r.done) { r.done = true; r.status = res.outcome === "booked" ? "Confirmed" : res.outcome === "escalated" ? "Escalated to team" : res.outcome.replace(/_/g, " "); r.tone = res.outcome === "booked" ? "ok" : "bad"; }
-  record(res, world); renderQueue(); if (sel === i) renderDetail();
+  const world = new VenueWorld(venues, (id) => { if (!seen.has(id)) seen.set(id, order[seen.size] ?? "accept"); return seen.get(id)!; }, "2026-11-09T15:00:00.000Z", 11 + i);
+  const store = new MemoryStore(); await store.init(venues); stores.push(store); r.world = world;
+  let chain: Promise<void> = Promise.resolve();
+  const show = (e: TraceEvent) => { chain = chain.then(async () => { if (g !== deskGen) return; apply(r, e); $("#dClock").textContent = when(e.at); renderQueue(); if (sel === i && dOpen) renderDetail(); await dsleep(["reply", "offer", "injection_flagged"].includes(e.kind) ? 700 : 1000); }); };
+  const res = await runConcierge({ text: s.text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm, venues, company, onEvent: (e) => { if (!e.kind.startsWith("to_booker")) show(e); },
+    approver: async (p, st) => {
+      await chain; if (g !== deskGen) return "pending";
+      if (p.kind === "pay_deposit") return carefulApprover(priya, { partySize: p.partySize, date: localDate(p.startsAt), privateRoom: false })(p, st);
+      const v = venues.find((x) => x.id === p.venueId)!;
+      r.need = true; r.needLeft = 10; r.needText = `${v.name} · ${usd(p.amountCents)}`; r.status = "Needs you";
+      const d = await new Promise<"approve" | "reject">((res2) => { r.decide = res2; const t = setInterval(() => { if (deskPaused) return; r.needLeft--; renderQueue(); if (r.needLeft <= 0) { clearInterval(t); res2("approve"); } }, 1000 / Math.min(deskSpeed, 2)); renderQueue(); });
+      r.need = false; r.decide = undefined;
+      if (d === "reject") { for (const role of p.requiredRoles) await st.decide(p.id, approverFor(role, priya).id, role, "reject"); return "rejected"; }
+      return carefulApprover(priya, { partySize: p.partySize, date: localDate(p.startsAt), privateRoom: false })(p, st);
+    } });
+  r.runId = res.runId; await chain;
+  if (!r.done) { r.done = true; r.status = res.outcome === "booked" ? "Confirmed" : res.outcome === "escalated" ? "Escalated" : res.outcome === "rejected_by_booker" ? "Declined" : res.outcome.replace(/_/g, " "); r.tone = res.outcome === "booked" ? "ok" : "bad"; }
+  if (res.outcome === "booked" && $("#p-desk.on")) toast("Booked", r.needText || "Live desk");
+  record(res, world); renderQueue(); if (sel === i && dOpen) renderDetail();
 }
+const MORE = ["dinner for 6 with the Globex team on Nov 18 at 7:30pm", "private dinner for 16 with Initech next Wednesday", "team dinner for 10 this Friday under $110 a head", "client dinner for 4 with Acme tomorrow in Tribeca"];
 async function deskLoop() {
-  const g = ++deskGen;
-  desk = DESK.map((s) => ({ s, status: "Queued", tone: "mute", stage: 0, acts: [], rows: new Map(), parsed: null, ai: 0, done: false }));
-  sel = 0; renderQueue(); renderDetail();
-  for (let i = 0; i < desk.length && g === deskGen; i++) { if (sel === i - 1 || i === 0) { sel = i; } renderQueue(); renderDetail(); await deskRun(i, g); await dsleep(1200); }
+  const g = ++deskGen; let n = 0;
+  const pool = [...DESK, ...MORE.map((text, k) => ({ id: `live${k}`, group: "phrasing" as const, text, expect: { outcome: "booked" as const } }))];
+  desk = []; sel = 0; dOpen = false; $("#dDrawer").classList.remove("on"); renderQueue();
+  // A steady stream: a new request every few seconds, at most three in flight, like a real desk on a Monday.
+  while (g === deskGen) {
+    if (desk.filter((r) => !r.done).length < 3 && !deskPaused) {
+      const s = pool[n % pool.length]; n++;
+      desk.push({ s: s as (typeof SCENARIOS)[number], status: "New", tone: "mute", stage: 0, acts: [], rows: new Map(), parsed: null, ai: 0, done: false, t0: Date.now(), need: false, needLeft: 0, needText: "" });
+      renderQueue(); void deskRun(desk.length - 1, g);
+      if (desk.length > 40) { /* keep memory bounded on a long-open tab */ }
+    }
+    await dsleep(4200);
+  }
 }
 $("#dPause").onclick = () => { deskPaused = !deskPaused; $("#dPause").textContent = deskPaused ? "Resume" : "Pause"; };
 $("#dReplay").onclick = () => { deskPaused = false; $("#dPause").textContent = "Pause"; void deskLoop(); };
 $$<HTMLButtonElement>("#dSpeed button").forEach((b) => b.onclick = () => { $$("#dSpeed button").forEach((x) => x.classList.remove("on")); b.classList.add("on"); deskSpeed = Number(b.dataset.s); });
+$("#dMail").onclick = () => { const r = desk[sel]; if (r?.world) showThreads(r.world, `“${r.s.text}”`); };
+$("#dClose").onclick = () => { dOpen = false; $("#dDrawer").classList.remove("on"); renderQueue(); };
 mapSvg();
 function resize() { /* the desk is responsive CSS; nothing to measure */ }
 
@@ -946,7 +986,7 @@ seatRender();
 // =====================================================================
 function toast(title: string, body = "", tone: "ok" | "warn" | "bad" = "ok") {
   const t = el("div", `toast ${tone}`, `<b>${esc(title)}</b>${body ? `<span>${esc(body)}</span>` : ""}<i>now</i>`);
-  $("#toasts").prepend(t); setTimeout(() => t.classList.add("out"), 5200); setTimeout(() => t.remove(), 5600);
+  $("#toasts").prepend(t); [...$("#toasts").children].slice(3).forEach((x) => x.remove()); setTimeout(() => t.classList.add("out"), 5200); setTimeout(() => t.remove(), 5600);
 }
 srcOf.set(gStore, "Availability");
 
@@ -1265,9 +1305,9 @@ chips(["dinner for 12 with the Acme team next Thursday, somewhere private", "pri
 // =====================================================================
 // CALENDAR: drag a dinner to another night; the move is an approved amendment
 // =====================================================================
-function modal(html: string, buttons: [string, string, string][]): Promise<string> {
+function modal(html: string, buttons: [string, string, string][], cls = ""): Promise<string> {
   return new Promise((res) => {
-    const m = el("div", "modal", `<div class="mbox">${html}<div class="cbtns">${buttons.map(([k, l, c]) => `<button class="btn ${c}" data-k="${k}">${l}</button>`).join("")}</div></div>`);
+    const m = el("div", "modal", `<div class="mbox ${cls}">${html}<div class="cbtns">${buttons.map(([k, l, c]) => `<button class="btn ${c}" data-k="${k}">${l}</button>`).join("")}</div></div>`);
     document.body.append(m);
     const done = (k: string) => { m.remove(); res(k); };
     m.querySelectorAll<HTMLButtonElement>("[data-k]").forEach((b) => b.onclick = () => done(b.dataset.k!));
@@ -1447,12 +1487,37 @@ $$<HTMLButtonElement>("#xSort button").forEach((b) => b.onclick = () => { $$("#x
 }
 renderHoodChips(); renderExplore();
 
+
+// =====================================================================
+// shared: the real email threads, a calendar invite, and an email you send yourself
+// =====================================================================
+function showThreads(world: VenueWorld, title: string, venueId?: string) {
+  const msgs = [...world.sent(), ...world.received()].filter((m) => !venueId || m.venueId === venueId).sort((a, b) => a.at.localeCompare(b.at) || (a.direction === "out" ? -1 : 1));
+  const bad = (b: string) => /SYSTEM NOTE|ignore (all )?previous|routing \d|wire the/i.test(b);
+  void modal(`<div class="vt">${esc(title)}</div><div class="vs">${msgs.length} email${msgs.length === 1 ? "" : "s"} · exactly what the agent sent and received</div><div class="mail">${msgs.map((m) => {
+    const v = venues.find((x) => x.id === m.venueId)!;
+    return `<div class="mm ${m.direction} ${m.direction === "in" && bad(m.body) ? "inj" : ""}"><div class="mmh"><span><b>${m.direction === "out" ? "Concierge → " + esc(v.name) : esc(v.name) + " → Concierge"}</b> · ${esc(m.subject)}</span><span>${when(m.at)}</span></div><pre>${esc(m.body)}</pre>${m.direction === "in" && bad(m.body) ? `<div class="mmh" style="background:#fbeef0;color:#a3203c"><b style="color:#a3203c">⚠ Instructions in this email were treated as data and ignored.</b></div>` : ""}</div>`;
+  }).join("") || '<div class="empty">No emails yet.</div>'}</div>`, [["n", "Close", ""]], "wide");
+}
+function downloadIcs(v: Venue, roomName: string, startsAt: string, n: number) {
+  const f = (iso: string) => iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const end = new Date(Date.parse(startsAt) + 3 * 3_600_000).toISOString();
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Thursday Dinner Concierge//EN", "BEGIN:VEVENT", `UID:${Date.now()}-${Math.random().toString(36).slice(2)}@thursday-dinner`, `DTSTAMP:${f(new Date().toISOString())}`,
+    `DTSTART:${f(startsAt)}`, `DTEND:${f(end)}`, `SUMMARY:Dinner at ${v.name} (${n} guests)`, `LOCATION:${v.name}\\, ${v.neighborhood}\\, New York`, `DESCRIPTION:${roomName}. Booked by the concierge (demo).`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" })); a.download = `dinner-${v.name.toLowerCase().replace(/[^a-z]+/g, "-")}.ics`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast("Calendar invite saved", "Open it to add the dinner to your calendar");
+}
+function mailtoFor(v: Venue, roomName: string, startsAt: string, n: number, allIn: number) {
+  const body = `Dinner is booked.\n\n${v.name} · ${roomName}\n${when(startsAt)}, ${localDate(startsAt)}\n${n} guests · about ${usd(allIn)} all-in\n\nBooked by the concierge.`;
+  return `mailto:?subject=${encodeURIComponent(`Booked: ${v.name}, ${localDate(startsAt)}`)}&body=${encodeURIComponent(body)}`;
+}
+
 // =====================================================================
 // HOME: one sentence in; the agents work across the city; you approve on your phone
 // =====================================================================
 const HQ: [number, number] = [XB.Flatiron[0] + XB.Flatiron[2] - 10, XB.Flatiron[1] + 10];
 const vByName = (t: string) => venues.filter((v) => t.startsWith(v.name) || t.includes(` ${v.name}`) || t.includes(`${v.name},`) || t.includes(`${v.name}'s`)).sort((a, b) => b.name.length - a.name.length)[0];
-let hBusy = false, hRuns = 0;
+let hBusy = false, hRuns = 0, hWorld: VenueWorld | null = null;
 const SVGNS = "http://www.w3.org/2000/svg";
 function hMap() {
   let s = `<defs><radialGradient id="hglow"><stop offset="0" stop-color="#c98a12" stop-opacity=".55"/><stop offset="1" stop-color="#c98a12" stop-opacity="0"/></radialGradient></defs><rect x="232" y="-60" width="22" height="420" fill="#e4ecf2"/>`;
@@ -1494,7 +1559,7 @@ async function hRun(text: string) {
   const store = new MemoryStore(); await store.init(venues); stores.push(store); srcOf.set(store, "Home");
   const pool: Behavior[] = ["accept", "injection", "counter_price", "decline", "accept", "accept_slow", "counter_capacity"], seen = new Map<string, Behavior>();
   const world = new VenueWorld(venues, (id) => { if (!seen.has(id)) seen.set(id, pool[(seen.size + hRuns) % pool.length]); return seen.get(id)!; }, NOW, 60 + hRuns);
-  const lines = new Map<string, SVGPathElement>(); let chain: Promise<void> = Promise.resolve();
+  hWorld = world; const lines = new Map<string, SVGPathElement>(); let chain: Promise<void> = Promise.resolve();
   const q = (fn: () => Promise<void> | void) => { chain = chain.then(async () => { await fn(); }); };
   const onEvent = (e: TraceEvent) => {
     if (e.kind === "parsed") q(async () => { hStage("parse"); const r = e.data?.request as BookingRequest | undefined; if (r) $("#hPhone").innerHTML = `<div class="ph-me">${esc(text)}</div><div class="ph-chips">${[`${r.partySize} guests`, r.date ? when(eventWindow(r.date, r.time).startsAt) + ` · ${r.date.slice(5)}` : "", r.privateRoom ? "private" : "", r.clientName ?? "", r.cuisine ?? ""].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")}${isAI(e) ? '<span class="ai"></span>' : ""}</div>`; await sleep(700); });
@@ -1546,7 +1611,8 @@ async function hRun(text: string) {
     ph.insertAdjacentHTML("beforeend", `<div class="ph-ok"><div class="ph-check">✓</div><b>Booked</b><span>${esc(v.name)} · ${when(bk.startsAt)}</span><span>${res.paymentId ? "Deposit paid to venue on file" : "No deposit"}</span></div>`);
     confetti(); toast("Booked", `${v.name} · ${bk.partySize} guests`);
     setLastBooking({ venue: v, roomName: room.name, partySize: bk.partySize, date: localDate(bk.startsAt), dietary: res.request?.dietary ?? [], client: res.request?.clientName ?? "Guests", world, threadId: `thr_${res.runId}_${v.id}` });
-    $("#hRes").innerHTML = `<button class="btn pri" onclick="go('seating')">Seat guests</button><button class="btn" onclick="go('calendar')">Calendar</button><button class="btn" onclick="go('bookings')">Receipt</button>`;
+    $("#hRes").innerHTML = `<button class="btn" id="hIcs" title="Add to calendar">📅</button><a class="btn" href="${mailtoFor(v, room.name, bk.startsAt, bk.partySize, res.proposals.find((x) => x.kind === "book")?.amountCents ?? 0)}" title="Email it">✉</a><button class="btn" id="hMails" title="Venue emails">Threads</button><button class="btn pri" onclick="go('seating')">Seat</button><button class="btn" onclick="go('bookings')">Receipt</button>`;
+    $("#hIcs").onclick = () => downloadIcs(v, room.name, bk.startsAt, bk.partySize); $("#hMails").onclick = () => showThreads(world, `Emails for ${res.request?.clientName ?? "this"} dinner`);
     renderGrid();
   } else {
     const last = res.messagesToBooker.at(-1) ?? "";
@@ -1563,6 +1629,7 @@ const HPH = ["dinner for 12 with the Acme team next Thursday, somewhere private"
 { let i = 0; setInterval(() => { const inp = $<HTMLInputElement>("#hIn"); if (document.activeElement !== inp && !inp.value) inp.placeholder = HPH[i++ % HPH.length]; }, 2600); }
 $("#hChips").innerHTML = HPH.slice(0, 3).map((t) => `<button class="chip" data-t="${esc(t)}">${esc(t.length > 42 ? t.slice(0, 40) + "…" : t)}</button>`).join("");
 $$<HTMLButtonElement>("#hChips .chip").forEach((b) => b.onclick = () => void hRun(b.dataset.t!));
+$("#hMap").addEventListener("click", (e) => { const g = (e.target as Element).closest(".hp"); if (!g || !hWorld) return; const id = g.id.slice(3), v = venues.find((x) => x.id === id)!; if (hWorld.sent().some((m) => m.venueId === id)) showThreads(hWorld, v.name, id); });
 $<HTMLFormElement>("#hForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $<HTMLInputElement>("#hIn").value || $<HTMLInputElement>("#hIn").placeholder; void hRun(v); });
 hMap();
 

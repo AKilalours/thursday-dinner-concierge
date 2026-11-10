@@ -236,6 +236,7 @@ table.ctable tr.bkr{cursor:pointer}table.ctable tr.bkr:hover td{background:#fbf6
  .bar .tabs button{text-align:left;border-radius:10px;padding:8px 12px;font-size:14px}.bar .tabs button:hover:not(.on){background:#f1e9dc}
  .bar .tabs .tsep{border:0;margin:14px 0 4px;padding:0 12px;font-size:10px}
  .ws{display:flex;gap:10px;align-items:center;padding:6px 8px 12px;border-bottom:1px solid var(--line);margin-bottom:4px;font:700 14px Inter}.ws i{width:34px;height:34px;border-radius:10px;background:var(--wine);color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-family:Fraunces,Georgia,serif;font-size:17px}.ws small{display:block;font:500 11.5px Inter;color:var(--dim)}
+ .ws .demo{font:700 9px Inter;text-transform:uppercase;letter-spacing:.06em;background:#f1e9dc;color:#8c7c6f;border-radius:5px;padding:1px 5px;vertical-align:2px}
  .navfoot{display:block;margin-top:auto;padding:14px 12px 4px;font-size:11px;color:#b3a08c;line-height:1.5}
  .bar{max-width:1280px}
 }
@@ -293,7 +294,7 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 .hstage{position:relative;background:linear-gradient(#fffdf8,#f7f0e5);border:1px solid var(--line);border-radius:22px;overflow:hidden;min-height:540px}
 #hMap{width:100%;height:100%;min-height:540px;display:block}
 .hhood rect{fill:#f3ece1;stroke:#e9dfcf}.hhood text{font:700 6.5px Inter;fill:#b9a893;letter-spacing:.08em}
-.hp{transition:opacity .4s}.hp .dot{fill:#d3c6b4;stroke:#fff;stroke-width:1.2;transition:all .35s}.hp .halo{opacity:0;transition:opacity .4s}.hp.fade{opacity:.28}
+.hp{transition:opacity .4s}.hp.mailed,.hp.offer,.hp.inj,.hp.no,.hp.win{cursor:pointer}.hp .dot{fill:#d3c6b4;stroke:#fff;stroke-width:1.2;transition:all .35s}.hp .halo{opacity:0;transition:opacity .4s}.hp.fade{opacity:.28}
 .hp.cand .dot{fill:#5b6b8c;transform:scale(1.28)}.hp.mailed .dot{fill:#c98a12}.hp.offer .dot{fill:#3f7d5a;transform:scale(1.45)}.hp.no .dot{fill:#bfb2a2}.hp.inj .dot{fill:#c2455d;transform:scale(1.45)}.hp.wait .dot{fill:#c9b8a4}.hp.spent{opacity:.5}
 .hp.win .halo{opacity:1;animation:glow 1.4s ease-in-out infinite}.hp.win .dot{fill:var(--wine);transform:scale(1.8)}@keyframes glow{50%{transform:scale(1.5)}}
 .hp .tag rect{fill:#2b1d24}.hp .tag text{font:700 5.6px Inter;fill:#fff;text-anchor:middle}.hp.offer .tag rect{fill:#3f7d5a}.hp.inj .tag rect{fill:#c2455d}.hp.offer.inj .dot{fill:#3f7d5a;stroke:#c2455d;stroke-width:1.6}.hp.no .tag rect{fill:#a39380}.hp.win .tag rect{fill:var(--wine)}.hp .tag{animation:tagin .3s cubic-bezier(.2,1.6,.4,1)}@keyframes tagin{from{transform:translateY(4px) scale(.6);opacity:0}}
@@ -317,6 +318,25 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
 .hres{display:flex;gap:6px;justify-content:center;padding:10px 4px 2px}.hres .btn{padding:7px 12px;font-size:13px}.hres:empty{display:none}
 .conf{position:absolute;inset:0;pointer-events:none;overflow:visible}.conf i{position:absolute;top:60%;width:8px;height:12px;border-radius:2px;animation:conf 1.5s cubic-bezier(.2,.7,.4,1) forwards}@keyframes conf{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
 @media (max-width:1000px){.hgrid{grid-template-columns:1fr}.hstage,#hMap{min-height:380px}.hphone{min-height:420px}.hcount div{min-width:0;padding:4px 7px}.hcount b{font-size:16px}.hsteps{grid-template-columns:repeat(3,1fr)}.hform input{font-size:16px}}
+.livebadge{display:inline-flex;align-items:center;gap:6px;font:600 13px Inter;color:var(--dim);background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:4px 10px;vertical-align:middle;margin-left:8px}.livebadge b{color:var(--ink)}
+.live{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3f7d5a;box-shadow:0 0 0 0 #3f7d5a88;animation:livep 1.6s infinite;margin-right:5px;vertical-align:1px}@keyframes livep{70%{box-shadow:0 0 0 7px #3f7d5a00}100%{box-shadow:0 0 0 0 #3f7d5a00}}
+.board{display:grid;grid-template-columns:repeat(6,minmax(170px,1fr));gap:10px;overflow-x:auto;padding-bottom:6px}.board:has(.kcol.bad){grid-template-columns:repeat(7,minmax(170px,1fr))}
+.kcol{background:#f3ece1;border-radius:16px;padding:8px;min-height:420px;display:flex;flex-direction:column}.kcol.need{background:#f8ecd6}.kcol.ok{background:#e6f0e8}.kcol.bad{background:#f6e3e6}
+.kch{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;font:700 11.5px Inter;text-transform:uppercase;letter-spacing:.05em;color:#8c7c6f}.kch b{background:#fff;border-radius:99px;padding:1px 8px;color:var(--ink)}
+.kcards{display:flex;flex-direction:column;gap:8px}.kempty{border:1.5px dashed #ddd0bd;border-radius:12px;height:60px;opacity:.6}
+.kc{background:#fff;border:1px solid #eadfce;border-radius:13px;padding:10px;cursor:pointer;box-shadow:0 2px 8px #2b1d240d;transition:box-shadow .15s}.kc:hover{box-shadow:0 8px 20px #2b1d241a}.kc.on{outline:2px solid var(--wine)}.kc.enter{animation:tin .45s}.kc.need{border-color:#e2b866;box-shadow:0 0 0 3px #c98a1222}.kc.bad{border-color:#e7b9c1}
+.kh{display:flex;gap:8px;align-items:center}.kh>div{flex:1;min-width:0}.kh b{display:block;font-size:14px}.kh>div>span{display:block;font-size:11.5px;color:var(--dim);line-height:1.35}
+.kav{width:30px;height:30px;border-radius:9px;background:#2b1d24;color:#fff;font:800 11px Inter;display:flex;align-items:center;justify-content:center;flex:none}
+.kai{font:700 10.5px JetBrains Mono,monospace;color:#a8502f;background:#fbe6dc;border-radius:6px;padding:1px 5px;font-style:normal}
+.kp{display:flex;gap:4px;margin:9px 0 2px}.kp i{width:18px;height:6px;border-radius:3px;transition:background .3s}
+.kf{display:flex;justify-content:space-between;margin-top:8px;font:600 11px Inter;color:#8c7c6f}.kt{font-family:JetBrains Mono,monospace}
+.kact{display:flex;gap:5px;align-items:center;margin-top:9px}.kact .btn{padding:5px 10px;font-size:12px;flex:1}.kc.need .kai{display:none}.kwin{font-size:11.5px;color:#7a560f;margin-top:5px;font-weight:600}
+.kc{position:relative}.kring{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:conic-gradient(var(--brass) calc(var(--t)*36deg),#f1e9dc 0);display:flex;align-items:center;justify-content:center}.kring b{width:20px;height:20px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:700 10px Inter}
+.ddrawer{position:fixed;top:0;right:0;bottom:0;width:min(760px,100vw);background:var(--paper);box-shadow:-20px 0 60px #2b1d2430;z-index:45;padding:22px;overflow-y:auto;opacity:0;pointer-events:none;clip-path:inset(0 0 0 100%);transition:clip-path .35s cubic-bezier(.2,.8,.2,1),opacity .2s}.ddrawer.on{opacity:1;pointer-events:auto;clip-path:inset(0 0 0 0)}
+.dtwo{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-top:10px}
+.mail{display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto;margin-top:10px}.mm{flex:none;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}.mm.out{border-left:4px solid #c98a12}.mm.in{border-left:4px solid #5b6b8c}.mm.inj{border-left-color:var(--rose)}.mmh{display:flex;justify-content:space-between;gap:8px;padding:8px 12px;background:#fbf7f0;font-size:12px;color:var(--dim)}.mmh b{color:var(--ink)}.mm pre{max-height:none;overflow:visible;background:none;border:0;white-space:pre-wrap;font:13px/1.5 Inter;margin:0;padding:10px 12px;color:#3d3029}
+.mbox.wide{width:min(720px,100%)}
+@media (max-width:800px){.dtwo{grid-template-columns:1fr}.board{grid-template-columns:repeat(6,78vw);scroll-snap-type:x mandatory}.kcol{scroll-snap-align:start;min-height:300px}}
 </style>
 </head>
 <body>
@@ -324,7 +344,7 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
   <div class="logo"><i></i><div>Thursday Dinner<small>Built for Ande · AI Engineer · <a href="https://github.com/AKilalours/thursday-dinner-concierge">code</a></small></div></div>
   <button class="menuBtn" id="menuBtn" aria-label="Menu"><span>☰</span><b id="menuCur">Live desk</b></button>
   <nav class="tabs" id="tabs">
-    <div class="ws"><i>N</i><div>Northwind Labs<small>Priya Raman · EA to Dana Whitfield</small></div></div>
+    <div class="ws" title="A fictional customer account for the demo"><i>N</i><div>Northwind Labs <span class="demo">demo</span><small>Signed in as Priya · EA</small></div></div>
     <span class="tsep">Concierge</span><button class="on" data-p="home">Home</button><button data-p="chat">Chat</button><button data-p="desk">Live desk</button><button data-p="book">Book step by step</button>
     <span class="tsep">Plan</span><button data-p="explore">Explore</button><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
     <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button>
@@ -346,27 +366,22 @@ b.up{color:#a3203c}b.dn{color:var(--sage)}
   </div>
 </section>
 <section class="page" id="p-desk">
-  <div class="ph"><div><h1>Live desk</h1><p class="lead">Requests moving through the concierge right now.</p></div>
+  <div class="ph"><div><h1>Live desk <span class="livebadge"><span class="live"></span><b id="dLive">0</b> in flight</span></h1></div>
     <div class="row"><span class="clock2" id="dClock">Mon 10 am</span><div class="seg" id="dSpeed"><button data-s="1">1×</button><button data-s="2" class="on">2×</button><button data-s="4">4×</button></div><button class="btn" id="dPause">Pause</button><button class="btn pri" id="dReplay">Restart</button></div></div>
   <div class="kpis">
     <div class="kpi" style="--c:var(--wine)"><div class="k">Requests</div><b id="kReq">0</b></div>
     <div class="kpi" style="--c:var(--sage)"><div class="k">Confirmed</div><b id="kBook">0</b></div>
     <div class="kpi" style="--c:var(--brass)"><div class="k">Saved</div><b id="kSave">$0</b></div>
-    <div class="kpi" style="--c:var(--rose)"><div class="k">Injections ignored</div><b id="kInj">0</b></div>
-    <div class="kpi" style="--c:#5b6b8c"><div class="k">Venue emails</div><b id="kMail">0</b></div>
-    <div class="kpi" style="--c:var(--claude)"><div class="k">Claude decisions</div><b id="kAI">0</b></div>
+    <div class="kpi" style="--c:var(--rose)"><div class="k">Injections</div><b id="kInj">0</b></div>
+    <div class="kpi" style="--c:#5b6b8c"><div class="k">Emails</div><b id="kMail">0</b></div>
+    <div class="kpi" style="--c:var(--claude)"><div class="k">Claude calls</div><b id="kAI">0</b></div>
   </div>
-  <div class="desk">
-    <div class="panel"><div class="pt">Requests</div><div id="queue" class="queue"></div></div>
-    <div class="panel">
-      <div class="dreq" id="dReq"></div><div class="dmeta" id="dMeta"></div>
-      <div class="stages" id="stages"></div>
-      <div class="pt" style="margin-top:14px">Venues</div><div id="offers"></div>
-      <div class="pt" style="margin-top:14px">Activity</div><ul class="acts" id="acts"></ul>
-    </div>
-    <div class="panel"><div class="pt">Manhattan &amp; Brooklyn</div><svg id="map" viewBox="0 0 340 290" width="100%"></svg>
-      <div class="lg"><span><i style="background:#5b6b8c"></i>Shortlisted</span><span><i style="background:#c98a12"></i>Emailed</span><span><i style="background:#3f7d5a"></i>Offered</span><span><i style="background:#c2455d"></i>Injection</span><span><i style="background:#7b1e3a"></i>Booked</span></div>
-      <div id="vcard" class="vc2"><div class="cs">Select a pin to see the venue and what the agent has learned.</div></div></div>
+  <div class="board" id="board"></div>
+  <div class="ddrawer" id="dDrawer"><button class="xclose" id="dClose">×</button>
+    <div class="dreq" id="dReq"></div><div class="dmeta" id="dMeta"></div>
+    <div class="stages" id="stages"></div>
+    <div class="dtwo"><div><div class="pt">Venues</div><div id="offers"></div><div class="pt" style="margin-top:12px">Activity</div><ul class="acts" id="acts"></ul></div>
+      <div><svg id="map" viewBox="0 0 340 290" width="100%"></svg><div id="vcard" class="vc2"><div class="cs">Tap a pin.</div></div><button class="btn" id="dMail" style="margin-top:8px;width:100%">✉ Open the email threads</button></div></div>
   </div>
 </section>
 
