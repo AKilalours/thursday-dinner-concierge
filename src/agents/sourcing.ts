@@ -50,7 +50,8 @@ export async function source(ctx: Ctx, req: BookingRequest, exclude: Set<string>
       .sort((a, b) => (req.privateRoom ? 0 : Number(a.private) - Number(b.private)) || a.listedCapacity - b.listedCapacity);
     if (!rooms.length) { drop(req.privateRoom ? "no private room that fits" : "no room that fits"); continue; }
     const room = rooms[0];
-    const min = Math.max(room.minSpendCents[day], k.quotedMinByWeekday.get(day) ?? 0);
+    const quoted = ctx.legacy?.r11 ? k.quotedMinByWeekday.get(day) : k.quotedMin.get(`${room.id}:${day}`);
+    const min = Math.max(room.minSpendCents[day], quoted ?? 0);
     // Lunch and drinks in the dining room carry no room minimum.
     const est = estimate(req.partySize, perHeadFor(v, req.kind), room.private ? min : 0, v.preferredRatePct);
     if (est.perHeadAllInCents > cap) { drop("over the per-head limit"); continue; }
@@ -63,7 +64,9 @@ export async function source(ctx: Ctx, req: BookingRequest, exclude: Set<string>
       // Rooms much bigger than the party feel empty and cost more.
       fit: Math.round(15 * (req.partySize / room.listedCapacity)),
       responsiveness: k.medianReplyHours === null ? 5 : k.medianReplyHours <= 3 ? 10 : k.medianReplyHours <= 12 ? 5 : 0,
-      reliability: -(k.declines * 4 + k.noReplies * 6 + k.injectionFlags * 25),
+      // Track record from memory: offers made as asked count for a venue; declines, silence, rooms that turned
+      // out smaller than listed and injection attempts count against it. Unknown venues sit at 0.
+      reliability: (ctx.legacy?.r11 ? 0 : Math.min(k.offers, 3) * 3 - k.capacityCounters * 4) - (k.declines * 4 + k.noReplies * 6 + k.injectionFlags * 25),
       preferred: v.preferredRatePct ? 8 : 0,
       variety: hosted.includes(v.id) ? -8 : 0,
     };

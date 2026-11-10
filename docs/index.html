@@ -109,6 +109,7 @@ pre{white-space:pre-wrap;margin:4px 0;font:13px/1.55 Inter,system-ui;color:#3d2c
 /* memory */
 .mem{display:grid;gap:8px}.mi{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--paper);transition:.4s}
 .mi .who{font:700 14px Fraunces,Georgia,serif;min-width:60px}.mi.locked{filter:blur(4px);opacity:.55}.mi.locked:after{content:"🔒";filter:none}
+.rkh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.rkh h3{margin:0}.rkm{font-size:12px;color:var(--dim);margin:6px 0 10px}.rk{display:grid;gap:12px}.rkr{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:center}.rkr>span{font:700 12px JetBrains Mono,monospace;color:#6d5d51}.rkb{display:grid;gap:4px}.rkb div{display:grid;grid-template-columns:1fr 44px;gap:8px;align-items:center}.rkb i{display:block;height:9px;border-radius:5px;width:0;transition:width .7s cubic-bezier(.2,.8,.2,1)}.rkb b{font:700 11.5px JetBrains Mono,monospace;text-align:right}
 .vk{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}.vkc{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--paper);animation:rise .3s}.vkc b{font:700 15px Fraunces,Georgia,serif;display:block}
 .cap{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12.5px}.cap s{color:var(--dim)}.cap .arrow{color:var(--brass);font-weight:800}
 .spark{display:flex;align-items:flex-end;gap:2px;height:28px;margin-top:6px}.spark i{flex:1;background:var(--brass);border-radius:2px 2px 0 0;opacity:.7}
@@ -579,6 +580,11 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
   <div class="sp">
     <div class="card"><h3>What venues taught the agent</h3><div class="vk" id="vk"><div class="empty">Book a dinner or watch the Live desk.</div></div></div>
     <div class="card"><h3>Company memory</h3><div class="seg" id="viewAs" style="margin-bottom:12px"><button data-u="usr_priya" class="on"><span class="meFirst">You</span></button><button data-u="usr_sam">Sam</button><button data-u="usr_dana">Dana</button></div><div class="mem" id="mems"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="rkh"><h3>Does memory pick better venues?</h3><button class="btn" id="rkGo">Run ranking eval</button></div>
+    <div class="rkm" id="rkMeta">10 worlds · 400 past bookings · 600 held-out requests</div>
+    <div class="rk" id="rk"></div>
+    <div class="legend"><span style="color:#a99886">● no memory</span><span style="color:var(--brass)">● memory before R11</span><span style="color:var(--sage)">● memory now</span></div>
   </div>
 </section>
 

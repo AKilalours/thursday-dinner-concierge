@@ -9,9 +9,11 @@ import { approverFor, carefulApprover, runConcierge } from "../src/agents/concie
 import type { Approver, RunResult } from "../src/agents/concierge.ts";
 import type { BookingRequest, Company, Offer, Proposal, Venue } from "../src/domain/types.ts";
 import { injection, replyTriage, smsConsent } from "../src/judgments/judgments.ts";
-import { LiveThenReplay, RemoteLLM, ReplayLLM } from "../src/llm/client.ts";
+import { LiveThenReplay, offline, RemoteLLM, ReplayLLM } from "../src/llm/client.ts";
 import type { LLM } from "../src/llm/client.ts";
 import { judgeMessage } from "../evals/judge.ts";
+import { runRankingSuite } from "../evals/ranking.ts";
+import type { RankStats } from "../evals/ranking.ts";
 import { call, ToolDenied } from "../src/tools/registry.ts";
 import type { Tool } from "../src/tools/registry.ts";
 import { amendBooking, book as bookTool, cancelBooking, createProposal, eventWindow, leadHours, notifyBooker, payDeposit, recordFact, sendVenueEmail } from "../src/tools/tools.ts";
@@ -121,7 +123,7 @@ function go(page: string) {
   if (page === "traces") renderTraces();
   if (page === "home" && !hBusy && !hDone) requestAnimationFrame(() => { hFit(); hMap(); });
   if (page === "explore") requestAnimationFrame(() => { if (!xFitted) { xFitAll(); xFitted = true; } else xm.render(); });
-  if (["controls", "evals", "compare", "fix"].includes(page)) autoRun(page);
+  if (["controls", "evals", "compare", "fix", "memory"].includes(page)) autoRun(page);
   if (page === "seating" && !lastBk) void bkRows().then((rows) => { const r = rows.filter((x) => x.status === "confirmed").at(-1); if (r && !lastBk) setLastBooking({ venue: r.v, roomName: r.room.name, partySize: r.partySize, date: localDate(r.startsAt), dietary: [], client: "Acme", world: new VenueWorld(venues, () => "accept", NOW), threadId: `thr_seat_${r.id}` }); });
   if (page === "explore") renderExplore();
   document.body.classList.remove("menu"); const cur = $$<HTMLButtonElement>("#tabs button[data-p]").find((b) => b.dataset.p === page); if (cur) $("#menuCur").textContent = cur.textContent!;
@@ -605,6 +607,29 @@ async function renderKnowledge() {
   }
   if (cardsHtml.length) $("#vk").innerHTML = cardsHtml.join("");
 }
+
+// Ranking eval: the same sourcing code with no memory, with the pre-R11 memory, and with memory now.
+// Deterministic (rules parse), identical to `npm run evals:ranking` in CI.
+const RK_COL = ["#a99886", "var(--brass)", "var(--sage)"];
+function drawRank(sets: (RankStats | null)[]) {
+  const rows: [string, (s: RankStats) => number, (s: RankStats) => string][] = [
+    ["hit@1", (s) => s.hit1, (s) => `${Math.round(s.hit1 * 100)}%`], ["hit@3", (s) => s.hit3, (s) => `${Math.round(s.hit3 * 100)}%`], ["MRR", (s) => s.mrr, (s) => s.mrr.toFixed(2)],
+  ];
+  $("#rk").innerHTML = rows.map(([name, v, f]) => `<div class="rkr"><span>${name}</span><div class="rkb">${sets.map((s, i) => `<div><i data-w="${s ? v(s) * 100 : 0}" style="background:${RK_COL[i]}"></i><b style="color:${RK_COL[i]}">${s ? f(s) : "·"}</b></div>`).join("")}</div></div>`).join("");
+  requestAnimationFrame(() => $$<HTMLElement>("#rk i").forEach((x) => (x.style.width = `${x.dataset.w}%`)));
+}
+drawRank([null, null, null]);
+$("#rkGo").onclick = async () => {
+  const b = $<HTMLButtonElement>("#rkGo"); b.disabled = true; b.textContent = "Running…";
+  try {
+    const before = await runRankingSuite(offline, { legacy: { r11: true }, onWorld: (i) => { $("#rkMeta").textContent = `memory before R11 · world ${i + 1}/10`; } });
+    drawRank([before.cold, before.warm, null]); await sleep(250);
+    const now = await runRankingSuite(offline, { onWorld: (i) => { $("#rkMeta").textContent = `memory now · world ${i + 1}/10`; } });
+    drawRank([now.cold, before.warm, now.warm]);
+    $("#rkMeta").textContent = `${now.worlds} worlds · ${now.history} past bookings · ${now.heldOut} held-out requests · ${now.facts.toLocaleString()} facts learned · helped ${now.helped}, hurt ${now.hurt}`;
+  } catch (err) { console.warn("ranking", err); $("#rkMeta").textContent = "Couldn't run here; see npm run evals:ranking."; }
+  b.disabled = false; b.textContent = "Run again";
+};
 
 // =====================================================================
 // SPEND
@@ -1775,6 +1800,7 @@ function autoRun(page: string) {
     if (page === "evals") $<HTMLButtonElement>("#runEvals").click();
     if (page === "compare" && !cmpRows.length) void cmpLoad(replayLLM);
     if (page === "fix") $<HTMLButtonElement>("#fixGo").click();
+    if (page === "memory") $<HTMLButtonElement>("#rkGo").click();
   }, 450);
 }
 

@@ -11,16 +11,23 @@ export interface VenueKnowledge {
   declines: number;
   noReplies: number;
   injectionFlags: number;
-  /** Weekday -> the highest minimum the venue quoted, in cents. */
+  /** Replies that said a listed room really seats fewer: the listing can't be trusted. */
+  capacityCounters: number;
+  /** Replies that offered the room asked for, as asked. */
+  offers: number;
+  /** "roomId:weekday" -> the highest minimum the venue quoted for that room, in cents. */
+  quotedMin: Map<string, number>;
+  /** Weekday -> the highest minimum quoted for any room. Only the pre-R11 behavior reads this. */
   quotedMinByWeekday: Map<number, number>;
 }
 
 export async function knowledge(store: Store, venueId: string): Promise<VenueKnowledge> {
   const facts = await store.facts(venueId);
-  const k: VenueKnowledge = { realCapacity: new Map(), medianReplyHours: null, declines: 0, noReplies: 0, injectionFlags: 0, quotedMinByWeekday: new Map() };
+  const k: VenueKnowledge = { realCapacity: new Map(), medianReplyHours: null, declines: 0, noReplies: 0, injectionFlags: 0, capacityCounters: 0, offers: 0, quotedMin: new Map(), quotedMinByWeekday: new Map() };
   const replies: number[] = [];
   for (const f of facts) {
-    if (f.kind === "room_capacity" && f.roomId) k.realCapacity.set(f.roomId, Number(f.value));
+    if (f.kind === "room_capacity" && f.roomId) { k.realCapacity.set(f.roomId, Number(f.value)); k.capacityCounters++; }
+    if (f.kind === "offered") k.offers++;
     if (f.kind === "reply_hours") replies.push(Number(f.value));
     if (f.kind === "declined") k.declines++;
     if (f.kind === "no_reply") k.noReplies++;
@@ -28,6 +35,7 @@ export async function knowledge(store: Store, venueId: string): Promise<VenueKno
     if (f.kind === "quoted_min") {
       const v = f.value as { weekday: number; cents: number };
       k.quotedMinByWeekday.set(v.weekday, Math.max(k.quotedMinByWeekday.get(v.weekday) ?? 0, v.cents));
+      if (f.roomId) k.quotedMin.set(`${f.roomId}:${v.weekday}`, Math.max(k.quotedMin.get(`${f.roomId}:${v.weekday}`) ?? 0, v.cents));
     }
   }
   if (replies.length) k.medianReplyHours = replies.sort((a, b) => a - b)[Math.floor(replies.length / 2)];
@@ -46,8 +54,14 @@ export function factsFrom(venue: Venue, msg: Message, offer: Offer | null, sentA
       out.push({ roomId: room.id, kind: "room_capacity", value: Number(tight[1]), confidence: 0.85, sourceMessageId: msg.id });
     }
   }
+  const countered = out.some((f) => f.kind === "room_capacity");
+  if (offer?.available && !countered && !extra.injection) out.push({ roomId: null, kind: "offered", value: true, confidence: 0.8, sourceMessageId: msg.id });
   if (offer) {
-    if (offer.minSpendCents) out.push({ roomId: null, kind: "quoted_min", value: { weekday: weekdayOf, cents: offer.minSpendCents }, confidence: 0.8, sourceMessageId: msg.id });
+    // Regression R11 (found by the ranking eval): the quote was stored per venue, so a $2,180 minimum for a
+    // 16-seat room was later applied to the same venue's 8-seat room and dropped it as over budget. Quotes
+    // belong to the room they were for.
+    const quotedRoom = venue.rooms.find((r) => r.name.toLowerCase() === offer.roomName?.toLowerCase());
+    if (offer.minSpendCents) out.push({ roomId: quotedRoom?.id ?? null, kind: "quoted_min", value: { weekday: weekdayOf, cents: offer.minSpendCents }, confidence: 0.8, sourceMessageId: msg.id });
   }
   return out;
 }

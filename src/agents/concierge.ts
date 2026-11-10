@@ -42,7 +42,7 @@ export interface RunInput {
   /** Venues to contact per round (an RFP to more venues gives more offers to compare). */
   shortlistSize?: number;
   onEvent?: (e: TraceEvent) => void;
-  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean };
+  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean; r11?: boolean };
 }
 
 export interface RunResult {

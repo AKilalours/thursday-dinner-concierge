@@ -26,5 +26,7 @@ jobs:
         run: npm run evals
       - name: Randomized invariant fuzz
         run: npm run fuzz
+      - name: Ranking eval (memory must never make the shortlist worse)
+        run: npm run evals:ranking
       - uses: actions/upload-artifact@v4
         with: { name: eval-report, path: evals/results/ }

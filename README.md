@@ -17,9 +17,10 @@
 
 <table align="center"><tr>
 <td align="center"><h3>48/48</h3>eval scenarios</td>
-<td align="center"><h3>0 / 2,013</h3>safety failures<br>in random worlds</td>
-<td align="center"><h3>100</h3>tests, incl.<br>real Postgres</td>
-<td align="center"><h3>10</h3>bugs caught →<br>permanent cases</td>
+<td align="center"><h3>0 / 2,010</h3>safety checks failed<br>in 300 random worlds</td>
+<td align="center"><h3>104</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>55% → 72%</h3>first pick confirms,<br>no memory → memory</td>
+<td align="center"><h3>11</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
 
 ### ▶ Try a sentence (each link runs it live)
@@ -63,8 +64,9 @@ flowchart LR
 | **Changes after booking** | Amendments and cancellations are proposals too; an amendment swaps the booking atomically and rolls back if the new slot is taken. |
 | **Spend control** | Policy as code: per-head caps, manager thresholds, notice; preferred corporate rates (12-15%) applied and reported. |
 | **Typed tools** | zod in and out, run as the EA *for* the executive, idempotent, audited. `book`, `pay_deposit`, `amend_booking` and `cancel_booking` need an approved proposal. |
-| **Evals** | 47 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
-| **Memory** | Every venue reply leaves facts ("the Library really seats 10"). Sourcing uses them next time. Private memories protected by row-level security. |
+| **Evals** | 48 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
+| **Memory** | Every venue reply leaves facts ("the Library really seats 10", "offered as asked", "declined"). Sourcing ranks on that track record next time. Private memories protected by row-level security. |
+| **Ranking eval** | `npm run evals:ranking`: 10 worlds where each venue has a hidden temperament, 400 past bookings, 600 held-out requests ranked with and without memory. First pick confirms 55% → 72%, MRR 0.72 → 0.82, hit@3 89% → 92%, 0 requests made worse. Gated in CI; runs live on the Memory page. |
 | **Fast judgments** | Triage, SMS consent, urgency, injection. Threshold per label, timeout, safe fallback, `rules → shadow → live`. |
 </details>
 
@@ -98,6 +100,7 @@ flowchart LR
 | R8 | **Found by the LLM judge (4/5):** two vegetarians were sent to the venue but never confirmed to the booker |
 | R9 | A model call that hit its timeout was retried, so a timeout cost twice the budget (an aborted fetch didn't say "timed out") |
 | R10 | **Found on the live site with live Claude:** "somewhere in SoHo" booked Williamsburg. Claude returned "SoHo", venues say "soho", so the match never fired. Now normalized, a named area is a requirement, and the booker is told if nothing there fits |
+| R11 | **Found by the ranking eval:** memory made the first pick slightly worse than no memory (54% vs 55%). A $2,180 quote for a 16-seat room was applied to the same venue's 8-seat room, dropping a venue that would confirm, and memory only kept bad news. Quotes now belong to their room, and offers made as asked count for a venue |
 </details>
 
 <details>

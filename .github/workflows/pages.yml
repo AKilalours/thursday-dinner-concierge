@@ -17,6 +17,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run evals
+      - run: npm run evals:ranking
       - name: Build the site from source
         run: npm run build:web
       - name: Real-browser check of every page (3 screen sizes) and the main flows

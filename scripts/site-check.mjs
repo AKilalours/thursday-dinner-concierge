@@ -108,6 +108,9 @@ await page.waitForSelector("table.ctable tbody tr", { timeout: 30000 }).catch(()
 
 await page.evaluate(() => window.go("controls")); await page.click("#runAll"); await page.waitForTimeout(4000);
 const ctl = await page.textContent("#cSum"); if (/fail/i.test(ctl) && !/0 fail/i.test(ctl)) fail(1440, `controls: ${ctl}`);
+// Ranking eval runs in the page and must match CI: memory never hurts.
+await page.evaluate(() => window.go("memory")); await page.waitForFunction(() => /hurt/.test(document.querySelector("#rkMeta")?.textContent ?? ""), null, { timeout: 30000 }).catch(() => fail(1440, "ranking eval did not finish"));
+const rk = await page.textContent("#rkMeta"); if (!/hurt 0\b/.test(rk)) fail(1440, `ranking: ${rk}`);
 
 await browser.close(); server.close();
 if (failures.length) { console.log(`\n${failures.length} problem(s):\n${failures.join("\n")}`); process.exit(1); }
