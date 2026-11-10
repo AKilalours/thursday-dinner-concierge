@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="https://img.shields.io/badge/▶_Open_the_live_app-7b1e3a?style=for-the-badge" alt="Open the live app"></a>
   <a href="https://ande-thursday-dinner-concierge.streamlit.app"><img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit"></a>
-  <a href="docs/img/demo.mp4"><img src="https://img.shields.io/badge/45s_video-2b1d24?style=for-the-badge" alt="Video"></a>
+  <a href="docs/img/demo.mp4"><img src="https://img.shields.io/badge/▶_35s_video-2b1d24?style=for-the-badge" alt="Video"></a>
 </p>
 <p align="center">
   <a href="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/ci.yml"><img src="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/TypeScript-Node%2022-3178c6" alt="TypeScript"> <img src="https://img.shields.io/badge/Postgres-16-336791" alt="Postgres 16"> <img src="https://img.shields.io/badge/Claude-recorded_%26_replayed-d97757" alt="Claude">
 </p>
 
-<p align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="docs/img/demo.gif" width="900" alt="One sentence: the agents email four venues, read the replies, ignore a prompt injection, compare, and the booker slides to approve"></a></p>
+<p align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="docs/img/demo.gif" width="900" alt="Recorded on the live site with live Claude: one sentence, four venue emails, an injection ignored, slide to book, then Traces, Explore, Compare, the Fix lab, typed tools and 48/48 evals"></a><br><sub>Recorded on the live site, live Claude, real OpenStreetMap streets · <a href="docs/img/demo.mp4">MP4</a></sub></p>
 
 <table align="center"><tr>
 <td align="center"><h3>48/48</h3>eval scenarios</td>
@@ -34,7 +34,7 @@
 <table>
 <tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#home"><img src="docs/img/home.png" alt="Home"></a><br><b>Home</b> · one sentence → booked <a href="https://akilalours.github.io/thursday-dinner-concierge/#home">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#explore"><img src="docs/img/explore.png" alt="Explore"></a><br><b>Explore</b> · real NYC map → shortlist → RFP <a href="https://akilalours.github.io/thursday-dinner-concierge/#explore">open ↗</a></td></tr>
 <tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#chat"><img src="docs/img/chat.png" alt="Chat"></a><br><b>Chat</b> · “move it to Friday” <a href="https://akilalours.github.io/thursday-dinner-concierge/#chat">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#desk"><img src="docs/img/desk.png" alt="Live desk"></a><br><b>Live desk</b> · requests flow, you approve <a href="https://akilalours.github.io/thursday-dinner-concierge/#desk">open ↗</a></td></tr>
-<tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#compare"><img src="docs/img/compare.png" alt="Compare"></a><br><b>Compare</b> · every offer side by side <a href="https://akilalours.github.io/thursday-dinner-concierge/#compare">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#policy"><img src="docs/img/policy.png" alt="Policy"></a><br><b>Policy</b> · replay every request first <a href="https://akilalours.github.io/thursday-dinner-concierge/#policy">open ↗</a></td></tr>
+<tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#compare"><img src="docs/img/compare.png" alt="Compare"></a><br><b>Compare</b> · every offer side by side <a href="https://akilalours.github.io/thursday-dinner-concierge/#compare">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#traces"><img src="docs/img/traces.png" alt="Traces"></a><br><b>Traces</b> · every agent step and Claude call <a href="https://akilalours.github.io/thursday-dinner-concierge/#traces">open ↗</a></td></tr>
 <tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#controls"><img src="docs/img/controls.png" alt="Controls"></a><br><b>Controls</b> · attack it; Postgres says no <a href="https://akilalours.github.io/thursday-dinner-concierge/#controls">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#fix"><img src="docs/img/fix.png" alt="Fix lab"></a><br><b>Fix lab</b> · a real failure, fixed, proven <a href="https://akilalours.github.io/thursday-dinner-concierge/#fix">open ↗</a></td></tr>
 </table>
 
