@@ -1,8 +1,9 @@
-// A small slippy map: real OpenStreetMap data (CARTO light tiles), Web Mercator, pan and zoom, no library.
+// A small slippy map: real OpenStreetMap tiles, Web Mercator, pan and zoom, no library.
 // Callers draw their own SVG on top using toPoint(lat, lng); onChange fires whenever the view moves.
 export type LatLng = [number, number];
 const TILE = 256;
-const tileUrl = (z: number, x: number, y: number) => `https://${"abcd"[(x + y) % 4]}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}${devicePixelRatio > 1 ? "@2x" : ""}.png`;
+// OpenStreetMap's own tiles: free with attribution under the OSMF tile policy (CARTO's keyless tiles now return "API key required").
+const tileUrl = (z: number, x: number, y: number) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
 const worldPx = ([lat, lng]: LatLng, z: number): [number, number] => {
   const s = TILE * 2 ** z, r = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180;
   return [((lng + 180) / 360) * s, ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * s];
@@ -18,7 +19,7 @@ export class RealMap {
   constructor(el: HTMLElement, opts: { center: LatLng; zoom: number; interactive?: boolean; min?: number; max?: number }) {
     this.el = el; this.center = opts.center; this.zoom = opts.zoom; this.min = opts.min ?? 11; this.max = opts.max ?? 17;
     el.classList.add("rmap"); this.tiles = document.createElement("div"); this.tiles.className = "rtiles"; el.prepend(this.tiles);
-    const attr = document.createElement("div"); attr.className = "rattr"; attr.innerHTML = `© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>`; el.append(attr);
+    const attr = document.createElement("div"); attr.className = "rattr"; attr.innerHTML = `© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors`; el.append(attr);
     if (opts.interactive) this.interact();
     new ResizeObserver(() => this.render()).observe(el);
     this.render();
@@ -55,7 +56,7 @@ export class RealMap {
       const key = `${z}/${tx}/${ty}`; want.add(key);
       let img = this.cache.get(key);
       if (!img) {
-        img = new Image(); img.alt = ""; img.draggable = false; img.className = "rtile";
+        img = new Image(); img.alt = ""; img.draggable = false; img.className = "rtile"; img.referrerPolicy = "strict-origin-when-cross-origin";
         img.onload = () => { this.loaded++; img!.classList.add("on"); this.el.classList.remove("offline"); };
         img.onerror = () => { this.failed++; if (!this.loaded) this.el.classList.add("offline"); };
         img.src = tileUrl(z, ((tx % n) + n) % n, ty); this.cache.set(key, img); this.tiles.append(img);
@@ -82,7 +83,7 @@ export const HOODS: Record<string, LatLng> = {
   Midtown: [40.7549, -73.9840], Chelsea: [40.7465, -74.0014], Flatiron: [40.7411, -73.9897], "West Village": [40.7358, -74.0036],
   SoHo: [40.7233, -74.0030], Tribeca: [40.7163, -74.0086], "Financial District": [40.7075, -74.0113], Williamsburg: [40.7135, -73.9571],
 };
-export const OFFICE: LatLng = [40.7406, -73.9877];
+export const OFFICE: LatLng = [40.7419, -73.9846];
 export function venueLatLng(neighborhood: string, k: number): LatLng {
   const [lat, lng] = HOODS[neighborhood] ?? HOODS.Flatiron, a = k * 2.399963, r = 0.0016 + 0.0011 * Math.sqrt(k);
   return [lat + r * Math.sin(a), lng + r * Math.cos(a) * 1.3];

@@ -1411,8 +1411,8 @@ let xAll: { v: Venue; f: ReturnType<typeof xFit>; pass: boolean }[] = [];
 function renderXMap(all = xAll) {
   xAll = all; const [w, h] = xm.size(); const svg = $("#xMap"); svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   let s = "";
-  for (const [hn, ll] of Object.entries(HOODS)) { const [x, y] = xm.toPoint(ll); s += `<text class="hlab ${xF.hoods.has(hn) ? "on" : ""}" data-h="${hn}" x="${x}" y="${y + 5}">${hn.toUpperCase()}</text>`; }
-  const [ox, oy] = xm.toPoint(OFFICE); s += `<g class="office" transform="translate(${ox} ${oy})"><rect x="-7" y="-7" width="14" height="14" rx="3"/><text y="-11">HQ</text></g>`;
+  for (const [hn, ll] of Object.entries(HOODS)) { const [x] = xm.toPoint(ll), top = Math.min(...venues.filter((v) => v.neighborhood === hn).map((v) => xm.toPoint(vLL.get(v.id)!)[1])); s += `<text class="hlab ${xF.hoods.has(hn) ? "on" : ""}" data-h="${hn}" x="${x}" y="${top - 34}">${hn.toUpperCase()}</text>`; }
+  const [ox, oy] = xm.toPoint(OFFICE); s += `<g class="office" transform="translate(${ox} ${oy})"><rect x="-7" y="-7" width="14" height="14" rx="3"/><text y="22">HQ</text></g>`;
   for (const { v, f, pass } of all) {
     const [x, y] = xm.toPoint(vLL.get(v.id)!), ok = f.k === "ok" || f.k === "mgr";
     if (x < -20 || y < -20 || x > w + 20 || y > h + 20) continue;
@@ -1438,7 +1438,7 @@ function renderExplore() {
     return `<div class="xr ${ok ? "" : "no"} ${xHover === v.id ? "hot" : ""} ${xOpen === v.id ? "open" : ""}" data-v="${v.id}"><i style="background:${XCOL[f.k]}"></i><div><b>${esc(v.name)}</b><span>${esc(v.neighborhood)} · ${esc(v.cuisine)}${v.preferredRatePct ? ` · <em>−${v.preferredRatePct}%</em>` : ""}</span></div>
       <div class="xp">${ok ? `<b>${usd(f.ph!)}</b><span>per head</span>` : `<span>${esc(f.why)}</span>`}</div><button class="heart ${xShort.has(v.id) ? "on" : ""}" data-h="${v.id}" ${ok ? "" : "disabled"} title="Shortlist">♥</button></div>`; }).join("");
   // shortlist tray
-  $("#xTray").innerHTML = xShort.size ? `<div class="xchips">${[...xShort].map((id) => `<span class="pill">${esc(venues.find((v) => v.id === id)!.name)} <a data-x="${id}">×</a></span>`).join("")}</div><button class="btn pri" id="xRfp">Send RFP to ${xShort.size} venue${xShort.size > 1 ? "s" : ""} →</button>` : `<span class="cs">Tap ♥ on up to 6 venues, then send them one request for proposal.</span>`;
+  $("#xTray").innerHTML = xShort.size ? `<div class="xchips">${[...xShort].map((id) => `<span class="pill">${esc(venues.find((v) => v.id === id)!.name)} <a data-x="${id}">×</a></span>`).join("")}</div><button class="btn pri" id="xRfp">Send RFP to ${xShort.size} venue${xShort.size > 1 ? "s" : ""} →</button>` : `<span class="cs">♥ up to 6 venues → one request to all</span>`;
   wireExplore();
 }
 function wireExplore() {
@@ -1565,10 +1565,10 @@ const SVGNS = "http://www.w3.org/2000/svg";
 function hMap() {
   hLayout(); const k = 340 / Math.max(1, hm.size()[0]);
   let s = `<defs><radialGradient id="hglow"><stop offset="0" stop-color="#c98a12" stop-opacity=".55"/><stop offset="1" stop-color="#c98a12" stop-opacity="0"/></radialGradient></defs>`;
-  for (const [hn, ll] of Object.entries(HOODS)) { const [x, y] = hm.toPoint(ll); s += `<text class="hlab2" x="${x * k}" y="${y * k - 9}">${hn === "Financial District" ? "FIDI" : hn.toUpperCase()}</text>`; }
+  for (const [hn, ll] of Object.entries(HOODS)) { const [x] = hm.toPoint(ll), top = Math.min(...venues.filter((v) => v.neighborhood === hn).map((v) => hPos.get(v.id)![1])); s += `<text class="hlab2" x="${x * k}" y="${top - 9}">${hn === "Financial District" ? "FIDI" : hn.toUpperCase()}</text>`; }
   s += `<g id="hLines"></g>`;
   for (const v of venues) { const [x, y] = hPos.get(v.id)!; s += `<g class="hp" id="hp_${v.id}" transform="translate(${x} ${y})"><circle class="halo" r="11" fill="url(#hglow)"/><circle class="dot" r="3.6"/><g class="tag"></g></g>`; }
-  s += `<g class="hq" transform="translate(${HQ[0]} ${HQ[1]})"><circle class="pulse" r="6"/><rect x="-5" y="-5" width="10" height="10" rx="2.5"/><text y="-9">HQ</text></g><g id="hFly"></g>`;
+  s += `<g class="hq" transform="translate(${HQ[0]} ${HQ[1]})"><circle class="pulse" r="6"/><rect x="-5" y="-5" width="10" height="10" rx="2.5"/><text y="13">HQ</text></g><g id="hFly"></g>`;
   $("#hMap").setAttribute("viewBox", `0 0 340 ${hVH}`); $("#hMap").innerHTML = s;
 }
 const hp = (id: string) => $(`#hp_${id}`) as unknown as SVGGElement;
@@ -1712,7 +1712,7 @@ function autoRun(page: string) {
 
 // ---------- start ----------
 function renderLive() {
-  const on = llm.target !== replayLLM && !(llm.live && llm.live.liveCalls === 0 && llm.live.replayed > 0), b = $("#livePill");
+  const on = llm.target !== replayLLM && !(llm.live && llm.live.liveCalls === 0 && llm.live.replayed > 0), b = $("#livePill"); if (!b) return;
   b.className = `livepill ${on ? "on" : ""}`; b.innerHTML = on ? `<span class="live"></span>Live Claude` : `<i>✳</i>Recorded Claude`;
   b.title = on ? `Calls go to Claude now. ${llm.live?.liveCalls ?? 0} live calls this visit${llm.live?.replayed ? `, ${llm.live.replayed} fell back to recordings` : ""}.` : "Answers Claude really gave, replayed. Connect the server for live calls.";
 }

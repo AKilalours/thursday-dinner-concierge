@@ -121,7 +121,7 @@ npx wrangler secret put RESEND_API_KEY --config server/wrangler.toml   # free re
 npm run server:deploy                            # prints https://thursday-dinner-api.<you>.workers.dev
 ```
 
-Put that URL in `docs/config.js` (`window.TDC_API = "https://…workers.dev";`) and push. The header pill turns to **● Live Claude**.
+Put that URL in `docs/config.js` (`window.TDC_API = "https://…workers.dev";`) and push. Claude then answers live on the site.
 The server only accepts the agent's own tasks, caps tokens, rate-limits per visitor, and builds emails from booking fields only, so it is not an open model proxy or a spam relay (`test/worker.test.ts`). If a live call fails, the page falls back to the recording and says so.
 </details>
 

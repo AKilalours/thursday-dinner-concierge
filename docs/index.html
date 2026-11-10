@@ -343,7 +343,7 @@ span.live{display:inline-block;width:7px;height:7px;border-radius:50%;background
 form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px;margin-top:12px;background:#fff}
 @media (max-width:1099px){.livepill{margin-left:0;order:5}}
 @media (max-width:700px){.livepill{display:none}}
-.rmap{position:relative;overflow:hidden;background:#eef0ea;touch-action:none;user-select:none}.rmap.grab{cursor:grabbing}.rtiles{position:absolute;inset:0;pointer-events:none}.rtile{position:absolute;left:0;top:0;width:256px;height:256px;opacity:0;transition:opacity .3s;filter:saturate(.75) sepia(.12)}.rtile.on{opacity:1}
+.rmap{position:relative;overflow:hidden;background:#eef0ea;touch-action:none;user-select:none}.rmap.grab{cursor:grabbing}.rtiles{position:absolute;inset:0;pointer-events:none}.rtile{position:absolute;left:0;top:0;width:256px;height:256px;opacity:0;transition:opacity .3s;filter:grayscale(.6) sepia(.22) contrast(.92) brightness(1.06)}.rtile.on{opacity:1}
 .rmap.offline{background:repeating-linear-gradient(45deg,#f1ebe1 0 12px,#f4efe7 12px 24px)}
 .rattr{position:absolute;right:6px;bottom:4px;font:500 10px Inter;color:#6d5d51;background:#ffffffcc;border-radius:5px;padding:1px 6px;z-index:3}.rattr a{color:inherit}
 .rfill{position:absolute;inset:0}
@@ -354,21 +354,24 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
 #xMap .xpin text{font:800 10.5px Inter;fill:#fff;text-anchor:middle;stroke:none}#xMap .xpin circle{stroke:#fff;stroke-width:2.5}#xMap .xpin.hot{filter:drop-shadow(0 3px 6px #0005)}#xMap .xpin.hot circle:first-of-type{stroke:var(--wine)}#xMap .office rect{fill:#2b1d24}#xMap .office text{font:800 11px Inter;fill:#2b1d24;text-anchor:middle;paint-order:stroke;stroke:#fff;stroke-width:3px}
 .xmapw{height:560px}
 @media (max-width:900px){.xmapw{height:400px}}
+.me{display:none;width:34px;height:34px;border-radius:50%;background:var(--wine);color:#fff;font:700 12px Inter;align-items:center;justify-content:center;flex:none}
+@media (max-width:1099px){.me{display:flex;order:2}.bar .menuBtn{margin-left:auto}}
+@media (max-width:700px){.bar .kbtn{display:none}.bar #tourBtn{padding:7px 11px!important}.hchips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.hchips .chip{flex:none}}
 </style>
 </head>
 <body>
 <header><div class="bar">
   <div class="logo"><i></i><div>Thursday Dinner<small>Built for Ande · AI Engineer · <a href="https://github.com/AKilalours/thursday-dinner-concierge">code</a></small></div></div>
-  <button class="menuBtn" id="menuBtn" aria-label="Menu"><span>☰</span><b id="menuCur">Live desk</b></button>
+  <span class="me" title="Signed in as Akila Lourdes">AL</span><button class="menuBtn" id="menuBtn" aria-label="Menu"><span>☰</span><b id="menuCur">Live desk</b></button>
   <nav class="tabs" id="tabs">
-    <div class="ws" title="Demo workspace: Northwind Labs is a fictional customer company"><i>AL</i><div>Akila Lourdes<small>Northwind Labs <span class="demo">demo</span></small></div></div>
+    <div class="ws"><i>AL</i><div>Akila Lourdes<small><span class="live"></span>Signed in</small></div></div>
     <span class="tsep">Concierge</span><button class="on" data-p="home">Home</button><button data-p="chat">Chat</button><button data-p="desk">Live desk</button>
     <span class="tsep">Plan</span><button data-p="explore">Explore</button><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
     <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button>
     <span class="tsep">Under the hood</span><button data-p="book">Step-by-step booking</button><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
     <div class="navfoot">Built for Ande · AI Engineer<br>Independent project · fictional data</div>
   </nav>
-  <button class="livepill" id="livePill"></button><button class="kbtn" id="kBtn"><span>Ask the concierge…</span><kbd>⌘K</kbd></button><button class="btn gold" id="tourBtn" style="padding:7px 14px">▶ Tour</button>
+  <button class="kbtn" id="kBtn"><span>Ask the concierge…</span><kbd>⌘K</kbd></button><button class="btn gold" id="tourBtn" style="padding:7px 14px">▶ Tour</button>
 </div></header>
 
 <main>
@@ -450,7 +453,7 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
   <div class="xf"><label>Guests <input type="range" id="xN" min="2" max="40" value="12"><b id="xNv">12</b></label><label>Night <select id="xDate"></select></label><label><input type="checkbox" id="xPriv" checked> Private</label><label>Max per head <input type="range" id="xMax" min="5000" max="40000" step="1000" value="25000"><b id="xMaxv">$250</b></label></div>
   <div class="chips xc" id="xCuis"></div><div class="chips xc" id="xHoods"></div>
   <div class="xwrap"><div class="xmapw"><div id="xReal" class="rfill"><svg id="xMap"></svg></div><div class="xzoom"><button id="xIn">+</button><button id="xOut">−</button><button id="xReset">⟲</button></div>
-      <div class="lg xlg"><span><i style="background:#3f7d5a"></i>In policy</span><span><i style="background:#c98a12"></i>Manager signs</span><span><i style="background:#c9b8a4"></i>Over cap / budget</span><span><i style="background:#c2455d"></i>Blocked</span><span>Drag to pan · scroll to zoom · tap a neighborhood to filter</span></div><div class="xdrawer" id="xDrawer"></div></div>
+      <div class="lg xlg"><span><i style="background:#3f7d5a"></i>In policy</span><span><i style="background:#c98a12"></i>Manager signs</span><span><i style="background:#c9b8a4"></i>Over cap / budget</span><span><i style="background:#c2455d"></i>Blocked</span></div><div class="xdrawer" id="xDrawer"></div></div>
     <div class="xside"><div class="row" style="justify-content:space-between"><div id="xCount" class="cs"></div><div class="seg" id="xSort"><button data-s="fit" class="on">Best fit</button><button data-s="price">Price</button><button data-s="name">A–Z</button></div></div><div class="xlist" id="xList"></div><div class="xtray" id="xTray"></div></div></div>
 </section>
 
