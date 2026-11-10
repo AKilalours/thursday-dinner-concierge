@@ -16,10 +16,10 @@
 <p align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="docs/img/demo.gif" width="900" alt="One sentence: the agents email four venues, read the replies, ignore a prompt injection, compare, and the booker slides to approve"></a></p>
 
 <table align="center"><tr>
-<td align="center"><h3>47/47</h3>eval scenarios</td>
+<td align="center"><h3>48/48</h3>eval scenarios</td>
 <td align="center"><h3>0 / 2,013</h3>safety failures<br>in random worlds</td>
-<td align="center"><h3>97</h3>tests, incl.<br>real Postgres</td>
-<td align="center"><h3>9</h3>bugs caught →<br>permanent cases</td>
+<td align="center"><h3>100</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>10</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
 
 ### ▶ Try a sentence (each link runs it live)
@@ -34,7 +34,7 @@
 <table>
 <tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#home"><img src="docs/img/home.png" alt="Home"></a><br><b>Home</b> · one sentence → booked <a href="https://akilalours.github.io/thursday-dinner-concierge/#home">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#explore"><img src="docs/img/explore.png" alt="Explore"></a><br><b>Explore</b> · map → shortlist → RFP <a href="https://akilalours.github.io/thursday-dinner-concierge/#explore">open ↗</a></td></tr>
 <tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#chat"><img src="docs/img/chat.png" alt="Chat"></a><br><b>Chat</b> · “move it to Friday” <a href="https://akilalours.github.io/thursday-dinner-concierge/#chat">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#desk"><img src="docs/img/desk.png" alt="Live desk"></a><br><b>Live desk</b> · requests flow, you approve <a href="https://akilalours.github.io/thursday-dinner-concierge/#desk">open ↗</a></td></tr>
-<tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#compare"><img src="docs/img/compare.png" alt="Compare"></a><br><b>Compare</b> · every offer side by side <a href="https://akilalours.github.io/thursday-dinner-concierge/#compare">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#policy"><img src="docs/img/policy.png" alt="Policy"></a><br><b>Policy</b> · replay 47 requests first <a href="https://akilalours.github.io/thursday-dinner-concierge/#policy">open ↗</a></td></tr>
+<tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#compare"><img src="docs/img/compare.png" alt="Compare"></a><br><b>Compare</b> · every offer side by side <a href="https://akilalours.github.io/thursday-dinner-concierge/#compare">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#policy"><img src="docs/img/policy.png" alt="Policy"></a><br><b>Policy</b> · replay every request first <a href="https://akilalours.github.io/thursday-dinner-concierge/#policy">open ↗</a></td></tr>
 <tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#controls"><img src="docs/img/controls.png" alt="Controls"></a><br><b>Controls</b> · attack it; Postgres says no <a href="https://akilalours.github.io/thursday-dinner-concierge/#controls">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#fix"><img src="docs/img/fix.png" alt="Fix lab"></a><br><b>Fix lab</b> · a real failure, fixed, proven <a href="https://akilalours.github.io/thursday-dinner-concierge/#fix">open ↗</a></td></tr>
 </table>
 
@@ -97,6 +97,7 @@ flowchart LR
 | R7 | **Found by the LLM judge (1/5):** "japanese dinner" booked a Korean room; cuisine was a nudge, not a requirement. Now it books the cuisine or asks which constraint to relax |
 | R8 | **Found by the LLM judge (4/5):** two vegetarians were sent to the venue but never confirmed to the booker |
 | R9 | A model call that hit its timeout was retried, so a timeout cost twice the budget (an aborted fetch didn't say "timed out") |
+| R10 | **Found on the live site with live Claude:** "somewhere in SoHo" booked Williamsburg. Claude returned "SoHo", venues say "soho", so the match never fired. Now normalized, a named area is a requirement, and the booker is told if nothing there fits |
 </details>
 
 <details>

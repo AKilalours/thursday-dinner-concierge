@@ -107,5 +107,7 @@ export const SCENARIOS: Scenario[] = [
   // R7 (found by the LLM judge on the first live run): "japanese dinner" booked a Korean venue; cuisine was a nudge, not a requirement.
   { id: "reg05", group: "regression", text: "japanese dinner for 8 with Wayne Enterprises on 2026-11-24", expect: { outcome: "booked", partySize: 8 } },
   // R8 (found by the LLM judge): two vegetarians were sent to the venue but never confirmed to the booker.
+  // R10 (found on the live site with live Claude): "somewhere in SoHo" booked Williamsburg; "SoHo" never matched "soho".
+  { id: "reg07", group: "regression", text: "private dinner for 10 with Globex next Friday, somewhere in SoHo", expect: { outcome: "booked", partySize: 10 } },
   { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];

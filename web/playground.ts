@@ -750,7 +750,7 @@ async function tour() {
     $<HTMLButtonElement>("#toolApprove").click(); await sleep(1200); $<HTMLButtonElement>("#toolCall").click(); await sleep(1600);
   });
   await step("05 · CONTROLS", "Six safety controls, enforced by Postgres.", "controls", async () => { $<HTMLButtonElement>("#runAll").click(); await sleep(3500); });
-  await step("06 · EVALS", "The CI suite in your browser. Real Claude outputs.", "evals", async () => { $<HTMLButtonElement>("#runEvals").click(); for (let i = 0; i < 300 && !$("#sPass").textContent!.startsWith("47/"); i++) await sleep(100); await sleep(1200); });
+  await step("06 · EVALS", "The CI suite in your browser. Real Claude outputs.", "evals", async () => { $<HTMLButtonElement>("#runEvals").click(); for (let i = 0; i < 300 && !$("#sPass").textContent!.startsWith(`${SCENARIOS.length}/`); i++) await sleep(100); await sleep(1200); });
   await step("07 · POLICY", "Policy is code. Drag it and the city changes.", "spend", async () => { for (const v of [180, 140, 300]) { const s = $<HTMLInputElement>("#cap"); s.value = String(v); s.dispatchEvent(new Event("input")); await sleep(900); } });
   say("", ""); touring = false; $("#tourBtn").textContent = "▶ Tour";
 }

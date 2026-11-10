@@ -1,3 +1,4 @@
+import { ADJACENT } from "../src/agents/sourcing.ts";
 // Graders. Invariants run on every scenario (they must never fail); expectation checks run where a
 // scenario states an expectation. Each returns pass/fail with a reason, so a failure reads like a bug report.
 import type { RunResult } from "../src/agents/concierge.ts";
@@ -48,6 +49,12 @@ export async function grade(s: Scenario, r: RunResult, store: MemoryStore, world
   if (r.outcome === "booked" && r.request?.cuisine && venues.some((v) => v.cuisine === r.request!.cuisine)) {
     const v = venues.find((x) => x.id === bookings[0].venueId)!;
     add("exp.cuisine_honored", "expectation", v.cuisine === r.request.cuisine, `asked for ${r.request.cuisine}, booked ${v.cuisine} at ${v.name}`);
+  }
+  const asked = r.request?.neighborhood && r.request.neighborhood !== "office" ? r.request.neighborhood.toLowerCase() : null;
+  if (r.outcome === "booked" && asked && venues.some((v) => v.neighborhood.toLowerCase() === asked)) {
+    const v = venues.find((x) => x.id === bookings[0].venueId)!, n = v.neighborhood.toLowerCase();
+    const said = (r.messagesToBooker.find((m) => /Reply approve or reject/.test(m)) ?? "").includes(`not ${r.request!.neighborhood}`);
+    add("exp.neighborhood_honored", "expectation", n === asked || (ADJACENT[asked] ?? []).includes(n) || said, `asked for ${r.request!.neighborhood}, booked ${v.neighborhood} (${v.name}) without saying so`);
   }
   const proposalMsg = r.messagesToBooker.find((m) => /Reply approve or reject/.test(m));
   if (proposalMsg && r.request?.dietary.length) {

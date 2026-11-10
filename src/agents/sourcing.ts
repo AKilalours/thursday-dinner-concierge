@@ -15,7 +15,7 @@ export interface Candidate {
   estimatePerHeadCents: number;
 }
 
-const ADJACENT: Record<string, string[]> = {
+export const ADJACENT: Record<string, string[]> = {
   flatiron: ["chelsea", "midtown", "soho"], chelsea: ["flatiron", "west village"], midtown: ["flatiron"],
   soho: ["tribeca", "west village", "flatiron"], tribeca: ["soho", "financial district"], "west village": ["soho", "chelsea"],
   "financial district": ["tribeca"], williamsburg: [],
@@ -23,7 +23,9 @@ const ADJACENT: Record<string, string[]> = {
 
 export async function source(ctx: Ctx, req: BookingRequest, exclude: Set<string>): Promise<Candidate[]> {
   const day = weekday(req.date!);
-  const where = req.neighborhood === "office" ? ctx.company.officeNeighborhood.toLowerCase() : req.neighborhood;
+  // Regression R10 (found on the live site with live Claude): the model returns "SoHo", venues say "soho", so the
+  // comparison never matched and "somewhere in SoHo" booked Williamsburg. Normalize before comparing.
+  const where = (req.neighborhood === "office" ? ctx.company.officeNeighborhood : req.neighborhood)?.toLowerCase().trim() || null;
   const hosted = (await ctx.store.recall(ctx.company.id, ctx.actor.id))
     .filter((m) => req.clientName && m.subject.toLowerCase() === req.clientName.toLowerCase() && m.fact.startsWith("hosted_at:"))
     .map((m) => m.fact.slice("hosted_at:".length));
@@ -68,6 +70,11 @@ export async function source(ctx: Ctx, req: BookingRequest, exclude: Set<string>
     out.push({ venue: v, roomId: room.id, score: Object.values(parts).reduce((a, b) => a + b, 0), parts, estimatePerHeadCents: est.perHeadAllInCents });
   }
   out.sort((a, b) => b.score - a.score || a.venue.id.localeCompare(b.venue.id));
+  // A named neighborhood is a requirement (that neighborhood or the ones next to it) whenever anything there fits.
+  if (where && !ctx.legacy?.r10) {
+    const near = out.filter((c) => { const n = c.venue.neighborhood.toLowerCase(); return n === where || (ADJACENT[where] ?? []).includes(n); });
+    if (near.length && near.length < out.length) { dropped[`outside ${req.neighborhood === "office" ? "the office area" : req.neighborhood}`] = out.length - near.length; out.splice(0, out.length, ...near); }
+  }
   await log(ctx, "sourcing", "sourced", `${out.length} venues fit; dropped ${Object.entries(dropped).map(([k, n]) => `${n} ${k}`).join(", ") || "none"}`, {
     top: out.slice(0, 5).map((c) => ({ venue: c.venue.name, venueId: c.venue.id, score: c.score, parts: c.parts, perHead: c.estimatePerHeadCents, preferredRatePct: c.venue.preferredRatePct, neighborhood: c.venue.neighborhood })),
   });

@@ -1,6 +1,7 @@
 // The root concierge. It plans the run, delegates to sourcing, coordination and comparison, recovers
 // when a step fails, and turns the best option into proposals a booker confirms. It never approves;
 // approvals arrive through the approver (the booker-facing app), which uses a separate database role.
+import { ADJACENT } from "./sourcing.ts";
 import { randomUUID } from "node:crypto";
 import { COMPANY, USERS } from "../../data/seed.ts";
 import type { BookingRequest, Company, Outcome, Proposal, Role, User, Venue } from "../domain/types.ts";
@@ -41,7 +42,7 @@ export interface RunInput {
   /** Venues to contact per round (an RFP to more venues gives more offers to compare). */
   shortlistSize?: number;
   onEvent?: (e: TraceEvent) => void;
-  legacy?: { r7?: boolean; r8?: boolean };
+  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean };
 }
 
 export interface RunResult {
@@ -160,6 +161,13 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   return result;
 }
 
+/** R10: say so when the booked venue is outside the neighborhood the booker named. */
+function outsideArea(req: BookingRequest, v: Venue, ctx: Ctx) {
+  if (!req.neighborhood || req.neighborhood === "office" || ctx.legacy?.r10) return false;
+  const a = req.neighborhood.toLowerCase(), n = v.neighborhood.toLowerCase();
+  return n !== a && !(ADJACENT[a] ?? []).includes(n);
+}
+
 async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, input: RunInput, result: RunResult,
   tell: (t: string) => Promise<void>, text: string): Promise<"done" | "try_next"> {
   const v = opt.thread.venue;
@@ -172,6 +180,7 @@ async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, inp
     opt.thread.injectionFlagged ? `${v.name}'s email contained instructions to change payment details; I ignored them and will only pay the venue's account on file.` : "",
     v.contractRequired ? `${v.name} requires its private dining agreement; approving authorizes signing it.` : "",
     opt.policy.requiredRoles.includes("manager") ? `Over ${usd(ctx.company.policy.managerApprovalAboveCents)}, so ${approverFor("manager", ctx.actor).name} also approves.` : "",
+    outsideArea(req, v, ctx) ? `${v.name} is in ${v.neighborhood}, not ${req.neighborhood}: nothing in or next to ${req.neighborhood} could host ${req.partySize} within policy.` : "",
   ].filter(Boolean);
   const summary = `${v.name}, ${room.name}, ${human(req.date!)} at ${clock(req.time)}, ${req.partySize} guests${req.clientName ? ` with ${req.clientName}` : ""}. `
     + `Minimum ${usd(opt.minSpendCents)}; about ${usd(opt.policy.estimate.allInCents)} all-in (${usd(opt.policy.estimate.perHeadAllInCents)} a head, under the ${usd(ctx.company.policy.perHeadCapCents[req.kind])} cap). `
