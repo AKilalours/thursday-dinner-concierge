@@ -23,6 +23,9 @@ async function open(width, height) {
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource|fonts\.g/.test(m.text())) fail(width, `console error: ${m.text()}`); });
   // External fonts are optional; never let a missing network make the check flaky.
   await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
+  // The check runs on recorded Claude answers: deterministic, free, and independent of the live server's
+  // allowed origins (a CI runner's localhost origin is not one of them, by design).
+  await page.route(/\/config\.js(\?|$)/, (r) => r.fulfill({ contentType: "text/javascript", body: 'window.TDC_API = "";' }));
   await page.goto(url); await page.waitForFunction(() => typeof window.go === "function");
   return page;
 }
