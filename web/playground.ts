@@ -34,7 +34,7 @@ import type { TraceEvent } from "../src/tools/registry.ts";
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T;
 const $$ = <T extends Element = HTMLElement>(s: string) => [...document.querySelectorAll(s)] as T[];
 const el = (tag: string, cls = "", html = "") => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+const esc = (s: string) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const usd = (c: number) => `$${Math.round(c / 100).toLocaleString("en-US")}`;
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -63,7 +63,8 @@ interface LlmCall { task: string; ms: number; tin: number; tout: number; source:
 const llmLog: LlmCall[] = [];
 const llm = new SwitchLLM();
 const venues = buildVenues();
-const priya = user("usr_priya"), dana = user("usr_dana");
+// The signed-in booker is a copy of the seed persona: renaming it never touches the fixtures the evals replay.
+const priya = { ...user("usr_priya") }, dana = user("usr_dana");
 // Whoever is signed in is the booker the agent acts for: their name goes into every email, message and approval.
 const ME_KEY = "tdc_me";
 const me = { name: (() => { try { return localStorage.getItem(ME_KEY) || ""; } catch { return ""; } })() || "Akila Lourdes" };
@@ -79,11 +80,7 @@ function applyMe() {
 applyMe();
 // Evals, the Fix lab and policy replays are fixtures: they run on recorded Claude answers with the persona the
 // recordings were made with, exactly like CI. Your own actions (Home, Chat, Explore, Compare) use live Claude.
-let fixtureDepth = 0;
-async function asFixture<T>(fn: () => Promise<T>): Promise<T> {
-  fixtureDepth++; priya.name = "Priya Raman";
-  try { return await fn(); } finally { if (--fixtureDepth === 0) priya.name = me.name; }
-}
+async function asFixture<T>(fn: () => Promise<T>): Promise<T> { return fn(); }
 const company: Company = structuredClone(COMPANY);
 const AGENT: Record<string, string> = { concierge: "c", sourcing: "s", coordination: "v", comparison: "m" };
 const isAI = (e: TraceEvent) => e.data?.decidedBy === "model" || / \(model\)$/.test(e.text);
@@ -122,7 +119,7 @@ function go(page: string) {
   if (page === "bookings") void renderBookings();
   if (page === "calendar") void renderCal();
   if (page === "traces") renderTraces();
-  if (page === "home" && !hBusy) requestAnimationFrame(() => { hFit(); hMap(); });
+  if (page === "home" && !hBusy && !hDone) requestAnimationFrame(() => { hFit(); hMap(); });
   if (page === "explore") requestAnimationFrame(() => { if (!xFitted) { xFitAll(); xFitted = true; } else xm.render(); });
   if (["controls", "evals", "compare", "fix"].includes(page)) autoRun(page);
   if (page === "seating" && !lastBk) void bkRows().then((rows) => { const r = rows.filter((x) => x.status === "confirmed").at(-1); if (r && !lastBk) setLastBooking({ venue: r.v, roomName: r.room.name, partySize: r.partySize, date: localDate(r.startsAt), dietary: [], client: "Acme", world: new VenueWorld(venues, () => "accept", NOW), threadId: `thr_seat_${r.id}` }); });
@@ -273,7 +270,7 @@ async function deskLoop() {
   const pool = [...DESK, ...MORE.map((text, k) => ({ id: `live${k}`, group: "phrasing" as const, text, expect: { outcome: "booked" as const } }))];
   desk = []; sel = 0; dOpen = false; $("#dDrawer").classList.remove("on"); renderQueue();
   // A steady stream: a new request every few seconds, at most three in flight, like a real desk on a Monday.
-  while (g === deskGen) {
+  while (g === deskGen && n < pool.length) {
     if (desk.filter((r) => !r.done).length < 3 && !deskPaused) {
       const s = pool[n % pool.length]; n++;
       desk.push({ s: s as (typeof SCENARIOS)[number], status: "New", tone: "mute", stage: 0, acts: [], rows: new Map(), parsed: null, ai: 0, done: false, t0: Date.now(), need: false, needLeft: 0, needText: "" });
@@ -658,8 +655,8 @@ async function runFix(legacy: { r7?: boolean; r8?: boolean } | undefined, text: 
 async function runFixInner(legacy: { r7?: boolean; r8?: boolean } | undefined, text: string) {
   const store = new MemoryStore(); await store.init(venues);
   const world = new VenueWorld(venues, () => "accept", "2026-11-09T15:00:00.000Z", 11);
-  const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm: replayLLM, venues, company: COMPANY, legacy,
-    approver: async (p, s) => carefulApprover(priya, { partySize: p.partySize, date: localDate(p.startsAt), privateRoom: false })(p, s) });
+  const res = await runConcierge({ text, actor: user("usr_priya"), principal: dana, today: "2026-11-09", store, world, llm: replayLLM, venues, company: COMPANY, legacy,
+    approver: async (p, s) => carefulApprover(user("usr_priya"), { partySize: p.partySize, date: localDate(p.startsAt), privateRoom: false })(p, s) });
   const msg = res.messagesToBooker.find((m) => /Reply approve or reject/.test(m)) ?? res.messagesToBooker.at(-1) ?? "";
   const verdict = /Reply approve or reject/.test(msg) ? await judgeMessage(replayLLM, text, msg) : null;
   return { res, msg, verdict };
@@ -725,7 +722,7 @@ async function toolAudit() {
   $("#toolAudit").innerHTML = log.slice().reverse().map((a) => `<li><span class="mono">${esc(a.action)}</span> by ${esc(a.actorId)} for ${esc(String(a.detail.onBehalfOf))}${a.detail.consequential ? ' <span class="pill r">consequential</span>' : ""}</li>`).join("") || `<li class="cs">No calls yet.</li>`;
 }
 $("#toolCall").onclick = async () => {
-  const t = TOOLS[toolSel], out = $("#toolOut"), actor = user($<HTMLSelectElement>("#toolActor").value);
+  const t = TOOLS[toolSel], out = $("#toolOut"), actor = $<HTMLSelectElement>("#toolActor").value === priya.id ? priya : user($<HTMLSelectElement>("#toolActor").value);
   let input: unknown; try { input = JSON.parse($<HTMLTextAreaElement>("#toolIn").value); } catch { out.innerHTML = `<div class="tres bad"><b>Not JSON</b></div>`; return; }
   const ctxT = { store: toolStore, world: toolWorld, llm, company, venues, actor, principal: dana, runId: "tools", today: "2026-11-09", smsOptedOut: new Set<string>(), trace: [] };
   const before = (await toolStore.auditLog("tools")).length;
@@ -790,19 +787,20 @@ async function tour() {
     $("#hGo").click(); for (let i = 0; i < 300 && touring && !$("#hSl .slide"); i++) await sleep(100); await sleep(1400);
     ($("#hSl .slide .lbl") as HTMLElement | null)?.click(); for (let i = 0; i < 100 && touring && !$(".ph-ok"); i++) await sleep(100); await sleep(2600);
   });
-  await step("02 · EXPLORE", "Filter the network on the map, shortlist, send one RFP. Offers land side by side.", "explore", async () => {
+  await step("02 · TRACES", "Every agent step and every Claude call, like a production trace.", "traces", async () => { await sleep(600); ($(".tre:nth-child(6)") as HTMLElement | null)?.click(); await sleep(2600); });
+  await step("03 · EXPLORE", "Filter the network on the map, shortlist, send one RFP. Offers land side by side.", "explore", async () => {
     await sleep(1000); for (let i = 0; i < 3 && touring; i++) { ($(".heart:not([disabled]):not(.on)") as HTMLElement | null)?.click(); await sleep(450); }
     await sleep(500); $("#xRfp")?.click(); for (let i = 0; i < 100 && touring && !$("#p-compare.on"); i++) await sleep(100); await sleep(2800);
   });
-  await step("03 · FIX LAB", "Find the failure in a real conversation. Fix it. Prove it.", "fix", async () => { for (let i = 0; i < 4 && touring; i++) { $<HTMLButtonElement>("#fixGo").click(); await sleep(2300); } });
-  await step("04 · TOOLS", "Typed tools: bad input rejected, unapproved booking refused.", "tools", async () => {
+  await step("04 · FIX LAB", "Find the failure in a real conversation. Fix it. Prove it.", "fix", async () => { for (let i = 0; i < 4 && touring; i++) { $<HTMLButtonElement>("#fixGo").click(); await sleep(2300); } });
+  await step("05 · TOOLS", "Typed tools: bad input rejected, unapproved booking refused.", "tools", async () => {
     $<HTMLButtonElement>("#toolList button[data-i='1']").click(); await sleep(500); $<HTMLButtonElement>("#toolCall").click(); await sleep(1300);
     $<HTMLButtonElement>("#toolList button[data-i='2']").click(); await sleep(500); $<HTMLButtonElement>("#toolCall").click(); await sleep(1600);
     $<HTMLButtonElement>("#toolApprove").click(); await sleep(1200); $<HTMLButtonElement>("#toolCall").click(); await sleep(1600);
   });
-  await step("05 · CONTROLS", "Six safety controls, enforced by Postgres.", "controls", async () => { $<HTMLButtonElement>("#runAll").click(); await sleep(3500); });
-  await step("06 · EVALS", "The CI suite in your browser. Real Claude outputs.", "evals", async () => { $<HTMLButtonElement>("#runEvals").click(); for (let i = 0; i < 300 && !$("#sPass").textContent!.startsWith(`${SCENARIOS.length}/`); i++) await sleep(100); await sleep(1200); });
-  await step("07 · POLICY", "Policy is code. Drag it and the city changes.", "spend", async () => { for (const v of [180, 140, 300]) { const s = $<HTMLInputElement>("#cap"); s.value = String(v); s.dispatchEvent(new Event("input")); await sleep(900); } });
+  await step("06 · CONTROLS", "Six safety controls, enforced by Postgres.", "controls", async () => { $<HTMLButtonElement>("#runAll").click(); await sleep(3500); });
+  await step("07 · EVALS", "The CI suite in your browser. Real Claude outputs.", "evals", async () => { $<HTMLButtonElement>("#runEvals").click(); for (let i = 0; i < 300 && !$("#sPass").textContent!.startsWith(`${SCENARIOS.length}/`); i++) await sleep(100); await sleep(1200); });
+  await step("08 · POLICY", "Policy is code. Drag it and the city changes.", "spend", async () => { for (const v of [180, 140, 300]) { const s = $<HTMLInputElement>("#cap"); s.value = String(v); s.dispatchEvent(new Event("input")); await sleep(900); } });
   say("", ""); touring = false; $("#tourBtn").textContent = "▶ Tour";
 }
 $("#tourBtn").onclick = () => void tour();
@@ -991,7 +989,20 @@ function setLastBooking(b: LastBooking) {
   lastBk = b; const n = Math.min(b.partySize, 20), ours = Math.max(2, Math.round(n / 3));
   guests = Array.from({ length: n }, (_, i) => ({ name: NAMES[i] ?? `Guest ${i + 1}`, org: i < ours ? "Northwind" : b.client, diet: null as string | null, host: i === 0 }));
   b.dietary.forEach((d, i) => { const g = guests[ours + i]; if (g) g.diet = d; });
-  seats = Array(n).fill(null); seatRender();
+  seats = Array(n).fill(null); seatOrder().forEach((g, i) => { if (i < seats.length) seats[i] = g; }); seatRender(); void fillSeatPick();
+}
+/** Host at the head, then alternate our people and their people so every client sits next to a host. */
+function seatOrder() {
+  const ours = guests.map((g, i) => ({ g, i })).filter((x) => x.g.org === "Northwind").map((x) => x.i), theirs = guests.map((g, i) => ({ g, i })).filter((x) => x.g.org !== "Northwind").map((x) => x.i);
+  const order: number[] = []; while (ours.length || theirs.length) { if (theirs.length) order.push(theirs.shift()!); if (ours.length) order.push(ours.shift()!); }
+  const hostIdx = order.indexOf(0); if (hostIdx > 0) { order.splice(hostIdx, 1); order.unshift(0); }
+  return order;
+}
+/** Pick which of your dinners to seat. */
+async function fillSeatPick() {
+  const rows = (await bkRows()).filter((r) => r.status === "confirmed" && r.src !== "Live desk"), sel = $<HTMLSelectElement>("#seatPick"); if (!sel) return;
+  sel.innerHTML = rows.map((r) => `<option value="${r.id}" ${lastBk && r.v.id === lastBk.venue.id && localDate(r.startsAt) === lastBk.date ? "selected" : ""}>${esc(r.v.name)} · ${DAYS[weekday(localDate(r.startsAt))]} ${Number(localDate(r.startsAt).slice(8))} · ${r.partySize}</option>`).join("");
+  sel.onchange = () => { const r = rows.find((x) => x.id === sel.value); if (r) setLastBooking({ venue: r.v, roomName: r.room.name, partySize: r.partySize, date: localDate(r.startsAt), dietary: [], client: "Guests", world: new VenueWorld(venues, () => "accept", NOW), threadId: `thr_seat_${r.id}` }); };
 }
 function seatPos(i: number, n: number) {
   if (i === 0) return [6, 50]; if (i === 1 && n > 1) return [94, 50];
@@ -1022,11 +1033,7 @@ function seatRender() {
   });
 }
 $("#seatAuto").onclick = async () => {
-  if (!lastBk) return; seats = Array(seats.length).fill(null);
-  // Host at the head, then alternate our people and their people so every client sits next to a host.
-  const ours = guests.map((g, i) => ({ g, i })).filter((x) => x.g.org === "Northwind").map((x) => x.i), theirs = guests.map((g, i) => ({ g, i })).filter((x) => x.g.org !== "Northwind").map((x) => x.i);
-  const order: number[] = []; while (ours.length || theirs.length) { if (theirs.length) order.push(theirs.shift()!); if (ours.length) order.push(ours.shift()!); }
-  const hostIdx = order.indexOf(0); if (hostIdx > 0) { order.splice(hostIdx, 1); order.unshift(0); }
+  if (!lastBk) return; seats = Array(seats.length).fill(null); const order = seatOrder();
   for (let i = 0; i < order.length && i < seats.length; i++) { seats[i] = order[i]; seatRender(); await sleep(70); }
 };
 $("#seatClear").onclick = () => { seats = Array(seats.length).fill(null); seatRender(); };
@@ -1074,7 +1081,7 @@ function receipt(r: BkRow) {
   return { min, per, list, disc, sub, tax, svc, total: sub + tax + svc };
 }
 async function renderBookings() {
-  const rows = await bkRows(), conf = rows.filter((r) => r.status === "confirmed");
+  const rows = (await bkRows()).filter((r) => r.src !== "Live desk"), conf = rows.filter((r) => r.status === "confirmed");
   const shown = rows.filter((r) => bkFilter === "all" || (bkFilter === "upcoming" ? r.status === "confirmed" : r.status === "cancelled"));
   $("#bkKpis").innerHTML = `<div class="kpi" style="--c:var(--wine)"><div class="k">Upcoming</div><b>${conf.length}</b></div><div class="kpi" style="--c:var(--sage)"><div class="k">Committed spend</div><b>${usd(conf.reduce((a, r) => a + r.approved, 0))}</b></div><div class="kpi" style="--c:var(--brass)"><div class="k">Deposits paid</div><b>${usd(conf.reduce((a, r) => a + r.paid, 0))}</b></div><div class="kpi" style="--c:#5b6b8c"><div class="k">Guests hosted</div><b>${conf.reduce((a, r) => a + r.partySize, 0)}</b></div>`;
   $("#bkTable").innerHTML = shown.length ? `<table class="ctable"><thead><tr><th>When</th><th>Venue</th><th>Guests</th><th>All-in</th><th>Deposit</th><th>Status</th><th>Booked from</th></tr></thead><tbody>${shown.map((r) => {
@@ -1382,7 +1389,7 @@ function modal(html: string, buttons: [string, string, string][], cls = ""): Pro
 const CAL_DAYS = Array.from({ length: 21 }, (_, i) => addDays("2026-11-09", i));
 let calPick: string | null = null, calLast = "";
 async function renderCal() {
-  const rows = (await bkRows()).filter((r) => r.status === "confirmed");
+  const rows = (await bkRows()).filter((r) => r.status === "confirmed" && r.src !== "Live desk");
   const MON = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const html = MON.map((d) => `<div class="calh">${d}</div>`).join("") + CAL_DAYS.map((d) => {
     const inRange = NIGHTS.includes(d), today = d === "2026-11-09", list = rows.filter((r) => localDate(r.startsAt) === d);
@@ -1614,7 +1621,7 @@ function hLayout() {
   const [ox, oy] = hm.toPoint(OFFICE); HQ = [ox * k, oy * k];
 }
 const vByName = (t: string) => venues.filter((v) => t.startsWith(v.name) || t.includes(` ${v.name}`) || t.includes(`${v.name},`) || t.includes(`${v.name}'s`)).sort((a, b) => b.name.length - a.name.length)[0];
-let hBusy = false, hRuns = 0, hWorld: VenueWorld | null = null;
+let hBusy = false, hDone = false, hRuns = 0, hWorld: VenueWorld | null = null;
 const SVGNS = "http://www.w3.org/2000/svg";
 function hMap() {
   if (!hm.size()[0]) return; // hidden page: lay out when it is shown
@@ -1633,7 +1640,8 @@ function hTag(id: string, text: string, cls: string) {
   // Less text on the map: only prices, injections and the winner get a label; everything else is told by colour.
   if (!/offer|inj|win/.test(cls)) { tag.innerHTML = ""; delete tag.dataset.side; return; }
   const w = text.length * 3.4 + 8, [x, y] = hPos.get(id)!;
-  const taken = (side: string) => [...$$<SVGGElement>(`.hp .tag[data-side='${side}']`)].some((t) => { const o = t.closest(".hp")!.id.slice(3); if (o === id || !t.innerHTML) return false; const [ox, oy] = hPos.get(o)!; return Math.abs(ox - x) < (w + 40) / 2 && Math.abs(oy - y) < 22; });
+  const hq = (side: string) => { const ty = side === "down" ? y + 8 : y - 12; return Math.abs(HQ[0] - x) < w / 2 + 8 && Math.abs(HQ[1] - ty) < 14; };
+  const taken = (side: string) => hq(side) || [...$$<SVGGElement>(`.hp .tag[data-side='${side}']`)].some((t) => { const o = t.closest(".hp")!.id.slice(3); if (o === id || !t.innerHTML) return false; const [ox, oy] = hPos.get(o)!; return Math.abs(ox - x) < (w + 40) / 2 && Math.abs(oy - y) < 22; });
   if (!tag.dataset.side) tag.dataset.side = !taken("up") ? "up" : !taken("down") ? "down" : "right";
   const side = tag.dataset.side, dy = side === "down" ? 20 : side === "right" ? 6 : 0, dx = side === "right" ? w / 2 + 8 : 0;
   tag.innerHTML = `<rect x="${dx - w / 2}" y="${-17 + dy}" width="${w}" height="10" rx="5"/><text x="${dx}" y="${-10 + dy}">${esc(text)}</text>`;
@@ -1655,7 +1663,7 @@ function hFly(path: SVGPathElement, back: boolean, cls: string, ms = 700) {
 function hStage(k: string) { const order = ["parse", "source", "email", "compare", "approve", "book"], i = order.indexOf(k); $$<HTMLElement>("#hSteps > div").forEach((d, j) => { d.classList.toggle("done", j < i); d.classList.toggle("on", j === i); }); }
 function hCount(id: string, n: number) { const e = $(`#${id}`); e.textContent = String(n); e.classList.remove("tick"); void e.offsetWidth; e.classList.add("tick"); }
 async function hRun(text: string) {
-  if (hBusy || !text.trim()) return; hBusy = true; hRuns++;
+  if (hBusy || !text.trim()) return; hBusy = true; hDone = false; hRuns++;
   const btn = $<HTMLButtonElement>("#hGo"); btn.disabled = true; $<HTMLInputElement>("#hIn").value = text;
   hMap(); $("#hPhone").innerHTML = `<div class="ph-s">Concierge is on it…</div>`; $("#hRes").innerHTML = ""; $("#hMap").classList.add("running"); $("#hMap").classList.remove("done");
   const c = { mail: 0, rep: 0, off: 0, inj: 0 }; ["hcMail", "hcRep", "hcOff", "hcInj"].forEach((i) => ($(`#${i}`).textContent = "0"));
@@ -1722,7 +1730,7 @@ async function hRun(text: string) {
     ph.insertAdjacentHTML("beforeend", `<div class="ph-bot">${esc(last.length > 220 ? last.slice(0, 218) + "…" : last)}</div>`);
     $("#hRes").innerHTML = `<button class="btn" onclick="go('chat')">Answer in chat</button>`;
   }
-  ph.scrollTop = ph.scrollHeight; $("#hMap").classList.remove("running"); btn.disabled = false; hBusy = false;
+  ph.scrollTop = ph.scrollHeight; $("#hMap").classList.remove("running"); btn.disabled = false; hBusy = false; hDone = true;
 }
 function confetti() {
   const box = $("#hConf"); const cols = ["#7b1e3a", "#c98a12", "#3f7d5a", "#5b6b8c", "#e7c27d"];
@@ -1734,7 +1742,7 @@ $("#hChips").innerHTML = HPH.slice(0, 3).map((t) => `<button class="chip" data-t
 $$<HTMLButtonElement>("#hChips .chip").forEach((b) => b.onclick = () => void hRun(b.dataset.t!));
 $("#hMap").addEventListener("click", (e) => { const g = (e.target as Element).closest(".hp"); if (!g || !hWorld) return; const id = g.id.slice(3), v = venues.find((x) => x.id === id)!; if (hWorld.sent().some((m) => m.venueId === id)) showThreads(hWorld, v.name, id); });
 $<HTMLFormElement>("#hForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $<HTMLInputElement>("#hIn").value || $<HTMLInputElement>("#hIn").placeholder; void hRun(v); });
-hm.onChange(() => { if (!hBusy && !$("#hMap .hp.cand")) hMap(); });
+hm.onChange(() => { if (!hBusy && !hDone) hMap(); });
 const hFit = () => hm.fit([...vLL.values(), OFFICE], innerWidth < 700 ? { top: 70, right: 16, bottom: 90, left: 16 } : { top: 92, right: 40, bottom: 74, left: 40 });
 requestAnimationFrame(() => { hFit(); hMap(); });
 
@@ -1774,7 +1782,8 @@ function autoRun(page: string) {
 // TRACES: every run's spans and every model call, the way you'd debug it in production
 // =====================================================================
 let trSel = 0, trEv = -1;
-function renderTraces() {
+function renderTraces() { try { renderTracesInner(); } catch (err) { console.warn("traces", err); } }
+function renderTracesInner() {
   const calls = llmLog, live = calls.filter((c) => c.source === "live"), ok = calls.filter((c) => c.ok);
   const lat = ok.map((c) => c.ms).sort((a, b) => a - b), p = (q: number) => lat.length ? lat[Math.min(lat.length - 1, Math.floor(q * lat.length))] : 0;
   const cost = live.reduce((a, c) => a + c.tin * 3e-6 + c.tout * 15e-6, 0);
