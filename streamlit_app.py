@@ -36,6 +36,8 @@ def page() -> str:
     """docs/index.html with docs/app.js inlined, so it runs inside Streamlit's component frame."""
     html = (DOCS / "index.html").read_text(encoding="utf-8")
     js = (DOCS / "app.js").read_text(encoding="utf-8").replace("</script", "<\\/script")
+    cfg = (DOCS / "config.js").read_text(encoding="utf-8").replace("</script", "<\\/script")
+    html = html.replace('<script src="./config.js"></script>', f"<script>{cfg}</script>")
     return html.replace('<script type="module" src="./app.js"></script>', f'<script type="module">{js}</script>')
 
 

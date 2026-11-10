@@ -19,7 +19,9 @@
     "typecheck": "tsc --noEmit",
     "build:web": "node web/build.mjs",
     "db:schema": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f db/schema.sql",
-    "site:check": "node scripts/site-check.mjs"
+    "site:check": "node scripts/site-check.mjs",
+    "server:dev": "npx wrangler dev --config server/wrangler.toml",
+    "server:deploy": "npx wrangler deploy --config server/wrangler.toml"
   },
   "dependencies": {
     "zod": "^3.25.0"

@@ -1,0 +1,8 @@
+name = "thursday-dinner-api"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+
+[vars]
+MODEL = "claude-sonnet-4-5"
+# MAIL_FROM = "Thursday Dinner <dinner@your-verified-domain.com>"
+# ALLOWED_ORIGINS = "https://akilalours.github.io,https://ande-thursday-dinner-concierge.streamlit.app,null"

@@ -9,7 +9,7 @@ import { approverFor, carefulApprover, runConcierge } from "../src/agents/concie
 import type { Approver, RunResult } from "../src/agents/concierge.ts";
 import type { BookingRequest, Company, Offer, Proposal, Venue } from "../src/domain/types.ts";
 import { injection, replyTriage, smsConsent } from "../src/judgments/judgments.ts";
-import { ReplayLLM } from "../src/llm/client.ts";
+import { LiveThenReplay, RemoteLLM, ReplayLLM } from "../src/llm/client.ts";
 import type { LLM } from "../src/llm/client.ts";
 import { judgeMessage } from "../evals/judge.ts";
 import { call, ToolDenied } from "../src/tools/registry.ts";
@@ -40,7 +40,16 @@ const when = (iso: string) => { const d = new Date(Date.parse(iso) - 5 * 3_600_0
 const localDate = (iso: string) => new Date(Date.parse(iso) - 5 * 3_600_000).toISOString().slice(0, 10);
 const scen = (id: string) => SCENARIOS.find((s) => s.id === id)!;
 
-const llm = new ReplayLLM("claude-sonnet-4-5");
+const replayLLM = new ReplayLLM("claude-sonnet-4-5");
+// Live Claude when the project's server is configured (docs/config.js or ?api=); otherwise the recorded answers.
+const API = String((window as unknown as { TDC_API?: string }).TDC_API || new URLSearchParams(location.search).get("api") || "").trim().replace(/\/$/, "");
+let apiHealth = { llm: false, email: false };
+class SwitchLLM implements LLM {
+  target: LLM = replayLLM; live: LiveThenReplay | null = null;
+  get mode() { return this.target.mode; }
+  complete(t: string, sy: string, u: string, o?: { maxTokens?: number; signal?: AbortSignal }) { return this.target.complete(t, sy, u, o); }
+}
+const llm = new SwitchLLM();
 const venues = buildVenues();
 const priya = user("usr_priya"), dana = user("usr_dana");
 const company: Company = structuredClone(COMPANY);
@@ -73,6 +82,8 @@ function go(page: string) {
   if (location.hash.slice(1) !== page) history.replaceState(null, "", `#${page}`);
   if (page === "bookings") void renderBookings();
   if (page === "calendar") void renderCal();
+  if (["controls", "evals", "compare", "fix"].includes(page)) autoRun(page);
+  if (page === "seating" && !lastBk) void bkRows().then((rows) => { const r = rows.filter((x) => x.status === "confirmed").at(-1); if (r && !lastBk) setLastBooking({ venue: r.v, roomName: r.room.name, partySize: r.partySize, date: localDate(r.startsAt), dietary: [], client: "Acme", world: new VenueWorld(venues, () => "accept", NOW), threadId: `thr_seat_${r.id}` }); });
   if (page === "explore") renderExplore();
   document.body.classList.remove("menu"); const cur = $$<HTMLButtonElement>("#tabs button").find((b) => b.dataset.p === page); if (cur) $("#menuCur").textContent = cur.textContent!;
   if (page === "chat") setTimeout(() => $<HTMLInputElement>("#chatIn")?.focus(), 50);
@@ -488,7 +499,7 @@ renderControls();
 const runs = new Map<string, ScenarioRun>();
 for (const s of SCENARIOS) { const t = el("div", "tile", s.id); t.title = s.text; t.dataset.id = s.id; t.onclick = () => showRun(s.id); $("#tiles").append(t); }
 for (let i = 0; i < 300; i++) $("#field").append(el("i"));
-$("#detail").innerHTML = `<p style="color:var(--dim);margin:0">Random request × random venue behavior × random approver. Safety must never fail.</p>`;
+$("#detail").innerHTML = "";
 function showRun(id: string) {
   const s = scen(id), r = runs.get(id); $("#dTitle").textContent = `${id} · ${s.group.replace("_", " ")}`;
   $("#detail").innerHTML = `<p style="font:600 15px Fraunces,Georgia,serif;margin:0 0 6px">“${esc(s.text)}”</p>` + (r ? `<p style="color:var(--dim);margin:0 0 6px">${r.result.outcome.replace(/_/g, " ")} · ${r.emails} emails · parse by ${r.result.parseDecidedBy === "model" ? "Claude" : "rules"}</p><table>${r.checks.map((c) => `<tr><td style="color:${c.pass ? "var(--sage)" : "var(--rose)"};font-weight:800">${c.pass ? "✓" : "✗"}</td><td>${c.name}</td></tr>`).join("")}</table>` : `<p style="color:var(--dim)">Not run yet.</p>`);
@@ -1018,7 +1029,7 @@ async function renderBookings() {
   $("#bkTable").innerHTML = shown.length ? `<table class="ctable"><thead><tr><th>When</th><th>Venue</th><th>Guests</th><th>All-in</th><th>Deposit</th><th>Status</th><th>Booked from</th></tr></thead><tbody>${shown.map((r) => {
     const st = r.status === "confirmed" ? (carried.has(r.id) ? '<span class="st ok">Confirmed · changed</span>' : '<span class="st ok">Confirmed</span>') : changedTo.has(r.id) ? '<span class="st mute">Replaced</span>' : `<span class="st bad">Cancelled${cancelledHow.get(r.id) ? ` · ${cancelledHow.get(r.id)}` : ""}</span>`;
     return `<tr class="bkr ${bkPick === r.id ? "picked" : ""} ${r.status === "cancelled" ? "dim" : ""}" data-id="${r.id}"><td><b>${when(r.startsAt)}</b><div class="cs">${localDate(r.startsAt)}</div></td><td><b>${esc(r.v.name)}</b><div class="cs">${esc(r.room.name)} · ${esc(r.v.neighborhood)}</div></td><td>${r.partySize}</td><td><b>${usd(r.approved)}</b></td><td>${r.paid ? usd(r.paid) : "—"}</td><td>${st}</td><td><span class="pill">${r.src}</span></td></tr>`;
-  }).join("")}</tbody></table>` : `<div class="empty">No ${bkFilter === "cancelled" ? "cancelled " : ""}bookings yet. Book one on <a href="#" onclick="go('avail');return false">Availability</a>, <a href="#" onclick="go('compare');return false">Compare</a> or <a href="#" onclick="go('book');return false">Book</a>, or let the Live desk run.</div>`;
+  }).join("")}</tbody></table>` : `<div class="empty">No ${bkFilter === "cancelled" ? "cancelled " : ""}bookings yet. <button class="btn pri" onclick="go('home')">Book one</button></div>`;
   $$<HTMLElement>("#bkTable .bkr").forEach((tr) => tr.onclick = () => { bkPick = tr.dataset.id!; void renderBookings(); });
   const r = rows.find((x) => x.id === bkPick); if (!r) { $("#bkSide").innerHTML = `<div class="cs">Select a booking to see the receipt, change it or cancel it.</div>`; return; }
   const rc = receipt(r), hrs = Math.round((Date.parse(r.startsAt) - Date.parse(NOW)) / 3_600_000), free = hrs >= r.v.cancellationHours;
@@ -1234,6 +1245,9 @@ async function chatRequest(text: string) {
     const v = venues.find((x) => x.id === res.chosenVenueId)!, bk = (await chatStore.getBooking(res.bookingId))!, room = v.rooms.find((r) => r.id === bk.roomId)!;
     chatCur = { runId: res.runId, world, bookingId: res.bookingId, v, room, n: bk.partySize, date: localDate(bk.startsAt), client: res.request?.clientName ?? "Guests", dietary: res.request?.dietary ?? [] };
     toast("Booked", `${v.name} · ${bk.partySize} guests`); renderGrid();
+    msg("bot", `<div class="cbtns"><button class="btn" id="ce_${res.runId}">✉ Email it</button><button class="btn" id="cc_${res.runId}">📅 Calendar</button></div>`);
+    $(`#ce_${res.runId}`).onclick = () => emailIt(v, room.name, bk.startsAt, bk.partySize, res.proposals.find((x) => x.kind === "book")?.amountCents ?? 0, 0, res.request?.clientName ?? "");
+    $(`#cc_${res.runId}`).onclick = () => downloadIcs(v, room.name, bk.startsAt, bk.partySize);
     chips([`Make it ${bk.partySize + 2 <= room.listedCapacity ? bk.partySize + 2 : bk.partySize - 2} people`, "Move it to Friday", "2 guests are vegetarian", "Arrange seating", "Cancel it"]);
   } else chips(["dinner for 12 with the Acme team next Thursday, somewhere private", "team dinner for 8 this Friday under $100 a head"]);
 }
@@ -1507,6 +1521,22 @@ function downloadIcs(v: Venue, roomName: string, startsAt: string, n: number) {
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" })); a.download = `dinner-${v.name.toLowerCase().replace(/[^a-z]+/g, "-")}.ics`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   toast("Calendar invite saved", "Open it to add the dinner to your calendar");
 }
+function emailIt(v: Venue, roomName: string, startsAt: string, n: number, allIn: number, deposit = 0, client = "") {
+  if (!apiHealth.email) { location.href = mailtoFor(v, roomName, startsAt, n, allIn); return; }
+  let saved = ""; try { saved = localStorage.getItem("tdc_email") ?? ""; } catch { /* storage may be blocked */ }
+  const m = el("div", "modal", `<form class="mbox" id="emForm"><div class="vt">Email the confirmation</div><div class="vs">A real email with the calendar invite attached.</div><input id="emTo" type="email" required placeholder="you@company.com" value="${esc(saved)}" class="emin"><div class="cbtns"><button class="btn pri">Send</button><button class="btn" type="button" id="emX">Cancel</button></div></form>`);
+  document.body.append(m); const inp = m.querySelector<HTMLInputElement>("#emTo")!; setTimeout(() => inp.focus(), 30);
+  m.querySelector("#emX")!.addEventListener("click", () => m.remove()); m.addEventListener("click", (e) => { if (e.target === m) m.remove(); });
+  m.querySelector("form")!.addEventListener("submit", async (e) => {
+    e.preventDefault(); const to = inp.value.trim(), btn = m.querySelector<HTMLButtonElement>(".btn.pri")!; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+    try { localStorage.setItem("tdc_email", to); } catch { /* fine */ }
+    try {
+      const r = await fetch(`${API}/email`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ to, venue: v.name, room: roomName, neighborhood: v.neighborhood, when: `${when(startsAt)}, ${localDate(startsAt)}`, guests: n, allIn: usd(allIn), deposit: deposit ? usd(deposit) : "", client, startsAt }) });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error ?? `HTTP ${r.status}`);
+      m.remove(); toast("Email sent", `Check ${to}`);
+    } catch (err) { btn.disabled = false; btn.textContent = "Send"; toast("Couldn't send", String(err instanceof Error ? err.message : err), "bad"); }
+  });
+}
 function mailtoFor(v: Venue, roomName: string, startsAt: string, n: number, allIn: number) {
   const body = `Dinner is booked.\n\n${v.name} · ${roomName}\n${when(startsAt)}, ${localDate(startsAt)}\n${n} guests · about ${usd(allIn)} all-in\n\nBooked by the concierge.`;
   return `mailto:?subject=${encodeURIComponent(`Booked: ${v.name}, ${localDate(startsAt)}`)}&body=${encodeURIComponent(body)}`;
@@ -1611,8 +1641,8 @@ async function hRun(text: string) {
     ph.insertAdjacentHTML("beforeend", `<div class="ph-ok"><div class="ph-check">✓</div><b>Booked</b><span>${esc(v.name)} · ${when(bk.startsAt)}</span><span>${res.paymentId ? "Deposit paid to venue on file" : "No deposit"}</span></div>`);
     confetti(); toast("Booked", `${v.name} · ${bk.partySize} guests`);
     setLastBooking({ venue: v, roomName: room.name, partySize: bk.partySize, date: localDate(bk.startsAt), dietary: res.request?.dietary ?? [], client: res.request?.clientName ?? "Guests", world, threadId: `thr_${res.runId}_${v.id}` });
-    $("#hRes").innerHTML = `<button class="btn" id="hIcs" title="Add to calendar">📅</button><a class="btn" href="${mailtoFor(v, room.name, bk.startsAt, bk.partySize, res.proposals.find((x) => x.kind === "book")?.amountCents ?? 0)}" title="Email it">✉</a><button class="btn" id="hMails" title="Venue emails">Threads</button><button class="btn pri" onclick="go('seating')">Seat</button><button class="btn" onclick="go('bookings')">Receipt</button>`;
-    $("#hIcs").onclick = () => downloadIcs(v, room.name, bk.startsAt, bk.partySize); $("#hMails").onclick = () => showThreads(world, `Emails for ${res.request?.clientName ?? "this"} dinner`);
+    $("#hRes").innerHTML = `<button class="btn" id="hIcs" title="Add to calendar">📅</button><button class="btn" id="hEm" title="Email it">✉</button><button class="btn" id="hMails" title="Venue emails">Threads</button><button class="btn pri" onclick="go('seating')">Seat</button><button class="btn" onclick="go('bookings')">Receipt</button>`;
+    $("#hIcs").onclick = () => downloadIcs(v, room.name, bk.startsAt, bk.partySize); $("#hEm").onclick = () => emailIt(v, room.name, bk.startsAt, bk.partySize, res.proposals.find((x) => x.kind === "book")?.amountCents ?? 0, res.proposals.find((x) => x.kind === "pay_deposit")?.amountCents ?? 0, res.request?.clientName ?? ""); $("#hMails").onclick = () => showThreads(world, `Emails for ${res.request?.clientName ?? "this"} dinner`);
     renderGrid();
   } else {
     const last = res.messagesToBooker.at(-1) ?? "";
@@ -1633,7 +1663,46 @@ $("#hMap").addEventListener("click", (e) => { const g = (e.target as Element).cl
 $<HTMLFormElement>("#hForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $<HTMLInputElement>("#hIn").value || $<HTMLInputElement>("#hIn").placeholder; void hRun(v); });
 hMap();
 
+// =====================================================================
+// VOICE: say the request
+// =====================================================================
+function mic(btn: HTMLButtonElement, input: HTMLInputElement, done: (t: string) => void) {
+  const SR = (window as unknown as { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any }).SpeechRecognition ?? (window as unknown as { webkitSpeechRecognition?: new () => any }).webkitSpeechRecognition;
+  if (!SR) { btn.remove(); return; }
+  let rec: any = null;
+  btn.onclick = () => {
+    if (rec) { rec.stop(); return; }
+    rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; let text = "";
+    rec.onresult = (e: any) => { text = [...e.results].map((r: any) => r[0].transcript).join(""); input.value = text; };
+    rec.onerror = (e: any) => { if (e.error === "not-allowed" || e.error === "service-not-allowed") toast("Microphone blocked", "Allow it in the browser to talk to the concierge", "warn"); };
+    rec.onend = () => { btn.classList.remove("rec"); rec = null; if (text.trim()) done(text.trim()); };
+    btn.classList.add("rec"); input.value = ""; input.placeholder = "Listening…"; rec.start();
+  };
+}
+mic($<HTMLButtonElement>("#hMic"), $<HTMLInputElement>("#hIn"), (t) => void hRun(t));
+mic($<HTMLButtonElement>("#cMic"), $<HTMLInputElement>("#chatIn"), (t) => void chatSend(t));
+
+// First visit to a page that shows results: run it, so nobody lands on an empty screen.
+const autoRan = new Set<string>();
+function autoRun(page: string) {
+  if (autoRan.has(page) || touring) return; autoRan.add(page);
+  setTimeout(() => {
+    if (!$(`#p-${page}.on`)) { autoRan.delete(page); return; }
+    if (page === "controls") $<HTMLButtonElement>("#runAll").click();
+    if (page === "evals") $<HTMLButtonElement>("#runEvals").click();
+    if (page === "compare" && !cmpRows.length) void cmpLoad();
+    if (page === "fix") $<HTMLButtonElement>("#fixGo").click();
+  }, 450);
+}
+
 // ---------- start ----------
+function renderLive() {
+  const on = llm.target !== replayLLM && !(llm.live && llm.live.liveCalls === 0 && llm.live.replayed > 0), b = $("#livePill");
+  b.className = `livepill ${on ? "on" : ""}`; b.innerHTML = on ? `<span class="live"></span>Live Claude` : `<i>✳</i>Recorded Claude`;
+  b.title = on ? `Calls go to Claude now. ${llm.live?.liveCalls ?? 0} live calls this visit${llm.live?.replayed ? `, ${llm.live.replayed} fell back to recordings` : ""}.` : "Answers Claude really gave, replayed. Connect the server for live calls.";
+}
+if (API) fetch(`${API}/health`).then((r) => r.json()).then((h: { llm: boolean; email: boolean }) => { apiHealth = h; if (h.llm) { llm.live = new LiveThenReplay(new RemoteLLM(API), replayLLM); llm.target = llm.live; } renderLive(); }).catch(() => renderLive());
+renderLive(); setInterval(() => { if (llm.live) renderLive(); }, 3000);
 if (!new URLSearchParams(location.search).has("still")) void deskLoop();
 { const h = location.hash.slice(1), ask0 = new URLSearchParams(location.search).get("ask"); go(ask0 ? "home" : $(`#p-${h}`) ? h : "home"); if (ask0) setTimeout(() => void hRun(ask0.slice(0, 200)), 700); }
 window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if ($(`#p-${h}`) && !$(`#p-${h}.on`)) go(h); });

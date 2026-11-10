@@ -71,6 +71,29 @@ export class ReplayLLM implements LLM {
   }
 }
 
+/** Calls the model through the project's small server (server/worker.js), so the API key never reaches a browser. */
+export class RemoteLLM implements LLM {
+  readonly mode = "live" as const;
+  private base: string;
+  constructor(base: string) { this.base = base.replace(/\/$/, ""); }
+  async complete(task: string, system: string, user: string, opts: { maxTokens?: number; signal?: AbortSignal } = {}): Promise<Completion> {
+    const res = await fetch(`${this.base}/llm`, { method: "POST", signal: opts.signal, headers: { "content-type": "application/json" }, body: JSON.stringify({ task, system, user, maxTokens: opts.maxTokens }) });
+    if (!res.ok) throw new Error(`model endpoint returned HTTP ${res.status}`);
+    return await res.json() as Completion;
+  }
+}
+
+/** Live first; if the live call fails for any reason other than our own timeout, answer from the recordings. */
+export class LiveThenReplay implements LLM {
+  readonly mode = "live" as const;
+  live: LLM; replay: LLM; liveCalls = 0; replayed = 0;
+  constructor(live: LLM, replay: LLM) { this.live = live; this.replay = replay; }
+  async complete(task: string, system: string, user: string, opts: { maxTokens?: number; signal?: AbortSignal } = {}): Promise<Completion> {
+    try { const c = await this.live.complete(task, system, user, opts); this.liveCalls++; return c; }
+    catch (e) { if (opts.signal?.aborted) throw e; this.replayed++; return this.replay.complete(task, system, user); }
+  }
+}
+
 export function llmFromEnv(env = process.env): LLM {
   const model = env.ANDE_MODEL ?? "claude-sonnet-4-5";
   const mode = env.ANDE_LLM_MODE ?? (env.ANTHROPIC_API_KEY ? "live" : "replay");

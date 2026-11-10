@@ -18,7 +18,7 @@
 <table align="center"><tr>
 <td align="center"><h3>47/47</h3>eval scenarios</td>
 <td align="center"><h3>0 / 2,013</h3>safety failures<br>in random worlds</td>
-<td align="center"><h3>90</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>97</h3>tests, incl.<br>real Postgres</td>
 <td align="center"><h3>9</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
 
@@ -106,6 +106,22 @@ flowchart LR
 - First full live run: 45/45 scenarios, Claude decided 45/45 request parses and 117/117 offer extractions. The judge scored every proposal message 5/5 except two (4/5 and 1/5); both were real bugs (R7, R8), now fixed and graded deterministically.
 - Put your key in `.env` once (`ANTHROPIC_API_KEY=...`); `npm run llm:check` verifies it, `npm run evals:live` re-measures and rebuilds the site.
 - The LLM judge is calibrated with `node evals/calibrate.ts --export` plus human labels.
+</details>
+
+<details>
+<summary><b>Live mode: real Claude and real email</b></summary>
+
+The page works with no server: it replays answers Claude really gave and uses your mail app for email. Deploy the small server in `server/` and the same page calls Claude live and sends real confirmation emails with a calendar invite.
+
+```bash
+npx wrangler login                               # free Cloudflare account
+npx wrangler secret put ANTHROPIC_API_KEY --config server/wrangler.toml
+npx wrangler secret put RESEND_API_KEY --config server/wrangler.toml   # free resend.com account
+npm run server:deploy                            # prints https://thursday-dinner-api.<you>.workers.dev
+```
+
+Put that URL in `docs/config.js` (`window.TDC_API = "https://…workers.dev";`) and push. The header pill turns to **● Live Claude**.
+The server only accepts the agent's own tasks, caps tokens, rate-limits per visitor, and builds emails from booking fields only, so it is not an open model proxy or a spam relay (`test/worker.test.ts`). If a live call fails, the page falls back to the recording and says so.
 </details>
 
 <details>
