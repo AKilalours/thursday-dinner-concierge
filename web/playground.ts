@@ -49,11 +49,41 @@ let apiHealth = { llm: false, email: false };
 class SwitchLLM implements LLM {
   target: LLM = replayLLM; live: LiveThenReplay | null = null;
   get mode() { return this.target.mode; }
-  complete(t: string, sy: string, u: string, o?: { maxTokens?: number; signal?: AbortSignal }) { return this.target.complete(t, sy, u, o); }
+  async complete(t: string, sy: string, u: string, o?: { maxTokens?: number; signal?: AbortSignal }) {
+    const t0 = performance.now(), before = this.live?.replayed ?? 0;
+    try {
+      const c = await this.target.complete(t, sy, u, o);
+      llmLog.unshift({ task: t, ms: Math.round(performance.now() - t0), tin: c.inputTokens, tout: c.outputTokens, source: this.target === replayLLM || (this.live?.replayed ?? 0) > before ? "recorded" : "live", ok: true, at: Date.now() });
+      return c;
+    } catch (e) { llmLog.unshift({ task: t, ms: Math.round(performance.now() - t0), tin: 0, tout: 0, source: "none", ok: false, at: Date.now() }); throw e; }
+    finally { if (llmLog.length > 400) llmLog.length = 400; }
+  }
 }
+interface LlmCall { task: string; ms: number; tin: number; tout: number; source: "live" | "recorded" | "none"; ok: boolean; at: number }
+const llmLog: LlmCall[] = [];
 const llm = new SwitchLLM();
 const venues = buildVenues();
 const priya = user("usr_priya"), dana = user("usr_dana");
+// Whoever is signed in is the booker the agent acts for: their name goes into every email, message and approval.
+const ME_KEY = "tdc_me";
+const me = { name: (() => { try { return localStorage.getItem(ME_KEY) || ""; } catch { return ""; } })() || "Akila Lourdes" };
+const meFirst = () => me.name.split(/\s+/)[0];
+const meIni = () => me.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
+function applyMe() {
+  priya.name = me.name;
+  document.querySelectorAll(".meName").forEach((e) => (e.textContent = me.name));
+  document.querySelectorAll(".meIni").forEach((e) => (e.textContent = meIni()));
+  document.querySelectorAll(".meFirst").forEach((e) => (e.textContent = meFirst()));
+  document.querySelectorAll(".meOpt").forEach((e) => (e.textContent = `${meFirst()} (EA, acts for Dana)`));
+}
+applyMe();
+// Evals, the Fix lab and policy replays are fixtures: they run on recorded Claude answers with the persona the
+// recordings were made with, exactly like CI. Your own actions (Home, Chat, Explore, Compare) use live Claude.
+let fixtureDepth = 0;
+async function asFixture<T>(fn: () => Promise<T>): Promise<T> {
+  fixtureDepth++; priya.name = "Priya Raman";
+  try { return await fn(); } finally { if (--fixtureDepth === 0) priya.name = me.name; }
+}
 const company: Company = structuredClone(COMPANY);
 const AGENT: Record<string, string> = { concierge: "c", sourcing: "s", coordination: "v", comparison: "m" };
 const isAI = (e: TraceEvent) => e.data?.decidedBy === "model" || / \(model\)$/.test(e.text);
@@ -64,7 +94,14 @@ const ledger: { venue: string; guests: number; allIn: number; saved: number }[] 
 const stores: MemoryStore[] = [];
 const srcOf = new Map<MemoryStore, string>();
 function bump(id: string, v: string) { const k = $(`#${id}`); if (k.textContent !== v) { k.textContent = v; k.parentElement!.classList.remove("bump"); void k.offsetWidth; k.parentElement!.classList.add("bump"); } }
-function record(res: RunResult, world: VenueWorld) {
+interface RunLog { id: string; label: string; outcome: string; trace: TraceEvent[]; emails: number; at: number }
+const runsLog: RunLog[] = [];
+function record(res: RunResult, world: VenueWorld, label?: string) {
+  const r0 = res.request; runsLog.unshift({ id: res.runId, label: label ?? (r0 ? `${r0.partySize} guests${r0.clientName ? ` · ${r0.clientName}` : ""}${r0.date ? ` · ${r0.date.slice(5)}` : ""}` : "request"), outcome: res.outcome, trace: [...res.trace], emails: world.sent().length + world.received().length, at: Date.now() });
+  if (runsLog.length > 60) runsLog.length = 60;
+  if ($("#p-traces.on")) renderTraces();
+  // Pages that list bookings stay live while you look at them.
+  setTimeout(() => { if ($("#p-calendar.on")) void renderCal(); if ($("#p-bookings.on")) void renderBookings(); }, 0);
   S.req++; S.mail += world.sent().length + world.received().length;
   S.inj += res.trace.filter((e) => e.kind === "injection_flagged").length;
   S.ai += res.trace.filter(isAI).length;
@@ -79,20 +116,23 @@ function record(res: RunResult, world: VenueWorld) {
 
 // ---------- navigation ----------
 function go(page: string) {
-  $$<HTMLButtonElement>("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.p === page));
+  $$<HTMLButtonElement>("#tabs button[data-p]").forEach((b) => b.classList.toggle("on", b.dataset.p === page));
   $$(".page").forEach((p) => p.classList.toggle("on", p.id === `p-${page}`));
   if (location.hash.slice(1) !== page) history.replaceState(null, "", `#${page}`);
   if (page === "bookings") void renderBookings();
   if (page === "calendar") void renderCal();
+  if (page === "traces") renderTraces();
+  if (page === "home" && !hBusy) requestAnimationFrame(() => { hFit(); hMap(); });
+  if (page === "explore") requestAnimationFrame(() => { if (!xFitted) { xFitAll(); xFitted = true; } else xm.render(); });
   if (["controls", "evals", "compare", "fix"].includes(page)) autoRun(page);
   if (page === "seating" && !lastBk) void bkRows().then((rows) => { const r = rows.filter((x) => x.status === "confirmed").at(-1); if (r && !lastBk) setLastBooking({ venue: r.v, roomName: r.room.name, partySize: r.partySize, date: localDate(r.startsAt), dietary: [], client: "Acme", world: new VenueWorld(venues, () => "accept", NOW), threadId: `thr_seat_${r.id}` }); });
   if (page === "explore") renderExplore();
-  document.body.classList.remove("menu"); const cur = $$<HTMLButtonElement>("#tabs button").find((b) => b.dataset.p === page); if (cur) $("#menuCur").textContent = cur.textContent!;
+  document.body.classList.remove("menu"); const cur = $$<HTMLButtonElement>("#tabs button[data-p]").find((b) => b.dataset.p === page); if (cur) $("#menuCur").textContent = cur.textContent!;
   if (page === "chat") setTimeout(() => $<HTMLInputElement>("#chatIn")?.focus(), 50);
   
   window.scrollTo({ top: 0 });
 }
-$$<HTMLButtonElement>("#tabs button").forEach((b) => b.addEventListener("click", () => go(b.dataset.p!)));
+$$<HTMLButtonElement>("#tabs button[data-p]").forEach((b) => b.addEventListener("click", () => go(b.dataset.p!)));
 $("#menuBtn").addEventListener("click", (e) => { e.stopPropagation(); document.body.classList.toggle("menu"); });
 document.addEventListener("click", (e) => { if (document.body.classList.contains("menu") && !(e.target as HTMLElement).closest("#tabs")) document.body.classList.remove("menu"); });
 Object.assign(window, { go, caption: (n: string, t: string) => { const c = $("#caption"); c.style.display = t ? "flex" : "none"; $("#capN").textContent = n; $("#capT").textContent = t; } });
@@ -178,7 +218,7 @@ function renderDetail() {
   $("#offers").innerHTML = r.rows.size ? `<table><thead><tr><th>Venue</th><th>Room</th><th>Minimum</th><th>All-in / head</th><th>Status</th></tr></thead><tbody>${[...r.rows.values()].map((o) =>
     `<tr class="${o.state === "win" ? "win" : ""}"><td><b>${esc(o.name)}</b></td><td>${esc(o.room)}</td><td>${o.min}</td><td>${o.perHead}</td><td><span class="st ${({ win: "ok", offer: "ok", inj: "bad", decl: "mute", mail: "warn", cand: "mute" } as Record<string, string>)[o.state]}">${esc(o.note)}</span>${o.ai ? '<span class="ai"></span>' : ""}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">Offers appear as venues reply.</div>`;
   const shown = r.acts.filter((e) => !e.kind.startsWith("to_booker") || /Reply approve/.test(e.text));
-  const li = (e: TraceEvent) => `<li class="${e.kind === "injection_flagged" ? "bad" : e.kind === "booked" ? "good" : ""}"><span class="ic ${AGENT[e.agent] ?? "c"}">${ICON[e.agent] ?? "✦"}</span><div><div class="at">${esc(e.kind.startsWith("to_booker") ? "Proposal sent to Priya's phone" : e.kind === "proposed" ? "Waiting for approval" : e.text.replace(/ \((model|rules)(, [\d.]+)?\)$/, ""))}${isAI(e) ? '<span class="ai"></span>' : ""}</div><div class="tm">${e.agent} · ${when(e.at)}</div></div></li>`;
+  const li = (e: TraceEvent) => `<li class="${e.kind === "injection_flagged" ? "bad" : e.kind === "booked" ? "good" : ""}"><span class="ic ${AGENT[e.agent] ?? "c"}">${ICON[e.agent] ?? "✦"}</span><div><div class="at">${esc(e.kind.startsWith("to_booker") ? `Proposal sent to ${meFirst()}'s phone` : e.kind === "proposed" ? "Waiting for approval" : e.text.replace(/ \((model|rules)(, [\d.]+)?\)$/, ""))}${isAI(e) ? '<span class="ai"></span>' : ""}</div><div class="tm">${e.agent} · ${when(e.at)}</div></div></li>`;
   // Append only what's new, so the feed doesn't re-animate on every update.
   if (actsShown.sel === sel && shown.length >= actsShown.n) { $("#acts").insertAdjacentHTML("beforeend", shown.slice(actsShown.n).map(li).join("")); }
   else { $("#acts").innerHTML = shown.map(li).join(""); $("#acts").classList.add("still"); requestAnimationFrame(() => $("#acts").classList.remove("still")); }
@@ -211,7 +251,7 @@ async function deskRun(i: number, g: number) {
   const store = new MemoryStore(); await store.init(venues); stores.push(store); r.world = world;
   let chain: Promise<void> = Promise.resolve();
   const show = (e: TraceEvent) => { chain = chain.then(async () => { if (g !== deskGen) return; apply(r, e); $("#dClock").textContent = when(e.at); renderQueue(); if (sel === i && dOpen) renderDetail(); await dsleep(["reply", "offer", "injection_flagged"].includes(e.kind) ? 700 : 1000); }); };
-  const res = await runConcierge({ text: s.text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm, venues, company, onEvent: (e) => { if (!e.kind.startsWith("to_booker")) show(e); },
+  const res = await runConcierge({ text: s.text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm: replayLLM, venues, company, onEvent: (e) => { if (!e.kind.startsWith("to_booker")) show(e); },
     approver: async (p, st) => {
       await chain; if (g !== deskGen) return "pending";
       if (p.kind === "pay_deposit") return carefulApprover(priya, { partySize: p.partySize, date: localDate(p.startsAt), privateRoom: false })(p, st);
@@ -511,19 +551,27 @@ $("#runEvals").onclick = async () => {
   const b = $<HTMLButtonElement>("#runEvals"); b.disabled = true; let pass = 0; inv = 0; invFail = 0; runs.clear(); $$("#tiles .tile").forEach((t) => (t.className = "tile"));
   for (const s of SCENARIOS) {
     const t = $(`.tile[data-id="${s.id}"]`); t.className = "tile run"; await sleep(60);
-    const r = await runScenario(s, llm); runs.set(s.id, r); const ok = r.checks.every((c) => c.pass); if (ok) pass++;
+    const r = await asFixture(() => runScenario(s, replayLLM)); runs.set(s.id, r); const ok = r.checks.every((c) => c.pass); if (ok) pass++;
     for (const c of r.checks.filter((c) => c.kind === "invariant")) { inv++; if (!c.pass) invFail++; }
     t.className = `tile ${ok ? "pass" : "fail"}${r.result.parseDecidedBy === "model" ? " ai" : ""}`;
     bump("sPass", `${pass}/${SCENARIOS.length}`); bump("sInv", inv.toLocaleString()); bump("sFail", String(invFail));
   }
-  showRun("p01"); b.disabled = false;
+  showRun("p01"); b.disabled = false; renderGroups();
 };
+function renderGroups() {
+  const groups = [...new Set(SCENARIOS.map((x) => x.group))];
+  $("#eGroups").innerHTML = groups.map((g) => {
+    const ss = SCENARIOS.filter((x) => x.group === g), done = ss.filter((x) => runs.has(x.id)), ok = done.filter((x) => runs.get(x.id)!.checks.every((c) => c.pass)).length;
+    const ai = done.filter((x) => runs.get(x.id)!.result.parseDecidedBy === "model").length;
+    return `<div class="eg"><span>${g.replace(/_/g, " ")}</span><div class="egb"><i style="width:${(ok / ss.length) * 100}%"></i></div><b>${ok}/${ss.length}</b><em title="parsed by Claude">✳${ai}</em></div>`;
+  }).join("");
+}
 $("#runFuzz").onclick = async () => {
   const b = $<HTMLButtonElement>("#runFuzz"); b.disabled = true; const out: Record<string, number> = {}; let checks = 0, fails = 0;
   const col: Record<string, string> = { booked: "#3f7d5a", escalated: "#b8862b", rejected_by_booker: "#7a4fb0", awaiting_approval: "#7b1e3a", needs_clarification: "#8c7c6f" };
   const dots = $$<HTMLElement>("#field i"); dots.forEach((d) => (d.style.background = ""));
   for (let i = 0; i < 300; i++) {
-    const f = await fuzzOne(i, llm); out[f.outcome] = (out[f.outcome] ?? 0) + 1; checks += f.checks.length; const bad = f.checks.filter((c) => !c.pass).length; fails += bad;
+    const f = await asFixture(() => fuzzOne(i, replayLLM)); out[f.outcome] = (out[f.outcome] ?? 0) + 1; checks += f.checks.length; const bad = f.checks.filter((c) => !c.pass).length; fails += bad;
     dots[i].style.background = bad ? "#c2455d" : col[f.outcome]; dots[i].title = f.text;
     if (i % 5 === 4 || i === 299) { bump("sFuzz", String(i + 1)); bump("sFail", String(invFail + fails)); bump("sInv", (inv + checks).toLocaleString()); $("#legend").innerHTML = Object.entries(out).map(([k, n]) => `<span style="color:${col[k]}">● ${k.replace(/_/g, " ")} ${n}</span>`).join(""); await sleep(10); }
   }
@@ -606,13 +654,14 @@ const INCIDENTS = [
     diff: ["  + `Deposit ${deposit}; free cancellation until ${h} h before.`", "+ + (req.dietary.length ? ` Dietary needs sent to ${venue}: ${req.dietary}.` : \"\")", "+ + (req.cuisine ? ` ${cuisine}, as asked.` : \"\")"] },
 ];
 let inc = 0;
-async function runFix(legacy: { r7?: boolean; r8?: boolean } | undefined, text: string) {
+async function runFix(legacy: { r7?: boolean; r8?: boolean } | undefined, text: string) { return asFixture(() => runFixInner(legacy, text)); }
+async function runFixInner(legacy: { r7?: boolean; r8?: boolean } | undefined, text: string) {
   const store = new MemoryStore(); await store.init(venues);
   const world = new VenueWorld(venues, () => "accept", "2026-11-09T15:00:00.000Z", 11);
-  const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm, venues, company: COMPANY, legacy,
+  const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm: replayLLM, venues, company: COMPANY, legacy,
     approver: async (p, s) => carefulApprover(priya, { partySize: p.partySize, date: localDate(p.startsAt), privateRoom: false })(p, s) });
   const msg = res.messagesToBooker.find((m) => /Reply approve or reject/.test(m)) ?? res.messagesToBooker.at(-1) ?? "";
-  const verdict = /Reply approve or reject/.test(msg) ? await judgeMessage(llm, text, msg) : null;
+  const verdict = /Reply approve or reject/.test(msg) ? await judgeMessage(replayLLM, text, msg) : null;
   return { res, msg, verdict };
 }
 const judgeCard = (v: { score: number; reason: string } | null, pending: string) => v
@@ -643,7 +692,7 @@ $("#fixGo").onclick = async () => {
     out.insertAdjacentHTML("beforeend", `<div class="cs" style="margin-top:14px">After the fix · ${after.res.outcome.replace(/_/g, " ")}</div><div class="msg good">${esc(after.msg)}</div>${judgeCard(after.verdict, "This new message hasn't been through a live run yet. <code>npm run evals:live</code> records Claude's verdict.")}`);
     btn.textContent = "4 · Prove it in the eval suite ▶";
   } else {
-    mark(3); const r = await runScenario(scen(x.reg), llm), ok = r.checks.every((c) => c.pass);
+    mark(3); const r = await asFixture(() => runScenario(scen(x.reg), replayLLM)), ok = r.checks.every((c) => c.pass);
     out.insertAdjacentHTML("beforeend", `<div class="prove"><span class="tile ${ok ? "pass" : "fail"}">${x.reg}</span><div><b>${ok ? "Permanent eval case passes" : "Eval case fails"}</b><div class="cs">${r.checks.filter((c) => /cuisine|dietary|outcome/.test(c.name)).map((c) => `${c.pass ? "✓" : "✗"} ${c.name}`).join(" · ")}</div></div></div>`);
     steps.forEach((s) => (s.className = "ok")); btn.textContent = "Replay again ↺"; fixStep = -1;
   }
@@ -694,7 +743,7 @@ $("#toolCall").onclick = async () => {
 };
 $("#toolApprove").onclick = async () => {
   if (!lastProposal) { $("#toolOut").innerHTML = `<div class="tres bad"><b>Create a proposal first.</b></div>`; return; }
-  try { const p = await toolStore.decide(lastProposal, priya.id, "booker", "approve"); $("#toolOut").innerHTML = `<div class="tres ok"><b>Priya approved ${esc(p.id)} from the booker app (separate role)</b><pre>status: ${p.status}</pre></div>`; }
+  try { const p = await toolStore.decide(lastProposal, priya.id, "booker", "approve"); $("#toolOut").innerHTML = `<div class="tres ok"><b>${esc(meFirst())} approved ${esc(p.id)} from the booker app (separate role)</b><pre>status: ${p.status}</pre></div>`; }
   catch (e) { $("#toolOut").innerHTML = `<div class="tres bad"><b>${e instanceof StoreError ? e.code.replace(/_/g, " ") : String(e)}</b></div>`; }
 };
 renderTools(); void toolAudit();
@@ -884,12 +933,12 @@ renderGrid();
 // =====================================================================
 interface Cmp { v: Venue; roomId: string; roomName: string; seats: number | null; min: number; pol: PolicyResult; ai: boolean; why: string | null; injected: boolean; agentPick: boolean }
 let cmpRows: Cmp[] = [], cmpSel = new Set<string>(), cmpSortKey = "perHead", cmpCtx: { store: MemoryStore; world: VenueWorld; runId: string; req: BookingRequest } | null = null;
-async function cmpLoad() {
+async function cmpLoad(model: LLM = llm) {
   const btn = $<HTMLButtonElement>("#cmpGo"); btn.disabled = true; $("#cmpTable").innerHTML = `<div class="empty"><span class="spin"></span> The agent is emailing venues and reading replies…</div>`;
   const text = $<HTMLInputElement>("#cmpAsk").value, store = new MemoryStore(); await store.init(venues); stores.push(store); srcOf.set(store, "Compare");
   const order: Behavior[] = ["accept", "counter_price", "injection", "accept", "decline", "counter_capacity", "accept"]; const seen = new Map<string, Behavior>();
   const world = new VenueWorld(venues, (id) => { if (!seen.has(id)) seen.set(id, order[seen.size] ?? "accept"); return seen.get(id)!; }, NOW, 11);
-  const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm, venues, company, maxRounds: 1, shortlistSize: 7, approver: async () => "pending" });
+  const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm: model, venues, company, maxRounds: 1, shortlistSize: 7, approver: async () => "pending" });
   const req = res.request!; const proposed = res.proposals.find((p) => p.kind === "book");
   cmpCtx = { store, world, runId: res.runId, req };
   const rejected = new Map(((res.trace.find((e) => e.kind === "compared")?.data?.rejected ?? []) as { venue: string; why: string }[]).map((r) => [r.venue, r.why]));
@@ -930,7 +979,7 @@ function cmpRender() {
     await proposeAndBook($(`#cf_${r.v.id}`), cmpCtx.store, cmpCtx.world, cmpCtx.runId, r.v, r.roomId, cmpCtx.req.date!, cmpCtx.req.partySize, r.pol, r.min);
   });
 }
-$("#cmpGo").onclick = () => void cmpLoad();
+$("#cmpGo").onclick = () => void cmpLoad(llm);
 
 // =====================================================================
 // SEATING: drag guests onto the table, flag dietary needs, send the plan
@@ -985,7 +1034,7 @@ $("#seatSend").onclick = async () => {
   if (!lastBk) return; const b = lastBk, seated = seats.filter((x) => x !== null).length;
   if (seated < seats.length) { $("#seatOut").innerHTML = `<div class="gstep bad">Seat everyone first (${seated}/${seats.length}).</div>`; return; }
   const diet = guests.filter((g) => g.diet).map((g) => `${g.name} (${g.diet})`);
-  const body = `Hi ${b.venue.name} team,\n\nSeating for our ${b.date} dinner, starting at the head of the table:\n${seats.map((g, i) => `${i + 1}. ${guests[g!].name}`).join("\n")}\n\n${diet.length ? `Dietary: ${diet.join(", ")}.` : "No dietary restrictions."}\n\nThank you,\nConcierge desk for Priya Raman, Northwind Labs`;
+  const body = `Hi ${b.venue.name} team,\n\nSeating for our ${b.date} dinner, starting at the head of the table:\n${seats.map((g, i) => `${i + 1}. ${guests[g!].name}`).join("\n")}\n\n${diet.length ? `Dietary: ${diet.join(", ")}.` : "No dietary restrictions."}\n\nThank you,\nConcierge desk for ${me.name}, Northwind Labs`;
   b.world.send(b.venue.id, b.threadId, "Seating plan", body, "answer");
   await mem.remember({ companyId: company.id, scope: "company", ownerUserId: priya.id, subject: b.client, fact: `Seating plan sent to ${b.venue.name} for ${b.date}${diet.length ? `; dietary: ${diet.join(", ")}` : ""}`, source: "seating" });
   void renderMems();
@@ -1084,7 +1133,7 @@ function bkCancel(r: BkRow, free: boolean, hrs: number) {
   $("#bkCx").onclick = async () => {
     $("#bkCx").remove(); const box = $("#bkFlow"), ctxT = await mgmtCtx(r.store), win = eventWindow(localDate(r.startsAt), "19:00");
     const { proposalId } = await call(ctxT, "changes", createProposal, { runId: "changes", actorId: priya.id, principalId: dana.id, venueId: r.v.id, roomId: r.room.id, startsAt: r.startsAt, endsAt: win.endsAt, partySize: r.partySize, kind: "cancel", amountCents: 0, payeeId: null, requiredRoles: ["booker"], summary: `Cancel ${r.id}`, expiresAt: new Date(Date.parse(NOW) + 48 * 3_600_000).toISOString(), replacesBookingId: r.id }) as { proposalId: string };
-    const ok = await slideIn(box, "Slide to cancel as Priya");
+    const ok = await slideIn(box, `Slide to cancel as ${meFirst()}`);
     await r.store.decide(proposalId, priya.id, "booker", ok ? "approve" : "reject");
     if (!ok) { box.insertAdjacentHTML("beforeend", `<div class="gstep ok">Kept. Nothing changed.</div>`); return; }
     const out = await call(ctxT, "changes", cancelBooking, { proposalId }) as { depositRefundable: boolean };
@@ -1133,8 +1182,8 @@ async function polReplay() {
   const diffs: string[] = []; let bB = 0, bA = 0, sB = 0, sA = 0, invFail2 = 0, mgrB = 0, mgrA = 0;
   for (const [i, s] of SCENARIOS.entries()) {
     out.innerHTML = `<div class="gstep"><span class="spin"></span> Replaying ${i + 1}/${SCENARIOS.length}: “${esc(s.text.slice(0, 60))}”</div>`;
-    if (!baseRuns.has(s.id)) baseRuns.set(s.id, await runScenario(s, llm, { ...company, policy: BASE_POLICY }));
-    const a = baseRuns.get(s.id)!, z = await runScenario(s, llm, co);
+    if (!baseRuns.has(s.id)) baseRuns.set(s.id, await asFixture(() => runScenario(s, replayLLM, { ...company, policy: BASE_POLICY })));
+    const a = baseRuns.get(s.id)!, z = await asFixture(() => runScenario(s, replayLLM, co));
     invFail2 += z.checks.filter((c) => c.kind === "invariant" && !c.pass).length;
     const roles = (r: ScenarioRun) => r.result.proposals.find((p) => p.kind === "book")?.requiredRoles.includes("manager") ? 1 : 0;
     if (a.result.outcome === "booked") bB++; if (z.result.outcome === "booked") bA++; sB += spend(a); sA += spend(z); mgrB += roles(a); mgrA += roles(z);
@@ -1152,7 +1201,7 @@ renderPolicy();
 // =====================================================================
 const CMDS: { t: string; sub: string; run: () => void }[] = [
   ...["dinner for 12 with the Acme team next Thursday, somewhere private", "private dinner for 20 with Globex on Nov 19", "team dinner for 8 this Friday under $100 a head", "client lunch for 6 with Initech tomorrow"].map((t) => ({ t, sub: "Ask the concierge", run: () => ask(t) })),
-  ...[["home", "Home"], ["chat", "Chat with the concierge"], ["explore", "Explore venues on the map"], ["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["calendar", "Calendar"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
+  ...[["home", "Home"], ["traces", "Traces"], ["chat", "Chat with the concierge"], ["explore", "Explore venues on the map"], ["desk", "Live desk"], ["avail", "Availability"], ["compare", "Compare offers"], ["bookings", "Bookings"], ["calendar", "Calendar"], ["seating", "Seating"], ["policy", "Policy"], ["spend", "Spend"], ["evals", "Evals"]].map(([p, l]) => ({ t: l, sub: "Go to", run: () => go(p) })),
 ];
 function ask(t: string) { go("chat"); void chatSend(t); }
 let kSel = 0;
@@ -1201,7 +1250,7 @@ function propCard(v: Venue, roomName: string, date: string, n: number, allIn: nu
 }
 async function chatSend(text: string) {
   text = text.trim(); if (!text || chatBusy) return; chatBusy = true; $<HTMLInputElement>("#chatIn").value = ""; $("#chatChips").innerHTML = "";
-  window.scrollTo({ top: 0 }); msg("me", esc(text), "Priya · now");
+  window.scrollTo({ top: 0 }); msg("me", esc(text), `${esc(meFirst())} · now`);
   try {
     const t = text.toLowerCase();
     if (chatCur && /\bcancel\b/.test(t)) await chatCancel(chatCur);
@@ -1315,7 +1364,7 @@ async function chatDiet(c: ChatCtx, text: string) {
   chips(["Arrange seating", `Make it ${c.n + 2 <= c.room.listedCapacity ? c.n + 2 : c.n - 2} people`, "Cancel it"]);
 }
 $<HTMLFormElement>("#chatForm").addEventListener("submit", (e) => { e.preventDefault(); void chatSend($<HTMLInputElement>("#chatIn").value); });
-msg("bot", `Hi Priya. Tell me who's coming, when, and anything that matters. I'll find the venue, handle the emails, and only book once you approve.`, "Concierge");
+msg("bot", `Hi <span class="meFirst">${esc(meFirst())}</span>. Tell me who's coming, when, and anything that matters. I'll find the venue, handle the emails, and only book once you approve.`, "Concierge");
 chips(["dinner for 12 with the Acme team next Thursday, somewhere private", "private dinner for 20 with Globex on Nov 19", "team dinner for 8 this Friday under $100 a head", "japanese dinner for 8 with Wayne Enterprises on Nov 24, private"]);
 
 // =====================================================================
@@ -1331,15 +1380,18 @@ function modal(html: string, buttons: [string, string, string][], cls = ""): Pro
   });
 }
 const CAL_DAYS = Array.from({ length: 21 }, (_, i) => addDays("2026-11-09", i));
-let calPick: string | null = null;
+let calPick: string | null = null, calLast = "";
 async function renderCal() {
   const rows = (await bkRows()).filter((r) => r.status === "confirmed");
   const MON = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  $("#calGrid").innerHTML = MON.map((d) => `<div class="calh">${d}</div>`).join("") + CAL_DAYS.map((d) => {
+  const html = MON.map((d) => `<div class="calh">${d}</div>`).join("") + CAL_DAYS.map((d) => {
     const inRange = NIGHTS.includes(d), today = d === "2026-11-09", list = rows.filter((r) => localDate(r.startsAt) === d);
     return `<div class="cald ${inRange ? "" : "off"} ${today ? "today" : ""}" data-d="${d}"><div class="caln">${Number(d.slice(8))}${today ? " · today" : ""}</div>${list.map((r) =>
       `<div class="calb ${calPick === r.id ? "pick" : ""}" draggable="true" data-id="${r.id}" style="--c:${["#7b1e3a", "#3f7d5a", "#5b6b8c", "#8a6212", "#a8502f"][venues.indexOf(r.v) % 5]}"><b>${esc(r.v.name)}</b><span>${r.partySize} · ${usd(r.approved)}</span></div>`).join("")}${inRange && !list.length ? `<button class="caladd" data-d="${d}">+ dinner</button>` : ""}</div>`;
   }).join("");
+  // Re-render only when something changed, so a tap is never lost to a refresh.
+  if (html === calLast && $("#calGrid").childElementCount) { $("#calHint").textContent = calPick ? "Now tap the night to move it to." : rows.length ? "Drag a dinner to another night (or tap it, then tap a night)." : "No dinners yet. Tap + on any night to book one."; $$(".calb").forEach((b) => b.classList.toggle("pick", (b as HTMLElement).dataset.id === calPick)); return; }
+  calLast = html; $("#calGrid").innerHTML = html;
   $("#calHint").textContent = calPick ? "Now tap the night to move it to." : rows.length ? "Drag a dinner to another night (or tap it, then tap a night)." : "No dinners yet. Tap + on any night to book one.";
   $$<HTMLElement>(".calb").forEach((b) => {
     b.addEventListener("dragstart", (e) => { e.dataTransfer!.setData("text/plain", b.dataset.id!); b.classList.add("drag"); });
@@ -1502,9 +1554,10 @@ $<HTMLSelectElement>("#xDate").onchange = (e) => { xF.date = (e.target as HTMLSe
 $("#xCuis").innerHTML = CUISINES.map((c) => `<button class="chip" data-cu="${c}">${c}</button>`).join("");
 $$<HTMLButtonElement>("[data-cu]").forEach((b) => b.onclick = () => { const c = b.dataset.cu!; xF.cuisines.has(c) ? xF.cuisines.delete(c) : xF.cuisines.add(c); b.classList.toggle("on"); renderExplore(); });
 $$<HTMLButtonElement>("#xSort button").forEach((b) => b.onclick = () => { $$("#xSort button").forEach((x) => x.classList.remove("on")); b.classList.add("on"); xF.sort = b.dataset.s!; renderExplore(); });
-$("#xIn").onclick = () => xm.zoomBy(1); $("#xOut").onclick = () => xm.zoomBy(-1); const xFitAll = () => xm.fit([...vLL.values(), OFFICE], { top: 60, right: 30, bottom: 50, left: 56 });
+$("#xIn").onclick = () => xm.zoomBy(1); $("#xOut").onclick = () => xm.zoomBy(-1); let xFitted = false;
+const xFitAll = () => xm.fit([...vLL.values(), OFFICE], { top: 60, right: 30, bottom: 50, left: 56 });
 $("#xReset").onclick = xFitAll;
-requestAnimationFrame(xFitAll);
+requestAnimationFrame(() => { if (xm.size()[0]) { xFitAll(); xFitted = true; } });
 renderHoodChips(); renderExplore();
 
 
@@ -1564,6 +1617,7 @@ const vByName = (t: string) => venues.filter((v) => t.startsWith(v.name) || t.in
 let hBusy = false, hRuns = 0, hWorld: VenueWorld | null = null;
 const SVGNS = "http://www.w3.org/2000/svg";
 function hMap() {
+  if (!hm.size()[0]) return; // hidden page: lay out when it is shown
   hLayout(); const k = 340 / Math.max(1, hm.size()[0]);
   let s = `<defs><radialGradient id="hglow"><stop offset="0" stop-color="#c98a12" stop-opacity=".55"/><stop offset="1" stop-color="#c98a12" stop-opacity="0"/></radialGradient></defs>`;
     // The street map already names the neighborhoods; extra labels only collide with the pins.
@@ -1711,9 +1765,68 @@ function autoRun(page: string) {
     if (!$(`#p-${page}.on`)) { autoRan.delete(page); return; }
     if (page === "controls") $<HTMLButtonElement>("#runAll").click();
     if (page === "evals") $<HTMLButtonElement>("#runEvals").click();
-    if (page === "compare" && !cmpRows.length) void cmpLoad();
+    if (page === "compare" && !cmpRows.length) void cmpLoad(replayLLM);
     if (page === "fix") $<HTMLButtonElement>("#fixGo").click();
   }, 450);
+}
+
+// =====================================================================
+// TRACES: every run's spans and every model call, the way you'd debug it in production
+// =====================================================================
+let trSel = 0, trEv = -1;
+function renderTraces() {
+  const calls = llmLog, live = calls.filter((c) => c.source === "live"), ok = calls.filter((c) => c.ok);
+  const lat = ok.map((c) => c.ms).sort((a, b) => a - b), p = (q: number) => lat.length ? lat[Math.min(lat.length - 1, Math.floor(q * lat.length))] : 0;
+  const cost = live.reduce((a, c) => a + c.tin * 3e-6 + c.tout * 15e-6, 0);
+  $("#trKpis").innerHTML = [["Runs", runsLog.length], ["Model calls", calls.length], ["Live", `${calls.length ? Math.round((live.length / calls.length) * 100) : 0}%`], ["p50", `${p(0.5)} ms`], ["p95", `${p(0.95)} ms`], ["Tokens", (calls.reduce((a, c) => a + c.tin + c.tout, 0)).toLocaleString()], ["Live cost", `$${cost.toFixed(3)}`], ["Fallbacks", calls.filter((c) => !c.ok).length]]
+    .map(([k, v]) => `<div class="tk"><span>${k}</span><b>${v}</b></div>`).join("");
+  $("#trRuns").innerHTML = runsLog.map((r, i) => `<button class="trr ${i === trSel ? "on" : ""}" data-i="${i}"><i class="${r.outcome === "booked" ? "ok" : "bad"}"></i><div><b>${esc(r.label)}</b><span class="mono">${r.id} · ${r.trace.length} spans · ${r.emails} emails</span></div><em>${r.outcome.replace(/_/g, " ")}</em></button>`).join("") || '<div class="empty">Runs appear as the agent works.</div>';
+  $$<HTMLButtonElement>("#trRuns .trr").forEach((b) => b.onclick = () => { trSel = Number(b.dataset.i); trEv = -1; renderTraces(); });
+  const r = runsLog[trSel];
+  if (r) {
+    const t0 = Date.parse(r.trace[0]?.at ?? r.trace.at(-1)?.at ?? ""), t1 = Date.parse(r.trace.at(-1)?.at ?? "") || t0 + 1, span = Math.max(1, t1 - t0);
+    const lanes = ["concierge", "sourcing", "coordination", "comparison"];
+    $("#trWater").innerHTML = `<div class="trh"><b>${esc(r.label)}</b><span class="mono">${r.id}</span></div><div class="lanes">${lanes.map((l) => `<span class="ln ${AGENT[l]}">${l}</span>`).join("")}</div>` + r.trace.map((e, i) => {
+      const x = ((Date.parse(e.at) - t0) / span) * 100, ai = isAI(e);
+      return `<div class="tre ${i === trEv ? "on" : ""} ${e.kind === "injection_flagged" ? "bad" : ""}" data-i="${i}"><span class="tlane ${AGENT[e.agent] ?? "c"}">${e.agent}</span><span class="tk2">${esc(e.kind.replace(/_/g, " "))}${ai ? '<span class="ai"></span>' : ""}</span><span class="bar3"><i style="left:${Math.min(97, x)}%" class="${AGENT[e.agent] ?? "c"}"></i></span><span class="mono tt">+${Math.round((Date.parse(e.at) - t0) / 60000)}m</span></div>`;
+    }).join("");
+    $$<HTMLElement>("#trWater .tre").forEach((d) => d.onclick = () => { trEv = Number(d.dataset.i); renderTraces(); });
+    const e = r.trace[trEv];
+    $("#trJson").innerHTML = e ? `<div class="trh"><b>${esc(e.kind)}</b><span>${esc(e.agent)}</span></div><div class="cs" style="margin-bottom:6px">${esc(e.text)}</div><pre class="json">${esc(JSON.stringify(e.data ?? {}, null, 2)).slice(0, 4000)}</pre>` : '<div class="cs">Tap a span.</div>';
+  }
+  $("#trCalls").innerHTML = calls.slice(0, 40).map((c) => `<div class="trc"><span class="src ${c.source}">${c.source === "live" ? "● live" : c.source === "recorded" ? "recorded" : "fallback"}</span><span class="mono">${esc(c.task)}</span><span class="mono">${c.ms} ms</span><span class="mono">${c.tin + c.tout} tok</span></div>`).join("") || '<div class="cs">No model calls yet.</div>';
+}
+
+// =====================================================================
+// IDENTITY + HISTORY: who is signed in, and the dinners already on the books
+// =====================================================================
+function editMe() {
+  const m = el("div", "modal", `<form class="mbox" id="meForm"><div class="ph2"><i class="avbig">${esc(meIni())}</i></div><input id="meIn" class="emin" maxlength="40" value="${esc(me.name)}" placeholder="Your name"><div class="cbtns"><button class="btn pri">Sign in</button><button class="btn" type="button" id="meX">Cancel</button></div></form>`);
+  document.body.append(m); const inp = m.querySelector<HTMLInputElement>("#meIn")!; setTimeout(() => { inp.focus(); inp.select(); }, 30);
+  inp.oninput = () => { m.querySelector(".avbig")!.textContent = inp.value.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?"; };
+  m.querySelector("#meX")!.addEventListener("click", () => m.remove()); m.addEventListener("click", (e) => { if (e.target === m) m.remove(); });
+  m.querySelector("form")!.addEventListener("submit", (e) => { e.preventDefault(); const v = inp.value.trim().replace(/\s+/g, " "); if (!v) return; me.name = v; try { localStorage.setItem(ME_KEY, v); } catch { /* fine */ } applyMe(); m.remove(); toast(`Signed in as ${v}`, "The concierge now books for you"); });
+}
+$("#wsBtn").onclick = editMe; $("#meBtn").onclick = editMe;
+
+/** A few dinners booked earlier this week, through the same agent, so every planning page opens with real data. */
+async function seedHistory() {
+  const store = new MemoryStore(); await store.init(venues); stores.push(store); srcOf.set(store, "Earlier");
+  const asks = ["private dinner for 14 with Initech on Nov 19", "team dinner for 8 at 7:30pm on Nov 20 in Tribeca", "dinner for 10 with the Globex team on Nov 17, private room, two vegetarians"];
+  let last: { v: Venue; room: string; n: number; date: string; diet: string[]; client: string; world: VenueWorld; thread: string } | null = null;
+  for (const [i, text] of asks.entries()) {
+    const world = new VenueWorld(venues, () => "accept", NOW, 70 + i);
+    const res = await runConcierge({ text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm: replayLLM, venues, company,
+      approver: async (p, st) => { for (const role of p.requiredRoles) await st.decide(p.id, approverFor(role, priya).id, role, "approve"); return "approved"; } });
+    if (res.outcome === "booked" && res.bookingId) {
+      const v = venues.find((x) => x.id === res.chosenVenueId)!, bk = (await store.getBooking(res.bookingId))!;
+      last = { v, room: v.rooms.find((r) => r.id === bk.roomId)!.name, n: bk.partySize, date: localDate(bk.startsAt), diet: res.request?.dietary ?? [], client: res.request?.clientName ?? "Team", world, thread: `thr_${res.runId}_${v.id}` };
+      record(res, world, text);
+    }
+  }
+  if (last && !lastBk) { setLastBooking({ venue: last.v, roomName: last.room, partySize: last.n, date: last.date, dietary: last.diet, client: last.client, world: last.world, threadId: last.thread }); $<HTMLButtonElement>("#seatAuto").click(); }
+  renderGrid();
+  if (!cmpRows.length) void cmpLoad(replayLLM);
 }
 
 // ---------- start ----------
@@ -1724,6 +1837,7 @@ function renderLive() {
 }
 if (API) fetch(`${API}/health`).then((r) => r.json()).then((h: { llm: boolean; email: boolean }) => { apiHealth = h; if (h.llm) { llm.live = new LiveThenReplay(new RemoteLLM(API), replayLLM); llm.target = llm.live; } renderLive(); }).catch(() => renderLive());
 renderLive(); setInterval(() => { if (llm.live) renderLive(); }, 3000);
+void seedHistory();
 if (!new URLSearchParams(location.search).has("still")) void deskLoop();
 { const h = location.hash.slice(1), ask0 = new URLSearchParams(location.search).get("ask"); go(ask0 ? "home" : $(`#p-${h}`) ? h : "home"); if (ask0) setTimeout(() => void hRun(ask0.slice(0, 200)), 700); }
 window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if ($(`#p-${h}`) && !$(`#p-${h}.on`)) go(h); });

@@ -35,7 +35,7 @@ const slideAll = async (page, sel) => { for (let i = 0; i < 4 && await page.$(`$
 for (const [w, h] of [[1440, 900], [1024, 768], [390, 844]]) {
   console.log(`width ${w}`);
   const page = await open(w, h);
-  const pages = await page.$$eval("#tabs button", (b) => b.map((x) => x.dataset.p));
+  const pages = await page.$$eval("#tabs button[data-p]", (b) => b.map((x) => x.dataset.p));
   if (w < 1100) await page.click("#menuBtn");
   for (const p of pages) {
     const btn = page.locator(`#tabs button[data-p="${p}"]`);
@@ -54,6 +54,11 @@ for (const [w, h] of [[1440, 900], [1024, 768], [390, 844]]) {
   await page.close();
 }
 
+// 1b. Every page opened directly from a link (a hidden page must not break another page's layout).
+console.log("deep links");
+{ const probe = await open(1440, 900); const pages = await probe.$$eval("#tabs button[data-p]", (b) => b.map((x) => x.dataset.p)); await probe.close();
+  for (const p of pages) { const pg = await open(1440, 900); await pg.goto(`${url}#${p}`); await pg.waitForTimeout(700); await pg.evaluate(() => window.go("home")); await pg.waitForTimeout(300); await pg.close(); } }
+
 // 2. The main flows, end to end, through the real agent, tools and store.
 console.log("flows");
 const page = await open(1440, 900);
@@ -67,7 +72,7 @@ if ((await page.$$(".modal .mm")).length < 2) fail(1440, "home: expected the sen
 await page.evaluate(() => window.go("desk"));
 await page.waitForSelector(".kc.need [data-ok]", { timeout: 60000 }).then(() => page.click(".kc.need [data-ok]")).catch(() => fail(1440, "live desk: nothing reached Needs you"));
 await page.waitForFunction(() => Number(document.querySelector(".kcol.ok .kch b")?.textContent) > 0, null, { timeout: 30000 }).catch(() => fail(1440, "live desk: nothing reached Confirmed"));
-await page.click(".kc"); await page.waitForSelector("#dDrawer.on"); await page.click("#dMail"); await page.waitForSelector(".modal .mm", { timeout: 5000 }).catch(() => fail(1440, "live desk: email threads did not open")); await page.click(".modal [data-k=n]"); await page.click("#dClose");
+await page.click(".kc .kh"); await page.waitForSelector("#dDrawer.on"); await page.click("#dMail"); await page.waitForSelector(".modal .mm", { timeout: 5000 }).catch(() => fail(1440, "live desk: email threads did not open")); await page.click(".modal [data-k=n]"); await page.click("#dClose");
 { const p2 = await open(1440, 900); await p2.goto(url + "?ask=private%20dinner%20for%2020%20with%20Globex%20on%20Nov%2019#home"); await p2.waitForSelector("#hSl .slide, .ph-bot", { timeout: 30000 }).catch(() => fail(1440, "?ask= link did not run the request")); await p2.close(); }
 await page.evaluate(() => window.go("chat"));
 await page.fill("#chatIn", "dinner for 12 with the Acme team next Thursday, somewhere private"); await page.press("#chatIn", "Enter");
@@ -84,9 +89,11 @@ await page.waitForSelector("#gFlow .slide", { timeout: 15000 }); await slideAll(
 await page.waitForSelector("#gFlow .gstep.ok", { timeout: 10000 }).catch(() => fail(1440, "availability: booking did not complete"));
 
 await page.evaluate(() => window.go("calendar")); await page.waitForTimeout(400);
-await page.click(".calb"); await page.click('.cald[data-d="2026-11-17"]');
+{ const id = await page.$eval(".calb", (b) => b.dataset.id); const from = await page.$eval(".calb", (b) => b.closest(".cald").dataset.d);
+  const to = await page.$$eval(".cald:not(.off)", (ds, f) => ds.map((d) => d.dataset.d).find((d) => d !== f), from);
+  await page.dragAndDrop(`.calb[data-id="${id}"]`, `.cald[data-d="${to}"]`); }
 await page.waitForSelector(".modal [data-k=y]", { timeout: 5000 }).then(() => page.click(".modal [data-k=y]")).catch(() => {});
-await page.waitForSelector(".toast", { timeout: 5000 }).catch(() => fail(1440, "calendar: moving a dinner gave no result"));
+await page.waitForFunction(() => /Moved|Can't move/.test(document.querySelector("#toasts").textContent), null, { timeout: 8000 }).catch(() => fail(1440, "calendar: moving a dinner gave no result"));
 
 await page.evaluate(() => window.go("bookings")); await page.waitForTimeout(400);
 const rows = await page.$$eval("#bkTable tbody tr", (r) => r.length);

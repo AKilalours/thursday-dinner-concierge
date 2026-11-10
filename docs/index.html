@@ -236,7 +236,8 @@ table.ctable tr.bkr{cursor:pointer}table.ctable tr.bkr:hover td{background:#fbf6
  .bar .tabs button{text-align:left;border-radius:10px;padding:8px 12px;font-size:14px}.bar .tabs button:hover:not(.on){background:#f1e9dc}
  .bar .tabs .tsep{border:0;margin:14px 0 4px;padding:0 12px;font-size:10px}
  .ws{display:flex;gap:10px;align-items:center;padding:6px 8px 12px;border-bottom:1px solid var(--line);margin-bottom:4px;font:700 14px Inter}.ws i{width:34px;height:34px;border-radius:50%;background:var(--wine);color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font:700 13px Inter;flex:none}.ws small{display:block;font:500 11.5px Inter;color:var(--dim)}
- .ws .demo{font:700 9px Inter;text-transform:uppercase;letter-spacing:.06em;background:#f1e9dc;color:#8c7c6f;border-radius:5px;padding:1px 5px;vertical-align:2px}
+ button.ws{border:0;background:none;text-align:left;cursor:pointer;width:100%;font:700 14px Inter;color:var(--ink)}button.ws:hover{background:#f3ece1;border-radius:12px}button.me{border:0;cursor:pointer}
+.ws .demo{font:700 9px Inter;text-transform:uppercase;letter-spacing:.06em;background:#f1e9dc;color:#8c7c6f;border-radius:5px;padding:1px 5px;vertical-align:2px}
  .navfoot{display:block;margin-top:auto;padding:14px 12px 4px;font-size:11px;color:#b3a08c;line-height:1.5}
  .bar{max-width:1280px}
 }
@@ -357,18 +358,31 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
 .me{display:none;width:34px;height:34px;border-radius:50%;background:var(--wine);color:#fff;font:700 12px Inter;align-items:center;justify-content:center;flex:none}
 @media (max-width:1099px){.me{display:flex;order:2}.bar .menuBtn{margin-left:auto}}
 @media (max-width:700px){.bar .kbtn{display:none}.bar #tourBtn{padding:7px 11px!important}.hchips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.hchips .chip{flex:none}}
+.trk{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin:6px 0 14px}.tk{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.tk span{display:block;font:700 10px Inter;text-transform:uppercase;letter-spacing:.06em;color:#8c7c6f}.tk b{font:800 19px Fraunces,Georgia,serif}
+.trgrid{display:grid;grid-template-columns:280px minmax(0,1fr) 320px;gap:12px;align-items:start}.trcol{max-height:620px;overflow:auto}
+.trlist{display:flex;flex-direction:column;gap:4px}.trr{display:grid;grid-template-columns:8px 1fr auto;gap:8px;align-items:center;text-align:left;border:1px solid transparent;background:none;border-radius:10px;padding:7px 8px;cursor:pointer}.trr:hover{background:#f6efe5}.trr.on{background:#fbf3f0;border-color:var(--wine)}.trr>i{width:8px;height:8px;border-radius:50%}.trr>i.ok{background:var(--sage)}.trr>i.bad{background:var(--brass)}.trr b{display:block;font-size:12.5px}.trr .mono{font-size:10px;color:#a39380}.trr em{font:600 10.5px Inter;color:#8c7c6f;font-style:normal;text-transform:capitalize}
+.trh{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:8px}.trh .mono{font-size:11px;color:#a39380}
+.lanes{display:flex;gap:6px;margin-bottom:8px}.ln{font:700 10px Inter;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:6px;background:#f1e9dc}
+.tre{display:grid;grid-template-columns:92px 150px 1fr 46px;gap:8px;align-items:center;padding:4px 6px;border-radius:8px;cursor:pointer;font-size:12px}.tre:hover{background:#f6efe5}.tre.on{background:#fbf3f0;outline:1px solid var(--wine)}.tre.bad .tk2{color:var(--rose)}
+.tlane{font:700 10px Inter;text-transform:uppercase;letter-spacing:.04em;color:#8c7c6f}.tlane.c,.ln.c{color:var(--wine)}.tlane.s,.ln.s{color:#5b6b8c}.tlane.v,.ln.v{color:#8a6212}.tlane.m,.ln.m{color:var(--sage)}
+.bar3{position:relative;height:8px;background:#f3ece1;border-radius:4px}.bar3 i{position:absolute;top:0;width:10px;height:8px;border-radius:4px;background:var(--wine)}.bar3 i.s{background:#5b6b8c}.bar3 i.v{background:#c98a12}.bar3 i.m{background:var(--sage)}.tt{font-size:10.5px;color:#a39380;text-align:right}
+pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de;border-radius:10px;padding:10px;max-height:300px;overflow:auto;white-space:pre-wrap}
+.trc{display:grid;grid-template-columns:70px 1fr 60px 60px;gap:6px;font-size:11.5px;padding:4px 0;border-bottom:1px dashed #eadfce}.trc .mono{font-size:11px}.src{font:700 10.5px Inter}.src.live{color:var(--sage)}.src.recorded{color:#a8502f}.src.none{color:#a39380}
+.ph2{display:flex;justify-content:center;margin-bottom:6px}.avbig{width:64px;height:64px;border-radius:50%;background:var(--wine);color:#fff;font:800 22px Inter;display:flex;align-items:center;justify-content:center;font-style:normal}
+@media (max-width:1100px){.trgrid{grid-template-columns:1fr}.trk{grid-template-columns:repeat(4,1fr)}}
+.egs{margin-top:14px;display:flex;flex-direction:column;gap:6px}.eg{display:grid;grid-template-columns:110px 1fr 48px 36px;gap:8px;align-items:center;font-size:12px}.eg span{text-transform:capitalize;color:#6d5d51;font-weight:600}.egb{height:8px;background:#f1e9dc;border-radius:4px;overflow:hidden}.egb i{display:block;height:100%;background:var(--sage);transition:width .5s}.eg em{font:700 10.5px JetBrains Mono,monospace;color:#a8502f;font-style:normal}
 </style>
 </head>
 <body>
 <header><div class="bar">
   <div class="logo"><i></i><div>Thursday Dinner<small>Built for Ande · AI Engineer · <a href="https://github.com/AKilalours/thursday-dinner-concierge">code</a></small></div></div>
-  <span class="me" title="Signed in as Akila Lourdes">AL</span><button class="menuBtn" id="menuBtn" aria-label="Menu"><span>☰</span><b id="menuCur">Live desk</b></button>
+  <button class="me meIni" id="meBtn" title="Change who is signed in">AL</button><button class="menuBtn" id="menuBtn" aria-label="Menu"><span>☰</span><b id="menuCur">Live desk</b></button>
   <nav class="tabs" id="tabs">
-    <div class="ws"><i>AL</i><div>Akila Lourdes<small><span class="live"></span>Signed in</small></div></div>
+    <button class="ws" id="wsBtn" title="Change who is signed in"><i class="meIni">AL</i><div><span class="meName">Akila Lourdes</span><small><span class="live"></span>Signed in</small></div></button>
     <span class="tsep">Concierge</span><button class="on" data-p="home">Home</button><button data-p="chat">Chat</button><button data-p="desk">Live desk</button>
     <span class="tsep">Plan</span><button data-p="explore">Explore</button><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
     <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button>
-    <span class="tsep">Under the hood</span><button data-p="book">Step-by-step booking</button><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
+    <span class="tsep">Engineering</span><button data-p="traces">Traces</button><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
     <div class="navfoot">Built for Ande · AI Engineer<br>Independent project · fictional data</div>
   </nav>
   <button class="kbtn" id="kBtn"><span>Ask the concierge…</span><kbd>⌘K</kbd></button><button class="btn gold" id="tourBtn" style="padding:7px 14px">▶ Tour</button>
@@ -474,6 +488,14 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
   <div class="gwrap pol"><div class="card" id="polForm"></div><div class="card gside" id="polImpact"></div></div>
 </section>
 
+<section class="page" id="p-traces">
+  <h1>Traces</h1>
+  <div class="trk" id="trKpis"></div>
+  <div class="trgrid"><div class="card trcol"><div class="pt">Runs</div><div id="trRuns" class="trlist"></div></div>
+    <div class="card trcol"><div id="trWater"></div></div>
+    <div class="trcol2"><div class="card"><div id="trJson"></div></div><div class="card" style="margin-top:12px"><div class="pt">Model calls</div><div id="trCalls"></div></div></div></div>
+</section>
+
 <section class="page" id="p-lab">
   <h1>Inbox lab</h1><p class="lead">Edit the venue's reply. Watch what the agent pulls out.</p>
   <div class="chips" id="tmpl" style="margin-bottom:12px"><button class="chip on" data-t="accept">Yes, we can</button><button class="chip" data-t="counter_price">Price went up</button><button class="chip" data-t="counter_date">Different night</button><button class="chip" data-t="counter_capacity">Room too small</button><button class="chip" data-t="decline">Fully booked</button><button class="chip" data-t="auto">Out of office</button><button class="chip" data-t="injection">Hijack attempt</button></div>
@@ -498,11 +520,11 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
 
 <section class="page" id="p-tools">
   <div class="ph"><div><h1>Tools</h1><p class="lead">The agent's typed capabilities. Call them yourself.</p></div>
-    <div class="row"><span class="cs">Acting as</span><select id="toolActor" class="sel"><option value="usr_priya">Priya (EA, acts for Dana)</option><option value="usr_sam">Sam (can't act for Dana)</option></select></div></div>
+    <div class="row"><span class="cs">Acting as</span><select id="toolActor" class="sel"><option value="usr_priya" class="meOpt">You (EA, acts for Dana)</option><option value="usr_sam">Sam (can't act for Dana)</option></select></div></div>
   <div class="toolg">
     <div class="panel"><div class="pt">Capabilities</div><div class="inclist" id="toolList"></div></div>
     <div class="panel"><div class="cs" id="toolDesc"></div><textarea id="toolIn" class="code2" spellcheck="false"></textarea>
-      <div class="row" style="margin-top:8px"><button class="btn pri" id="toolCall">Call ▶</button><button class="btn" id="toolApprove">Approve last proposal as Priya</button></div>
+      <div class="row" style="margin-top:8px"><button class="btn pri" id="toolCall">Call ▶</button><button class="btn" id="toolApprove">Approve last proposal as <span class="meFirst">you</span></button></div>
       <div id="toolOut" style="margin-top:12px"></div></div>
     <div class="panel"><div class="pt">Audit log</div><ul class="audit" id="toolAudit"></ul>
       <p class="cs" style="margin-top:10px">Try: create a proposal → book (refused) → approve → book → book again (same result) → switch to Sam.</p></div>
@@ -538,7 +560,7 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
 
 <section class="page" id="p-evals">
   <h1>Evals</h1><p class="lead">The CI suite, in your browser.</p>
-  <div class="row" style="margin-bottom:12px"><button class="btn pri" id="runEvals">Run 45 scenarios ▶</button><button class="btn gold" id="runFuzz">Run 300 random worlds ▶</button></div>
+  <div class="row" style="margin-bottom:12px"><button class="btn pri" id="runEvals">Run all scenarios ▶</button><button class="btn gold" id="runFuzz">Run 300 random worlds ▶</button></div>
   <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
     <div class="kpi" style="--c:var(--sage)"><div class="k">Passing</div><b id="sPass">-</b></div>
     <div class="kpi" style="--c:var(--wine)"><div class="k">Safety checks</div><b id="sInv">-</b></div>
@@ -546,7 +568,7 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
     <div class="kpi" style="--c:var(--rose)"><div class="k">Safety failures</div><b id="sFail">-</b></div>
   </div>
   <div class="sp">
-    <div class="card"><h3>Scenarios · tap one</h3><div class="tiles" id="tiles"></div></div>
+    <div class="card"><h3>Scenarios · tap one</h3><div class="tiles" id="tiles"></div><div class="egs" id="eGroups"></div></div>
     <div class="card scroll"><h3 id="dTitle">Random worlds</h3><div id="detail"></div><div class="field" id="field"></div><div class="legend" id="legend"></div></div>
   </div>
 </section>
@@ -555,7 +577,7 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
   <h1>Memory</h1><p class="lead">Every reply teaches the next booking.</p>
   <div class="sp">
     <div class="card"><h3>What venues taught the agent</h3><div class="vk" id="vk"><div class="empty">Book a dinner or watch the Live desk.</div></div></div>
-    <div class="card"><h3>Company memory</h3><div class="seg" id="viewAs" style="margin-bottom:12px"><button data-u="usr_priya" class="on">Priya</button><button data-u="usr_sam">Sam</button><button data-u="usr_dana">Dana</button></div><div class="mem" id="mems"></div></div>
+    <div class="card"><h3>Company memory</h3><div class="seg" id="viewAs" style="margin-bottom:12px"><button data-u="usr_priya" class="on"><span class="meFirst">You</span></button><button data-u="usr_sam">Sam</button><button data-u="usr_dana">Dana</button></div><div class="mem" id="mems"></div></div>
   </div>
 </section>
 
