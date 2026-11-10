@@ -1411,7 +1411,7 @@ let xAll: { v: Venue; f: ReturnType<typeof xFit>; pass: boolean }[] = [];
 function renderXMap(all = xAll) {
   xAll = all; const [w, h] = xm.size(); const svg = $("#xMap"); svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   let s = "";
-  for (const [hn, ll] of Object.entries(HOODS)) { const [x] = xm.toPoint(ll), top = Math.min(...venues.filter((v) => v.neighborhood === hn).map((v) => xm.toPoint(vLL.get(v.id)!)[1])); s += `<text class="hlab ${xF.hoods.has(hn) ? "on" : ""}" data-h="${hn}" x="${x}" y="${top - 34}">${hn.toUpperCase()}</text>`; }
+  for (const [hn, ll] of Object.entries(HOODS)) { const [x] = xm.toPoint(ll), top = Math.min(...venues.filter((v) => v.neighborhood === hn).map((v) => xm.toPoint(vLL.get(v.id)!)[1])); const t = hn === "Financial District" ? "FIDI" : hn.toUpperCase(), lw = t.length * 7.4 + 16; s += `<g class="hlab ${xF.hoods.has(hn) ? "on" : ""}" data-h="${hn}" transform="translate(${x} ${top - 40})"><rect x="${-lw / 2}" y="-10" width="${lw}" height="20" rx="10"/><text y="4">${t}</text></g>`; }
   const [ox, oy] = xm.toPoint(OFFICE); s += `<g class="office" transform="translate(${ox} ${oy})"><rect x="-7" y="-7" width="14" height="14" rx="3"/><text y="22">HQ</text></g>`;
   for (const { v, f, pass } of all) {
     const [x, y] = xm.toPoint(vLL.get(v.id)!), ok = f.k === "ok" || f.k === "mgr";
@@ -1452,7 +1452,7 @@ function wireExplore() {
 function wireXMap() {
   const hover = (id: string | null) => { xHover = id; $$(".xpin").forEach((p) => p.classList.toggle("hot", (p as HTMLElement).dataset.v === id || (p as HTMLElement).dataset.v === xOpen)); $$(".xr").forEach((r) => r.classList.toggle("hot", (r as HTMLElement).dataset.v === id)); };
   $$<SVGGElement>(".xpin").forEach((p) => { p.onmouseenter = () => hover(p.dataset.v!); p.onmouseleave = () => hover(null); p.onclick = () => { xOpen = p.dataset.v!; renderExplore(); void xDrawer(); $(`.xr[data-v="${xOpen}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }; });
-  $$<SVGTextElement>(".hlab").forEach((t) => t.onclick = () => { const n = t.dataset.h!; xF.hoods.has(n) ? xF.hoods.delete(n) : xF.hoods.add(n); renderHoodChips(); renderExplore(); });
+  $$<SVGGElement>(".hlab").forEach((t) => t.onclick = () => { const n = t.dataset.h!; xF.hoods.has(n) ? xF.hoods.delete(n) : xF.hoods.add(n); renderHoodChips(); renderExplore(); });
 }
 function renderHoodChips() { $("#xHoods").innerHTML = Object.keys(XB).map((h) => `<button class="chip ${xF.hoods.has(h) ? "on" : ""}" data-hh="${h}">${h}</button>`).join(""); $$<HTMLButtonElement>("[data-hh]").forEach((b) => b.onclick = () => { const n = b.dataset.hh!; xF.hoods.has(n) ? xF.hoods.delete(n) : xF.hoods.add(n); renderHoodChips(); renderExplore(); }); }
 async function xDrawer() {
@@ -1502,8 +1502,9 @@ $<HTMLSelectElement>("#xDate").onchange = (e) => { xF.date = (e.target as HTMLSe
 $("#xCuis").innerHTML = CUISINES.map((c) => `<button class="chip" data-cu="${c}">${c}</button>`).join("");
 $$<HTMLButtonElement>("[data-cu]").forEach((b) => b.onclick = () => { const c = b.dataset.cu!; xF.cuisines.has(c) ? xF.cuisines.delete(c) : xF.cuisines.add(c); b.classList.toggle("on"); renderExplore(); });
 $$<HTMLButtonElement>("#xSort button").forEach((b) => b.onclick = () => { $$("#xSort button").forEach((x) => x.classList.remove("on")); b.classList.add("on"); xF.sort = b.dataset.s!; renderExplore(); });
-$("#xIn").onclick = () => xm.zoomBy(1); $("#xOut").onclick = () => xm.zoomBy(-1); $("#xReset").onclick = () => xm.fit([...vLL.values(), OFFICE], 30);
-requestAnimationFrame(() => xm.fit([...vLL.values(), OFFICE], 30));
+$("#xIn").onclick = () => xm.zoomBy(1); $("#xOut").onclick = () => xm.zoomBy(-1); const xFitAll = () => xm.fit([...vLL.values(), OFFICE], { top: 60, right: 30, bottom: 50, left: 56 });
+$("#xReset").onclick = xFitAll;
+requestAnimationFrame(xFitAll);
 renderHoodChips(); renderExplore();
 
 
@@ -1565,7 +1566,7 @@ const SVGNS = "http://www.w3.org/2000/svg";
 function hMap() {
   hLayout(); const k = 340 / Math.max(1, hm.size()[0]);
   let s = `<defs><radialGradient id="hglow"><stop offset="0" stop-color="#c98a12" stop-opacity=".55"/><stop offset="1" stop-color="#c98a12" stop-opacity="0"/></radialGradient></defs>`;
-  for (const [hn, ll] of Object.entries(HOODS)) { const [x] = hm.toPoint(ll), top = Math.min(...venues.filter((v) => v.neighborhood === hn).map((v) => hPos.get(v.id)![1])); s += `<text class="hlab2" x="${x * k}" y="${top - 9}">${hn === "Financial District" ? "FIDI" : hn.toUpperCase()}</text>`; }
+    // The street map already names the neighborhoods; extra labels only collide with the pins.
   s += `<g id="hLines"></g>`;
   for (const v of venues) { const [x, y] = hPos.get(v.id)!; s += `<g class="hp" id="hp_${v.id}" transform="translate(${x} ${y})"><circle class="halo" r="11" fill="url(#hglow)"/><circle class="dot" r="3.6"/><g class="tag"></g></g>`; }
   s += `<g class="hq" transform="translate(${HQ[0]} ${HQ[1]})"><circle class="pulse" r="6"/><rect x="-5" y="-5" width="10" height="10" rx="2.5"/><text y="13">HQ</text></g><g id="hFly"></g>`;
@@ -1574,10 +1575,14 @@ function hMap() {
 const hp = (id: string) => $(`#hp_${id}`) as unknown as SVGGElement;
 function hTag(id: string, text: string, cls: string) {
   const g = hp(id); if (!g) return; g.setAttribute("class", `hp ${cls}`);
-  const tag = g.querySelector(".tag")! as SVGGElement, w = text.length * 3.4 + 8, [x, y] = hPos.get(id)!;
-  if (!tag.dataset.side) { const near = [...$$<SVGGElement>(".hp .tag[data-side='up']")].some((t) => { const o = t.closest(".hp")!.id.slice(3); if (o === id) return false; const [ox, oy] = hPos.get(o)!; return Math.abs(ox - x) < 34 && Math.abs(oy - y) < 14; }); tag.dataset.side = near ? "down" : "up"; }
-  const dy = tag.dataset.side === "down" ? 20 : 0;
-  tag.innerHTML = `<rect x="${-w / 2}" y="${-17 + dy}" width="${w}" height="10" rx="5"/><text y="${-10 + dy}">${esc(text)}</text>`;
+  const tag = g.querySelector(".tag")! as SVGGElement;
+  // Less text on the map: only prices, injections and the winner get a label; everything else is told by colour.
+  if (!/offer|inj|win/.test(cls)) { tag.innerHTML = ""; delete tag.dataset.side; return; }
+  const w = text.length * 3.4 + 8, [x, y] = hPos.get(id)!;
+  const taken = (side: string) => [...$$<SVGGElement>(`.hp .tag[data-side='${side}']`)].some((t) => { const o = t.closest(".hp")!.id.slice(3); if (o === id || !t.innerHTML) return false; const [ox, oy] = hPos.get(o)!; return Math.abs(ox - x) < (w + 40) / 2 && Math.abs(oy - y) < 22; });
+  if (!tag.dataset.side) tag.dataset.side = !taken("up") ? "up" : !taken("down") ? "down" : "right";
+  const side = tag.dataset.side, dy = side === "down" ? 20 : side === "right" ? 6 : 0, dx = side === "right" ? w / 2 + 8 : 0;
+  tag.innerHTML = `<rect x="${dx - w / 2}" y="${-17 + dy}" width="${w}" height="10" rx="5"/><text x="${dx}" y="${-10 + dy}">${esc(text)}</text>`;
 }
 function hPath(id: string) {
   const [x, y] = hPos.get(id)!, [hx, hy] = HQ, mx = (x + hx) / 2, my = Math.min(y, hy) - 30;
@@ -1676,7 +1681,8 @@ $$<HTMLButtonElement>("#hChips .chip").forEach((b) => b.onclick = () => void hRu
 $("#hMap").addEventListener("click", (e) => { const g = (e.target as Element).closest(".hp"); if (!g || !hWorld) return; const id = g.id.slice(3), v = venues.find((x) => x.id === id)!; if (hWorld.sent().some((m) => m.venueId === id)) showThreads(hWorld, v.name, id); });
 $<HTMLFormElement>("#hForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $<HTMLInputElement>("#hIn").value || $<HTMLInputElement>("#hIn").placeholder; void hRun(v); });
 hm.onChange(() => { if (!hBusy && !$("#hMap .hp.cand")) hMap(); });
-requestAnimationFrame(() => { hm.fit([...vLL.values(), OFFICE], 24); hMap(); });
+const hFit = () => hm.fit([...vLL.values(), OFFICE], innerWidth < 700 ? { top: 70, right: 16, bottom: 90, left: 16 } : { top: 92, right: 40, bottom: 74, left: 40 });
+requestAnimationFrame(() => { hFit(); hMap(); });
 
 // =====================================================================
 // VOICE: say the request

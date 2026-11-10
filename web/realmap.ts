@@ -32,36 +32,41 @@ export class RealMap {
     return [x - cx + w / 2, y - cy + h / 2];
   }
   /** Fit a set of coordinates with some padding (integer zoom, so tiles stay sharp). */
-  fit(points: LatLng[], pad = 40) {
+  fit(points: LatLng[], pad: number | { top: number; right: number; bottom: number; left: number } = 40) {
     const [w, h] = this.size(); if (!w || !h) return;
-    for (let z = this.max; z >= this.min; z--) {
-      const px = points.map((p) => worldPx(p, z)), xs = px.map((p) => p[0]), ys = px.map((p) => p[1]);
-      if (Math.max(...xs) - Math.min(...xs) <= w - 2 * pad && Math.max(...ys) - Math.min(...ys) <= h - 2 * pad) {
-        this.zoom = z; this.center = fromWorld((Math.max(...xs) + Math.min(...xs)) / 2, (Math.max(...ys) + Math.min(...ys)) / 2, z); break;
+    const p = typeof pad === "number" ? { top: pad, right: pad, bottom: pad, left: pad } : pad;
+    for (let z = this.max; z >= this.min; z -= 0.125) {
+      const px = points.map((q) => worldPx(q, z)), xs = px.map((q) => q[0]), ys = px.map((q) => q[1]);
+      if (Math.max(...xs) - Math.min(...xs) <= w - p.left - p.right && Math.max(...ys) - Math.min(...ys) <= h - p.top - p.bottom) {
+        // Centre the points inside the padded box, not the whole map, so overlays never cover them.
+        const cx = (Math.max(...xs) + Math.min(...xs)) / 2 + (p.right - p.left) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2 + (p.bottom - p.top) / 2;
+        this.zoom = z; this.center = fromWorld(cx, cy, z); break;
       }
     }
     this.render();
   }
   setView(center: LatLng, zoom: number) { this.center = center; this.zoom = Math.max(this.min, Math.min(this.max, zoom)); this.render(); }
   zoomBy(d: number, at?: [number, number]) {
-    const nz = Math.max(this.min, Math.min(this.max, this.zoom + d)); if (nz === this.zoom) return;
+    const nz = Math.max(this.min, Math.min(this.max, Math.round(this.zoom + d))); if (nz === this.zoom) return;
     if (at) { const [w, h] = this.size(), [cx, cy] = worldPx(this.center, this.zoom), wx = cx + at[0] - w / 2, wy = cy + at[1] - h / 2, k = 2 ** (nz - this.zoom); this.center = fromWorld(wx * k - (at[0] - w / 2), wy * k - (at[1] - h / 2), nz); }
     this.zoom = nz; this.render();
   }
   render() {
     const [w, h] = this.size(); if (!w || !h) return;
-    const z = this.zoom, [cx, cy] = worldPx(this.center, z), x0 = cx - w / 2, y0 = cy - h / 2, n = 2 ** z, want = new Set<string>();
-    for (let tx = Math.floor(x0 / TILE); tx <= Math.floor((x0 + w) / TILE); tx++) for (let ty = Math.floor(y0 / TILE); ty <= Math.floor((y0 + h) / TILE); ty++) {
+    // Fractional zoom: tiles come from the zoom level below and are scaled up, so any fit is exact.
+    const z = this.zoom, tz = Math.floor(z), ts = TILE * 2 ** (z - tz), [cx, cy] = worldPx(this.center, z), x0 = cx - w / 2, y0 = cy - h / 2, n = 2 ** tz, want = new Set<string>();
+    for (let tx = Math.floor(x0 / ts); tx <= Math.floor((x0 + w) / ts); tx++) for (let ty = Math.floor(y0 / ts); ty <= Math.floor((y0 + h) / ts); ty++) {
       if (ty < 0 || ty >= n) continue;
-      const key = `${z}/${tx}/${ty}`; want.add(key);
+      const key = `${tz}/${tx}/${ty}`; want.add(key);
       let img = this.cache.get(key);
       if (!img) {
         img = new Image(); img.alt = ""; img.draggable = false; img.className = "rtile"; img.referrerPolicy = "strict-origin-when-cross-origin";
         img.onload = () => { this.loaded++; img!.classList.add("on"); this.el.classList.remove("offline"); };
         img.onerror = () => { this.failed++; if (!this.loaded) this.el.classList.add("offline"); };
-        img.src = tileUrl(z, ((tx % n) + n) % n, ty); this.cache.set(key, img); this.tiles.append(img);
+        img.src = tileUrl(tz, ((tx % n) + n) % n, ty); this.cache.set(key, img); this.tiles.append(img);
       }
-      img.style.transform = `translate(${Math.round(tx * TILE - x0)}px,${Math.round(ty * TILE - y0)}px)`;
+      img.style.width = img.style.height = `${ts + 0.5}px`;
+      img.style.transform = `translate(${tx * ts - x0}px,${ty * ts - y0}px)`;
     }
     for (const [k, img] of this.cache) if (!want.has(k)) { img.remove(); this.cache.delete(k); }
     this.listeners.forEach((f) => f());
