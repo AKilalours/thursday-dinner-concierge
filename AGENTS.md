@@ -19,6 +19,7 @@ ANDE_PSQL="-h localhost -U postgres" npm test  # also runs every store test on r
 npm run evals                               # invariants must stay 100%
 npm run fuzz                                # 300 random worlds, invariants only
 npm run evals:ranking                       # memory must make the shortlist better, never worse
+npm run evals:users                         # 25 requests typed the way real people type
 npm run build:web && npm run site:check     # every page in a real browser at 3 widths + the main flows
 ```
 

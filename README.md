@@ -6,6 +6,7 @@
   <a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="https://img.shields.io/badge/▶_Open_the_live_app-7b1e3a?style=for-the-badge" alt="Open the live app"></a>
   <a href="https://ande-thursday-dinner-concierge.streamlit.app"><img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit"></a>
   <a href="docs/img/demo.mp4"><img src="https://img.shields.io/badge/▶_35s_video-2b1d24?style=for-the-badge" alt="Video"></a>
+  <a href="#-real-people-real-bugs"><img src="https://img.shields.io/badge/▶_Real_users_video_(HD)-3f7d5a?style=for-the-badge" alt="Real users video"></a>
 </p>
 <p align="center">
   <a href="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/ci.yml"><img src="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
@@ -16,12 +17,29 @@
 <p align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="docs/img/demo.gif" width="900" alt="Recorded on the live site with live Claude: one sentence, four venue emails, an injection ignored, slide to book, then Traces, Explore, Compare, the Fix lab, typed tools and 48/48 evals"></a><br><sub>Recorded on the live site, live Claude, real OpenStreetMap streets · <a href="docs/img/demo.mp4">MP4</a></sub></p>
 
 <table align="center"><tr>
-<td align="center"><h3>49/49</h3>eval scenarios</td>
-<td align="center"><h3>0 / 2,023</h3>safety checks failed<br>in 300 random worlds</td>
-<td align="center"><h3>107</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>53/53</h3>eval scenarios</td>
+<td align="center"><h3>0 / 2,030</h3>safety checks failed<br>in 300 random worlds</td>
+<td align="center"><h3>111</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>25/25</h3>real-user<br>sentences</td>
 <td align="center"><h3>55% → 72%</h3>first pick confirms,<br>no memory → memory</td>
-<td align="center"><h3>12</h3>bugs caught →<br>permanent cases</td>
+<td align="center"><h3>16</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
+
+## ▶ Real people, real bugs
+
+<p align="center"><a href="docs/img/real-users.mp4"><img src="docs/img/real-users.gif" width="900" alt="Akilan and Mamatha Challa each sign in and book a dinner in one sentence"></a><br><sub><a href="docs/img/real-users.mp4">Watch in HD (1440p)</a></sub></p>
+
+Evals only test what you thought of. So I gave the app to a real person. **Akilan** used it with no instructions beyond "type a dinner the way you'd text a friend", and broke it on his first sentence. Then I walked through it as a second user, a team lead (**Mamatha Challa** in the video), plus 25 requests typed the way people type. Every failure became a fix and a permanent test the same day. The video re-enacts both sessions on the fixed build:
+
+| Who | What they typed | What went wrong | Now |
+|---|---|---|---|
+| Akilan | "dinner for 2 next Friday, somewhere private" | Every private room's minimum split over 2 guests broke the $250 cap, so it emailed nobody and said "I contacted 0 venues" (R12) | Books a quiet table and says why: "private rooms start at about $721 a head for 2" |
+| Mamatha | "lunch with a client tomorrow, 3 people" | Asked 27 h ahead, but notice was measured when venues replied, so 8 venues were emailed and it gave up (R13) | Notice is measured from when the booker asked |
+| Mamatha | "team dinner for 8 on 12/3" · "dinner on Christmas Eve" | Asked "which date?" (R14) | US dates and holiday evenings resolve |
+| Mamatha | "dinner for 6 under $60 a head" | Dead end: "no venue could host" (R15) | Asks, with the closest real price: "about $88 a head all-in, book that?" |
+| Mamatha | booked Dec 3, opened Calendar | The calendar showed a fixed 3 weeks, so her dinner was invisible (R16) | Calendar grows to the last booked dinner |
+
+`npm run evals:users` replays 25 requests typed the way people type, in CI, on every push: **25/25** now do what a person would expect (22 book, 2 correctly wait for a manager because they're under 24 h notice, 1 asks about budget).
 
 ### ▶ Try a sentence (each link runs it live)
 
@@ -64,7 +82,7 @@ flowchart LR
 | **Changes after booking** | Amendments and cancellations are proposals too; an amendment swaps the booking atomically and rolls back if the new slot is taken. |
 | **Spend control** | Policy as code: per-head caps, manager thresholds, notice; preferred corporate rates (12-15%) applied and reported. |
 | **Typed tools** | zod in and out, run as the EA *for* the executive, idempotent, audited. `book`, `pay_deposit`, `amend_booking` and `cancel_booking` need an approved proposal. |
-| **Evals** | 49 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
+| **Evals** | 53 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
 | **Memory** | Every venue reply leaves facts ("the Library really seats 10", "offered as asked", "declined"). Sourcing ranks on that track record next time. Private memories protected by row-level security. |
 | **Ranking eval** | `npm run evals:ranking`: 10 worlds where each venue has a hidden temperament, 400 past bookings, 600 held-out requests ranked with and without memory. First pick confirms 55% → 72%, MRR 0.72 → 0.82, hit@3 89% → 92%, 0 requests made worse. Gated in CI; runs live on the Memory page. |
 | **Fast judgments** | Triage, SMS consent, urgency, injection. Threshold per label, timeout, safe fallback, `rules → shadow → live`. |
@@ -102,6 +120,10 @@ flowchart LR
 | R10 | **Found on the live site with live Claude:** "somewhere in SoHo" booked Williamsburg. Claude returned "SoHo", venues say "soho", so the match never fired. Now normalized, a named area is a requirement, and the booker is told if nothing there fits |
 | R11 | **Found by the ranking eval:** memory made the first pick slightly worse than no memory (54% vs 55%). A $2,180 quote for a 16-seat room was applied to the same venue's 8-seat room, dropping a venue that would confirm, and memory only kept bad news. Quotes now belong to their room, and offers made as asked count for a venue |
 | R12 | **Found by the first real user:** "dinner for 2 next Friday, somewhere private" emailed nobody and said "I contacted 0 venues". Every private room's minimum spend split over 2 guests broke the $250 cap. Now it shortlists quiet tables and tells the booker why, with the number ("about $721 a head for 2"); the booker still approves |
+| R13 | **Found testing as a real user:** "lunch with a client tomorrow, 3 people" (27 h ahead) emailed 8 venues then escalated: notice was measured when venues replied, not when the booker asked |
+| R14 | **Found testing as a real user:** "12/3" and "Christmas Eve" weren't understood as dates |
+| R15 | **Found testing as a real user:** a per-head budget nothing meets was a dead end; now it asks with the closest real price |
+| R16 | **Found testing as a real user:** a dinner booked for Dec 3 never appeared, because the calendar showed a fixed 3 weeks |
 </details>
 
 <details>

@@ -1411,12 +1411,18 @@ function modal(html: string, buttons: [string, string, string][], cls = ""): Pro
     m.onclick = (e) => { if (e.target === m) done("n"); };
   });
 }
-const CAL_DAYS = Array.from({ length: 21 }, (_, i) => addDays("2026-11-09", i));
+// Found testing as Mamatha: a dinner booked for Dec 3 never showed, because the calendar was a fixed 3 weeks.
+// Show at least 3 weeks, and every week up to the last confirmed dinner (capped at 8 weeks).
+const calDays = (last: string | null) => {
+  const weeks = last ? Math.min(8, Math.max(3, Math.floor((Date.parse(last) - Date.parse("2026-11-09")) / (7 * 86_400_000)) + 1)) : 3;
+  return Array.from({ length: weeks * 7 }, (_, i) => addDays("2026-11-09", i));
+};
 let calPick: string | null = null, calLast = "";
 async function renderCal() {
   const rows = (await bkRows()).filter((r) => r.status === "confirmed" && r.src !== "Live desk");
   const MON = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const html = MON.map((d) => `<div class="calh">${d}</div>`).join("") + CAL_DAYS.map((d) => {
+  const last = rows.map((r) => localDate(r.startsAt)).sort().at(-1) ?? null;
+  const html = MON.map((d) => `<div class="calh">${d}</div>`).join("") + calDays(last).map((d) => {
     const inRange = NIGHTS.includes(d), today = d === "2026-11-09", list = rows.filter((r) => localDate(r.startsAt) === d);
     return `<div class="cald ${inRange ? "" : "off"} ${today ? "today" : ""}" data-d="${d}"><div class="caln">${Number(d.slice(8))}${today ? " · today" : ""}</div>${list.map((r) =>
       `<div class="calb ${calPick === r.id ? "pick" : ""}" draggable="true" data-id="${r.id}" style="--c:${["#7b1e3a", "#3f7d5a", "#5b6b8c", "#8a6212", "#a8502f"][venues.indexOf(r.v) % 5]}"><b>${esc(r.v.name)}</b><span>${r.partySize} · ${usd(r.approved)}</span></div>`).join("")}${inRange && !list.length ? `<button class="caladd" data-d="${d}">+ dinner</button>` : ""}</div>`;

@@ -29,7 +29,11 @@ export async function compare(ctx: Ctx, req: BookingRequest, threads: Thread[]):
     if (req.privateRoom && !room.private) { rejected.push({ venue: t.venue.name, why: `offered ${room.name}, which is not private` }); continue; }
     // If the email gave no minimum, assume the listed one rather than zero: never under-estimate spend.
     const priced = { ...o, minSpendCents: o.minSpendCents ?? room.minSpendCents[weekday(req.date!)] };
-    const policy = checkPolicy(ctx.company, req, t.venue, priced, leadHours(ctx.world.now, req.date!, req.time));
+    // Regression R13 (found by testing as a real user, "lunch with a client tomorrow, 3 people", asked 27 h ahead):
+    // notice was measured when each venue replied, so waiting on replies pushed every offer under 24 h and 8 venues
+    // were emailed for nothing. Notice is a property of the request: measure it from when the booker asked.
+    const asOf = ctx.legacy?.r13 ? ctx.world.now : (ctx.requestedAt ?? ctx.world.now);
+    const policy = checkPolicy(ctx.company, req, t.venue, priced, leadHours(asOf, req.date!, req.time));
     if (!policy.onPolicy) { rejected.push({ venue: t.venue.name, why: policy.violations.join("; ") }); continue; }
     // Lower all-in cost per head is better, and the sourcing score breaks ties.
     const rank = policy.estimate.perHeadAllInCents / 100 - t.candidate.score;

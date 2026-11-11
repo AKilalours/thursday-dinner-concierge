@@ -41,6 +41,21 @@ export function resolveDate(text: string, today: string): ResolvedDate {
     if (candidate < today) candidate = `${year + 1}${candidate.slice(4)}`;
     return { date: candidate, ambiguous: false, reason: "month and day" };
   }
+  // Regression R14 (found by testing as a real user): "dinner for 5 on 12/3" and "dinner for 12 on Christmas Eve" asked which date.
+  // US month/day (an office in New York), and the two holiday evenings people book dinners for.
+  const us = t.match(/(?<![\d$])(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?(?![\d/])/);
+  if (us && Number(us[1]) >= 1 && Number(us[1]) <= 12 && Number(us[2]) >= 1 && Number(us[2]) <= 31) {
+    const year = us[3] ? (us[3].length === 2 ? 2000 + Number(us[3]) : Number(us[3])) : Number(today.slice(0, 4));
+    let candidate = `${year}-${us[1].padStart(2, "0")}-${us[2].padStart(2, "0")}`;
+    if (!us[3] && candidate < today) candidate = `${year + 1}${candidate.slice(4)}`;
+    return { date: candidate, ambiguous: false, reason: "month/day" };
+  }
+  const holiday = /christmas eve/.test(t) ? "12-24" : /new year'?s eve/.test(t) ? "12-31" : null;
+  if (holiday) {
+    const year = Number(today.slice(0, 4));
+    const candidate = `${year}-${holiday}` < today ? `${year + 1}-${holiday}` : `${year}-${holiday}`;
+    return { date: candidate, ambiguous: false, reason: "holiday" };
+  }
   if (/\btonight\b|\btoday\b/.test(t)) return { date: today, ambiguous: false, reason: "today" };
   if (/\btomorrow\b/.test(t)) return { date: addDays(today, 1), ambiguous: false, reason: "tomorrow" };
 

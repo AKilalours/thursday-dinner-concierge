@@ -72,7 +72,8 @@ if ((await page.$$(".modal .mm")).length < 2) fail(1440, "home: expected the sen
 await page.evaluate(() => window.go("desk"));
 await page.waitForSelector(".kc.need [data-ok]", { timeout: 60000 }).then(() => page.click(".kc.need [data-ok]")).catch(() => fail(1440, "live desk: nothing reached Needs you"));
 await page.waitForFunction(() => Number(document.querySelector(".kcol.ok .kch b")?.textContent) > 0, null, { timeout: 30000 }).catch(() => fail(1440, "live desk: nothing reached Confirmed"));
-await page.click(".kc .kh"); await page.waitForSelector("#dDrawer.on"); await page.click("#dMail"); await page.waitForSelector(".modal .mm", { timeout: 5000 }).catch(() => fail(1440, "live desk: email threads did not open")); await page.click(".modal [data-k=n]"); await page.click("#dClose");
+// The desk keeps moving cards, so open the drawer and the threads with a retry instead of a single timed click.
+{ let opened = false; for (let i = 0; i < 3 && !opened; i++) { await page.click(".kcol.ok .kc .kh").catch(() => page.click(".kc .kh")); await page.waitForSelector("#dDrawer.on", { timeout: 5000 }).catch(() => {}); await page.click("#dMail").catch(() => {}); opened = await page.waitForSelector(".modal .mm", { timeout: 8000 }).then(() => true).catch(() => false); if (!opened) await page.click("#dClose").catch(() => {}); } if (!opened) fail(1440, "live desk: email threads did not open"); } await page.click(".modal [data-k=n]"); await page.click("#dClose");
 { const p2 = await open(1440, 900); await p2.goto(url + "?ask=private%20dinner%20for%2020%20with%20Globex%20on%20Nov%2019#home"); await p2.waitForSelector("#hSl .slide, .ph-bot", { timeout: 30000 }).catch(() => fail(1440, "?ask= link did not run the request")); await p2.close(); }
 await page.evaluate(() => window.go("chat"));
 await page.fill("#chatIn", "dinner for 12 with the Acme team next Thursday, somewhere private"); await page.press("#chatIn", "Enter");

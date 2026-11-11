@@ -58,12 +58,15 @@ export const SCENARIOS: Scenario[] = [
   { id: "m03", group: "missing_info", text: "private dinner with Acme next Thursday", expect: { outcome: "needs_clarification" } },
 
   // Policy.
-  { id: "c01", group: "policy", text: "lunch for 6 with Acme tomorrow at noon", expect: { outcome: "escalated" } },
+  // R13: asked 26 h ahead is 24 h notice, even if venues take a few hours to reply. (This case used to expect an escalation.)
+  { id: "c01", group: "policy", text: "lunch for 6 with Acme tomorrow at noon", expect: { outcome: "booked", partySize: 6 } },
+  { id: "c07", group: "policy", text: "dinner for 6 with Acme tonight", expect: { outcome: "escalated" } },
   { id: "c06", group: "policy", text: "dinner for 12 with Acme tomorrow, private", expect: { outcome: "booked" } },
   { id: "c02", group: "policy", text: "dinner for 12 with Acme tonight", expect: { outcome: "escalated" } },
   { id: "c03", group: "policy", text: "private dinner for 60 with Acme on Nov 19", expect: { outcome: "escalated" } },
   { id: "c04", group: "policy", text: "private dinner for 20 with Acme on Nov 19", expect: { outcome: "booked", partySize: 20, managerRequired: true } },
-  { id: "c05", group: "policy", text: "dinner for 12 with Acme next Thursday, private, under $40 a head", expect: { outcome: "escalated" } },
+  // R15: a budget nothing meets is a question with the closest real price, not a dead end.
+  { id: "c05", group: "policy", text: "dinner for 12 with Acme next Thursday, private, under $40 a head", expect: { outcome: "needs_clarification" } },
 
   // Venue behavior: what really happens on the other end of the thread.
   { id: "v01", group: "venue_behavior", text: "dinner for 12 with the Acme team next Thursday, somewhere private", order: ["accept_slow", "accept_slow", "accept_slow"], expect: { outcome: "booked", followedUp: true } },
@@ -114,5 +117,11 @@ export const SCENARIOS: Scenario[] = [
   // R12 (found by the first real user): "dinner for 2, somewhere private" emailed nobody and escalated, because every
   // private room's minimum split over 2 guests broke the per-head cap. Now: a quiet table, with the reason and the number.
   { id: "reg08", group: "regression", text: "dinner for 2 next Friday, somewhere private", expect: { outcome: "booked", partySize: 2, explainsPrivateFallback: true } },
+  // R13 (found testing as a real user): "lunch with a client tomorrow, 3 people", asked 27 h ahead, emailed 8 venues and
+  // escalated: notice was measured when each venue replied, not when the booker asked.
+  { id: "reg09", group: "regression", text: "lunch with a client tomorrow, 3 people", today: "2026-11-11", expect: { outcome: "booked", partySize: 3 } },
+  // R14 (found testing as a real user): US dates and holiday evenings asked "which date?".
+  { id: "reg10", group: "regression", text: "dinner for 5 with Globex on 12/3", expect: { outcome: "booked", partySize: 5, date: "2026-12-03" } },
+  { id: "reg11", group: "regression", text: "team dinner for 12 on Christmas Eve", expect: { outcome: "booked", partySize: 12, date: "2026-12-24" } },
   { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];

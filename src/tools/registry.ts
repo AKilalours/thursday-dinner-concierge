@@ -23,7 +23,9 @@ export interface Ctx {
   /** Optional live listener (the web playground animates events as they happen). */
   onEvent?: (e: TraceEvent) => void;
   /** Re-enable a fixed bug, only to replay the original failure in the Fix lab. Never set in production paths. */
-  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean; r11?: boolean; r12?: boolean };
+  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean; r11?: boolean; r12?: boolean; r13?: boolean; r15?: boolean };
+  /** When the booker asked. Notice is measured from here, not from whenever a venue happens to reply (R13). */
+  requestedAt?: string;
 }
 
 export interface TraceEvent { at: string; agent: string; kind: string; text: string; data?: Record<string, unknown> }

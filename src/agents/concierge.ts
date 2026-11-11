@@ -42,7 +42,7 @@ export interface RunInput {
   /** Venues to contact per round (an RFP to more venues gives more offers to compare). */
   shortlistSize?: number;
   onEvent?: (e: TraceEvent) => void;
-  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean; r11?: boolean; r12?: boolean };
+  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean; r11?: boolean; r12?: boolean; r13?: boolean; r15?: boolean };
 }
 
 export interface RunResult {
@@ -73,7 +73,7 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   const runId = `run_${randomUUID().slice(0, 8)}`;
   const ctx: Ctx = {
     store: input.store, world: input.world, llm: input.llm, company: input.company ?? COMPANY, venues: input.venues,
-    actor: input.actor, principal: input.principal, runId, today: input.today, smsOptedOut: input.smsOptedOut ?? new Set(), trace: [], onEvent: input.onEvent, legacy: input.legacy,
+    actor: input.actor, principal: input.principal, runId, today: input.today, smsOptedOut: input.smsOptedOut ?? new Set(), trace: [], onEvent: input.onEvent, legacy: input.legacy, requestedAt: input.world.now,
   };
   const mode = input.judgmentMode ?? "rules";
   const result: RunResult = { runId, outcome: "escalated", request: null, proposals: [], bookingId: null, paymentId: null, chosenVenueId: null, messagesToBooker: [], trace: ctx.trace, parseDecidedBy: "rules" };
@@ -99,12 +99,12 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   const lead = leadHours(ctx.world.now, req.date, req.time);
   if (lead < 0) {
     result.outcome = "needs_clarification";
-    await tell(`${human(req.date)} at ${req.time} has already passed. Which date did you mean?`);
+    await tell(`${human(req.date)} at ${clock(req.time)} has already passed. Which date did you mean?`);
     return result;
   }
   if (lead < ctx.company.policy.minLeadHours) {
     result.outcome = "escalated";
-    await tell(`${human(req.date)} at ${req.time} is ${Math.round(lead)} h away; policy needs ${ctx.company.policy.minLeadHours} h notice, so I've passed this to the concierge team to handle by phone with your manager's sign-off.`);
+    await tell(`${human(req.date)} at ${clock(req.time)} is ${Math.round(lead)} h away; policy needs ${ctx.company.policy.minLeadHours} h notice, so I've passed this to the concierge team to handle by phone with your manager's sign-off.`);
     return result;
   }
   const urg = await urgency(ctx.llm, mode).classify({ text: input.text, hoursUntil: lead });
@@ -151,6 +151,21 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
           ? `No ${cz} venue has ${req.privateRoom ? "a private room" : "a table"} for ${req.partySize} within the ${usd(ctx.company.policy.perHeadCapCents[req.kind])} cap. Closest is ${best.v.name} at about ${usd(best.e.perHeadAllInCents)} a head. Should I look beyond ${cz}, or ask ${approverFor("manager", ctx.actor).name} to approve the higher spend?`
           : `No ${cz} venue in the network can host ${req.partySize}${req.privateRoom ? " privately" : ""}. Should I look at other cuisines?`);
         return result;
+      }
+      // Regression R15 (found by testing as a real user): "dinner for 6 under $60 a head" said "no venue could host" and gave up.
+      // A stated budget nothing meets: ask, with the closest real price, instead of escalating.
+      if (round === 1 && req.maxPerHeadCents && !ctx.legacy?.r15) {
+        const day = weekday(req.date);
+        const closest = ctx.venues.filter((v) => !ctx.company.policy.blockedVenueIds.includes(v.id) && !v.closedDays.includes(day)).flatMap((v) => {
+          const room = v.rooms.filter((r) => (req.privateRoom ? r.private : !r.private) && r.listedCapacity >= req.partySize).sort((a, b) => a.listedCapacity - b.listedCapacity)[0];
+          return room ? [{ v, e: estimate(req.partySize, perHeadFor(v, req.kind), room.private ? room.minSpendCents[day] : 0, v.preferredRatePct) }] : [];
+        }).sort((a, b) => a.e.perHeadAllInCents - b.e.perHeadAllInCents)[0];
+        if (closest) {
+          result.outcome = "needs_clarification";
+          await log(ctx, "concierge", "clarify", `nothing under ${usd(req.maxPerHeadCents)} a head; closest ${closest.v.name} at ${usd(closest.e.perHeadAllInCents)} all-in`);
+          await tell(`Nothing in the network fits ${usd(req.maxPerHeadCents)} a head before tax and tip for ${req.partySize}. Closest is ${closest.v.name} at about ${usd(closest.e.perHeadAllInCents)} a head all-in. Should I book that, or try a different night?`);
+          return result;
+        }
       }
       break;
     }
