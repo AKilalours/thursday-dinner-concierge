@@ -1646,7 +1646,7 @@ function hLayout() {
   const [ox, oy] = hm.toPoint(OFFICE); HQ = [ox * k, oy * k];
 }
 const vByName = (t: string) => venues.filter((v) => t.startsWith(v.name) || t.includes(` ${v.name}`) || t.includes(`${v.name},`) || t.includes(`${v.name}'s`)).sort((a, b) => b.name.length - a.name.length)[0];
-let hBusy = false, hDone = false, hRuns = 0, hWorld: VenueWorld | null = null;
+let hBusy = false, hDone = false, hQuiet = "", hRuns = 0, hWorld: VenueWorld | null = null;
 const SVGNS = "http://www.w3.org/2000/svg";
 function hMap() {
   if (!hm.size()[0]) return; // hidden page: lay out when it is shown
@@ -1688,7 +1688,7 @@ function hFly(path: SVGPathElement, back: boolean, cls: string, ms = 700) {
 function hStage(k: string) { const order = ["parse", "source", "email", "compare", "approve", "book"], i = order.indexOf(k); $$<HTMLElement>("#hSteps > div").forEach((d, j) => { d.classList.toggle("done", j < i); d.classList.toggle("on", j === i); }); }
 function hCount(id: string, n: number) { const e = $(`#${id}`); e.textContent = String(n); e.classList.remove("tick"); void e.offsetWidth; e.classList.add("tick"); }
 async function hRun(text: string) {
-  if (hBusy || !text.trim()) return; hBusy = true; hDone = false; hRuns++;
+  if (hBusy || !text.trim()) return; hBusy = true; hDone = false; hQuiet = ""; hRuns++;
   const btn = $<HTMLButtonElement>("#hGo"); btn.disabled = true; $<HTMLInputElement>("#hIn").value = text;
   hMap(); $("#hPhone").innerHTML = `<div class="ph-s">Concierge is on it…</div>`; $("#hRes").innerHTML = ""; $("#hMap").classList.add("running"); $("#hMap").classList.remove("done");
   const c = { mail: 0, rep: 0, off: 0, inj: 0 }; ["hcMail", "hcRep", "hcOff", "hcInj"].forEach((i) => ($(`#${i}`).textContent = "0"));
@@ -1721,7 +1721,8 @@ async function hRun(text: string) {
       for (const r of (e.data?.rejected ?? []) as { venue: string; why: string }[]) { const v = venues.find((x) => x.name === r.venue); if (v && !hp(v.id)?.classList.contains("inj")) hTag(v.id, `✕ ${r.why.replace(/needs[ _]human/, "unclear reply").replace(/_/g, " ").split(/[,;(]/)[0].slice(0, 22)}`, "no"); }
       await sleep(700);
     });
-    if (e.kind === "replan") q(async () => { toast("Widening the search", "First round came back empty", "warn"); $$<SVGGElement>(".hp.cand").forEach((g) => g.classList.add("spent")); await sleep(400); });
+    if (e.kind === "replan" && /quiet tables/.test(e.text)) hQuiet = e.text.match(/lowest (\$[\d,]+) a head/)?.[1] ?? "over the cap";
+    if (e.kind === "replan") q(async () => { if (/quiet tables/.test(e.text)) toast("No private room fits the cap", "Shortlisting quiet tables instead", "warn"); else toast("Widening the search", "First round came back empty", "warn"); $$<SVGGElement>(".hp.cand").forEach((g) => g.classList.add("spent")); await sleep(400); });
     if (e.kind === "booked") q(() => hStage("book"));
   };
   const approver: Approver = async (p, st) => {
@@ -1730,7 +1731,7 @@ async function hRun(text: string) {
     hStage("approve"); const v = venues.find((x) => x.id === p.venueId)!, room = v.rooms.find((r) => r.id === p.roomId)!;
     hp(v.id)?.classList.add("win"); $("#hMap").classList.add("done");
     const ph = $("#hPhone"); ph.insertAdjacentHTML("beforeend", `<div class="ph-card"><div class="ph-v">${esc(v.name)}</div><div class="ph-r">${esc(room.name)} · ${esc(v.neighborhood)}</div>
-      <div class="ph-g"><div><b>${when(p.startsAt)}</b><span>${localDate(p.startsAt).slice(5)}</span></div><div><b>${p.partySize}</b><span>guests</span></div><div><b>${usd(p.amountCents)}</b><span>all-in</span></div><div><b>${usd(Math.round(p.amountCents / p.partySize))}</b><span>per head</span></div></div>${v.preferredRatePct ? `<div class="ph-save">−${v.preferredRatePct}% corporate rate applied</div>` : ""}</div><div id="hSl"></div>`);
+      <div class="ph-g"><div><b>${when(p.startsAt)}</b><span>${localDate(p.startsAt).slice(5)}</span></div><div><b>${p.partySize}</b><span>guests</span></div><div><b>${usd(p.amountCents)}</b><span>all-in</span></div><div><b>${usd(Math.round(p.amountCents / p.partySize))}</b><span>per head</span></div></div>${v.preferredRatePct ? `<div class="ph-save">−${v.preferredRatePct}% corporate rate applied</div>` : ""}${hQuiet ? `<div class="ph-note">Private rooms start at ${esc(hQuiet)}/head · quiet table instead</div>` : ""}</div><div id="hSl"></div>`);
     ph.scrollTop = ph.scrollHeight;
     for (const role of p.requiredRoles) {
       const ok = await slideIn($("#hSl"), role === "booker" ? "Slide to book" : `Slide as ${approverFor(role, priya).name.split(" ")[0]}`);

@@ -42,7 +42,7 @@ export interface RunInput {
   /** Venues to contact per round (an RFP to more venues gives more offers to compare). */
   shortlistSize?: number;
   onEvent?: (e: TraceEvent) => void;
-  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean; r11?: boolean };
+  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean; r11?: boolean; r12?: boolean };
 }
 
 export interface RunResult {
@@ -115,8 +115,26 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   const alternatives: { venue: string; dates: string[] }[] = [];
   let options: Option[] = [];
   const rounds = input.maxRounds ?? 2;
+  let relaxedNote = "";
   for (let round = 1; round <= rounds && options.length === 0; round++) {
-    const candidates = (await source(ctx, req, contacted)).slice(0, input.shortlistSize ?? (urg.label === "urgent" ? 4 : 3));
+    let candidates = (await source(ctx, req, contacted)).slice(0, input.shortlistSize ?? (urg.label === "urgent" ? 4 : 3));
+    // Regression R12 (found by the first real user, "dinner for 2 next Friday, somewhere private"): every private
+    // room's minimum spend split over 2 guests broke the per-head cap, so the agent emailed nobody and escalated.
+    // Now it shortlists quiet dining-room tables and tells the booker why, with the real number. The booker still
+    // approves before anything is booked. A stated cuisine goes to the R7 question instead (which constraint to relax).
+    if (!candidates.length && round === 1 && req.privateRoom && !req.cuisine && !ctx.legacy?.r12) {
+      const day = weekday(req.date);
+      const cheapest = ctx.venues.filter((v) => !ctx.company.policy.blockedVenueIds.includes(v.id) && !v.closedDays.includes(day)).flatMap((v) =>
+        v.rooms.filter((r) => r.private && r.listedCapacity >= req.partySize).map((r) => ({ v, e: estimate(req.partySize, perHeadFor(v, req.kind), r.minSpendCents[day], v.preferredRatePct) })))
+        .sort((a, b) => a.e.perHeadAllInCents - b.e.perHeadAllInCents)[0];
+      const open = { ...req, privateRoom: false };
+      const tables = (await source(ctx, open, contacted)).slice(0, input.shortlistSize ?? (urg.label === "urgent" ? 4 : 3));
+      if (cheapest && tables.length) {
+        relaxedNote = `Private rooms need a food and beverage minimum: the lowest, at ${cheapest.v.name}, works out to about ${usd(cheapest.e.perHeadAllInCents)} a head for ${req.partySize}, over the ${usd(ctx.company.policy.perHeadCapCents[req.kind])} cap, so this is a quiet table in the dining room. Reject if you need a private room and I'll ask ${approverFor("manager", ctx.actor).name} to approve the higher spend.`;
+        await log(ctx, "concierge", "replan", `no private room fits ${req.partySize} within policy (lowest ${usd(cheapest.e.perHeadAllInCents)} a head); shortlisting quiet tables instead`);
+        req.privateRoom = false; candidates = tables;
+      }
+    }
     if (!candidates.length) {
       // A stated cuisine with no venue inside policy: ask which constraint to relax, with the real numbers.
       if (round === 1 && req.cuisine && !ctx.legacy?.r7) {
@@ -147,13 +165,13 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   if (!options.length) {
     result.outcome = "escalated";
     const alt = alternatives.length ? ` ${alternatives.map((a) => `${a.venue} could do ${a.dates.map(human).join(" or ")}`).join("; ")}. Want one of those instead?` : "";
-    await tell(`I contacted ${contacted.size} venues and none could host ${req.partySize} on ${human(req.date)} within policy.${alt} I've also flagged it to the concierge team.`);
+    await tell(`${contacted.size ? `I contacted ${contacted.size} venues and none` : "No venue in the network"} could host ${req.partySize} on ${human(req.date)} within policy.${alt} I've also flagged it to the concierge team.`);
     return result;
   }
 
   // 5-7. Propose, wait for the booker, execute; on failure fall through to the next option.
   for (const opt of options.slice(0, 2)) {
-    const outcome = await proposeAndExecute(ctx, req, opt, input, result, tell, input.text);
+    const outcome = await proposeAndExecute(ctx, req, opt, input, result, tell, input.text, relaxedNote);
     if (outcome !== "try_next") return result;
   }
   result.outcome = "escalated";
@@ -169,13 +187,14 @@ function outsideArea(req: BookingRequest, v: Venue, ctx: Ctx) {
 }
 
 async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, input: RunInput, result: RunResult,
-  tell: (t: string) => Promise<void>, text: string): Promise<"done" | "try_next"> {
+  tell: (t: string) => Promise<void>, text: string, relaxedNote = ""): Promise<"done" | "try_next"> {
   const v = opt.thread.venue;
   const room = v.rooms.find((r) => r.id === opt.roomId)!;
   const win = eventWindow(req.date!, req.time);
   const holdH = Math.min(opt.thread.offer?.holdExpiresHours ?? 24, 48);
   const expiresAt = new Date(Math.min(Date.parse(ctx.world.now) + holdH * 3_600_000, Date.parse(startsAt(req.date!, req.time)))).toISOString();
   const caveats = [
+    relaxedNote,
     req.dateAmbiguous ? `I read "${text.match(/next \w+/i)?.[0] ?? "the date"}" as ${human(req.date!)}; reject if you meant ${human(addDays(req.date!, 7))}.` : "",
     opt.thread.injectionFlagged ? `${v.name}'s email contained instructions to change payment details; I ignored them and will only pay the venue's account on file.` : "",
     v.contractRequired ? `${v.name} requires its private dining agreement; approving authorizes signing it.` : "",

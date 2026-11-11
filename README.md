@@ -16,11 +16,11 @@
 <p align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="docs/img/demo.gif" width="900" alt="Recorded on the live site with live Claude: one sentence, four venue emails, an injection ignored, slide to book, then Traces, Explore, Compare, the Fix lab, typed tools and 48/48 evals"></a><br><sub>Recorded on the live site, live Claude, real OpenStreetMap streets · <a href="docs/img/demo.mp4">MP4</a></sub></p>
 
 <table align="center"><tr>
-<td align="center"><h3>48/48</h3>eval scenarios</td>
-<td align="center"><h3>0 / 2,010</h3>safety checks failed<br>in 300 random worlds</td>
-<td align="center"><h3>104</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>49/49</h3>eval scenarios</td>
+<td align="center"><h3>0 / 2,023</h3>safety checks failed<br>in 300 random worlds</td>
+<td align="center"><h3>107</h3>tests, incl.<br>real Postgres</td>
 <td align="center"><h3>55% → 72%</h3>first pick confirms,<br>no memory → memory</td>
-<td align="center"><h3>11</h3>bugs caught →<br>permanent cases</td>
+<td align="center"><h3>12</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
 
 ### ▶ Try a sentence (each link runs it live)
@@ -64,7 +64,7 @@ flowchart LR
 | **Changes after booking** | Amendments and cancellations are proposals too; an amendment swaps the booking atomically and rolls back if the new slot is taken. |
 | **Spend control** | Policy as code: per-head caps, manager thresholds, notice; preferred corporate rates (12-15%) applied and reported. |
 | **Typed tools** | zod in and out, run as the EA *for* the executive, idempotent, audited. `book`, `pay_deposit`, `amend_booking` and `cancel_booking` need an approved proposal. |
-| **Evals** | 48 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
+| **Evals** | 49 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
 | **Memory** | Every venue reply leaves facts ("the Library really seats 10", "offered as asked", "declined"). Sourcing ranks on that track record next time. Private memories protected by row-level security. |
 | **Ranking eval** | `npm run evals:ranking`: 10 worlds where each venue has a hidden temperament, 400 past bookings, 600 held-out requests ranked with and without memory. First pick confirms 55% → 72%, MRR 0.72 → 0.82, hit@3 89% → 92%, 0 requests made worse. Gated in CI; runs live on the Memory page. |
 | **Fast judgments** | Triage, SMS consent, urgency, injection. Threshold per label, timeout, safe fallback, `rules → shadow → live`. |
@@ -101,6 +101,7 @@ flowchart LR
 | R9 | A model call that hit its timeout was retried, so a timeout cost twice the budget (an aborted fetch didn't say "timed out") |
 | R10 | **Found on the live site with live Claude:** "somewhere in SoHo" booked Williamsburg. Claude returned "SoHo", venues say "soho", so the match never fired. Now normalized, a named area is a requirement, and the booker is told if nothing there fits |
 | R11 | **Found by the ranking eval:** memory made the first pick slightly worse than no memory (54% vs 55%). A $2,180 quote for a 16-seat room was applied to the same venue's 8-seat room, dropping a venue that would confirm, and memory only kept bad news. Quotes now belong to their room, and offers made as asked count for a venue |
+| R12 | **Found by the first real user:** "dinner for 2 next Friday, somewhere private" emailed nobody and said "I contacted 0 venues". Every private room's minimum spend split over 2 guests broke the $250 cap. Now it shortlists quiet tables and tells the booker why, with the number ("about $721 a head for 2"); the booker still approves |
 </details>
 
 <details>

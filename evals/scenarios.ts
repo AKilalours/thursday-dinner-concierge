@@ -28,6 +28,8 @@ export interface Scenario {
     avoidsLearnedTightRoom?: boolean;
     channel?: "sms" | "email";
     avoidsInjectedVenue?: boolean;
+    /** R12: no private room fits the cap, so the proposal must say it's a table and why, with the number. */
+    explainsPrivateFallback?: boolean;
   };
 }
 
@@ -109,5 +111,8 @@ export const SCENARIOS: Scenario[] = [
   // R8 (found by the LLM judge): two vegetarians were sent to the venue but never confirmed to the booker.
   // R10 (found on the live site with live Claude): "somewhere in SoHo" booked Williamsburg; "SoHo" never matched "soho".
   { id: "reg07", group: "regression", text: "private dinner for 10 with Globex next Friday, somewhere in SoHo", expect: { outcome: "booked", partySize: 10 } },
+  // R12 (found by the first real user): "dinner for 2, somewhere private" emailed nobody and escalated, because every
+  // private room's minimum split over 2 guests broke the per-head cap. Now: a quiet table, with the reason and the number.
+  { id: "reg08", group: "regression", text: "dinner for 2 next Friday, somewhere private", expect: { outcome: "booked", partySize: 2, explainsPrivateFallback: true } },
   { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];
