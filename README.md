@@ -11,6 +11,7 @@
 <p align="center">
   <a href="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/ci.yml"><img src="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
   <a href="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/pages.yml"><img src="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/pages.yml/badge.svg" alt="deploy"></a>
+  <a href="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/agent-watch.yml"><img src="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/agent-watch.yml/badge.svg" alt="agent watch"></a>
   <img src="https://img.shields.io/badge/TypeScript-Node%2022-3178c6" alt="TypeScript"> <img src="https://img.shields.io/badge/Postgres-16-336791" alt="Postgres 16"> <img src="https://img.shields.io/badge/Claude-recorded_%26_replayed-d97757" alt="Claude">
 </p>
 
@@ -40,6 +41,20 @@ Evals only test what you thought of. So I gave the app to a real person. **Akila
 | Mamatha | booked Dec 3, opened Calendar | The calendar showed a fixed 3 weeks, so her dinner was invisible (R16) | Calendar grows to the last booked dinner |
 
 `npm run evals:users` replays 25 requests typed the way people type, in CI, on every push: **25/25** now do what a person would expect (22 book, 2 correctly wait for a manager because they're under 24 h notice, 1 asks about budget).
+
+## ▶ Agent Watch: the agent is tested 3 times a day, not just when I push
+
+<a href="https://akilalours.github.io/thursday-dinner-concierge/#monitor">Open the live Monitor page ↗</a>
+
+A scheduled job (`npm run monitor`, [workflow](.github/workflows/agent-watch.yml)) does what a production agent team would do between releases:
+
+| Every run | Why |
+|---|---|
+| A rotating slice of the eval scenarios against **live Claude** | Model drift shows up as a failed check or a fallback to rules, never silently. The whole suite is covered every few runs |
+| **500 random worlds no earlier run has seen** (seeds from the clock) | Silent venues, price hikes, injections, double bookings: new adversarial coverage every run, checked against the safety invariants |
+| The **25 real-user sentences** | The requests real people actually type keep working |
+
+Each run appends a row to [`docs/monitor.json`](docs/monitor.json), charted on the Monitor page (pass rate, worlds tested, live p50/p95 latency, cost per day), with the full report in `evals/history/`. If anything fails, the run **opens a GitHub issue by itself** with the failing seed, which replays exactly. Live model calls are capped per run (about $0.10–0.20 a run).
 
 ### ▶ Try a sentence (each link runs it live)
 

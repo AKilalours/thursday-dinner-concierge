@@ -359,6 +359,8 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
 .me{display:none;width:34px;height:34px;border-radius:50%;background:var(--wine);color:#fff;font:700 12px Inter;align-items:center;justify-content:center;flex:none}
 @media (max-width:1099px){.me{display:flex;order:2}.bar .menuBtn{margin-left:auto}}
 @media (max-width:700px){.bar .kbtn{display:none}.bar #tourBtn{padding:7px 11px!important}.hchips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.hchips .chip{flex:none}}
+.mog{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}@media(max-width:1000px){.mog{grid-template-columns:1fr}}.mochart{height:150px}.mochart svg{width:100%;height:100%;display:block}.mochart .none{height:100%;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:13px;text-align:center;padding:0 10px}
+.mot{width:100%;border-collapse:collapse;font-size:12.5px}.mot th{text-align:left;font:700 10.5px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);padding:6px 8px;border-bottom:1px solid var(--line)}.mot td{padding:7px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}.mot .ok{color:var(--sage);font-weight:800}.mot .bad{color:var(--rose);font-weight:800}.mowrap{overflow-x:auto}
 .trk{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin:6px 0 14px}.tk{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.tk span{display:block;font:700 10px Inter;text-transform:uppercase;letter-spacing:.06em;color:#8c7c6f}.tk b{font:800 19px Fraunces,Georgia,serif}
 .trgrid{display:grid;grid-template-columns:280px minmax(0,1fr) 320px;gap:12px;align-items:start}.trcol{max-height:620px;overflow:auto}
 .trlist{display:flex;flex-direction:column;gap:4px}.trr{display:grid;grid-template-columns:8px 1fr auto;gap:8px;align-items:center;text-align:left;border:1px solid transparent;background:none;border-radius:10px;padding:7px 8px;cursor:pointer}.trr:hover{background:#f6efe5}.trr.on{background:#fbf3f0;border-color:var(--wine)}.trr>i{width:8px;height:8px;border-radius:50%}.trr>i.ok{background:var(--sage)}.trr>i.bad{background:var(--brass)}.trr b{display:block;font-size:12.5px}.trr .mono{font-size:10px;color:#a39380}.trr em{font:600 10.5px Inter;color:#8c7c6f;font-style:normal;text-transform:capitalize}
@@ -384,7 +386,7 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
     <span class="tsep">Concierge</span><button class="on" data-p="home">Home</button><button data-p="chat">Chat</button><button data-p="desk">Live desk</button>
     <span class="tsep">Plan</span><button data-p="explore">Explore</button><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
     <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button>
-    <span class="tsep">Engineering</span><button data-p="traces">Traces</button><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
+    <span class="tsep">Engineering</span><button data-p="traces">Traces</button><button data-p="monitor">Monitor</button><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
     <div class="navfoot">Built for Ande · AI Engineer<br>Independent project · fictional data</div>
   </nav>
   <button class="kbtn" id="kBtn"><span>Ask the concierge…</span><kbd>⌘K</kbd></button><button class="btn gold" id="tourBtn" style="padding:7px 14px">▶ Tour</button>
@@ -488,6 +490,15 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
 <section class="page" id="p-policy">
   <h1>Policy</h1><p class="lead">Drag a rule. Replay every request.</p>
   <div class="gwrap pol"><div class="card" id="polForm"></div><div class="card gside" id="polImpact"></div></div>
+</section>
+
+<section class="page" id="p-monitor">
+  <h1>Agent Watch</h1><p class="lead">The full suite, run on a schedule against the live model. Every row is a real run.</p>
+  <div class="trk" id="moKpis"></div>
+  <div class="mog"><div class="card"><div class="pt">Scenarios passing per run</div><div id="moPass" class="mochart"></div></div>
+    <div class="card"><div class="pt">Never-seen worlds tested (cumulative)</div><div id="moWorlds" class="mochart"></div></div>
+    <div class="card"><div class="pt">Live model latency, p50 / p95</div><div id="moLat" class="mochart"></div></div></div>
+  <div class="card" style="margin-top:14px"><div class="pt">Recent runs</div><div id="moRuns"></div></div>
 </section>
 
 <section class="page" id="p-traces">

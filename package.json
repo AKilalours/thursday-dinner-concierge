@@ -15,6 +15,7 @@
     "fuzz": "node evals/fuzz.ts 300",
     "evals:ranking": "node evals/rank.ts",
     "evals:users": "node evals/users.ts",
+    "monitor": "ANDE_LLM_MODE=${ANDE_LLM_MODE:-replay} node --env-file-if-exists=.env evals/monitor.ts",
     "evals:live": "ANDE_LLM_MODE=record node --env-file-if-exists=.env evals/run.ts && node web/build.mjs",
     "llm:check": "node --env-file-if-exists=.env evals/check.ts",
     "judge:calibrate": "node --env-file-if-exists=.env evals/calibrate.ts",

@@ -121,6 +121,7 @@ function go(page: string) {
   if (page === "bookings") void renderBookings();
   if (page === "calendar") void renderCal();
   if (page === "traces") renderTraces();
+  if (page === "monitor") void renderMonitor();
   if (page === "home" && !hBusy && !hDone) requestAnimationFrame(() => { hFit(); hMap(); });
   if (page === "explore") requestAnimationFrame(() => { if (!xFitted) { xFitAll(); xFitted = true; } else xm.render(); });
   if (["controls", "evals", "compare", "fix", "memory"].includes(page)) autoRun(page);
@@ -1809,6 +1810,41 @@ function autoRun(page: string) {
     if (page === "fix") $<HTMLButtonElement>("#fixGo").click();
     if (page === "memory") $<HTMLButtonElement>("#rkGo").click();
   }, 450);
+}
+
+// =====================================================================
+// AGENT WATCH: the scheduled runs (npm run monitor, 3x a day in CI), read from the repo so the page is always current
+// =====================================================================
+interface MonRow { at: string; mode: string; model: string; scenarios: { ran: number; passed: number; ids: string[] }; modelDecisions: { parse: number; offers: number; fellBack: number }; worlds: { ran: number; checks: number; failed: number }; users: { ran: number; asExpected: number }; calls: number; p50ms: number; p95ms: number; costUsd: number; ok: boolean }
+const MON_SRC = ["https://raw.githubusercontent.com/AKilalours/thursday-dinner-concierge/main/docs/monitor.json", "./monitor.json"];
+let monRows: MonRow[] | null = null;
+async function loadMonitor(): Promise<MonRow[]> {
+  for (const u of MON_SRC) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) { const d = await r.json(); if (Array.isArray(d)) return d as MonRow[]; } } catch { /* next source */ } }
+  return [];
+}
+function ago(iso: string) { const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; }
+function spark(vals: number[], opt: { max?: number; min?: number; color: string; fmt: (v: number) => string; second?: number[] }) {
+  if (!vals.length) return `<div class="none">The first scheduled run will appear here.</div>`;
+  const W = 420, H = 150, P = 22, max = opt.max ?? Math.max(...vals, ...(opt.second ?? []), 1), min = opt.min ?? 0;
+  const x = (i: number) => P + (vals.length === 1 ? (W - 2 * P) / 2 : (i * (W - 2 * P)) / (vals.length - 1)), y = (v: number) => H - P - ((v - min) / Math.max(1e-9, max - min)) * (H - 2 * P);
+  const line = (vs: number[], c: string, w: number) => `<polyline fill="none" stroke="${c}" stroke-width="${w}" stroke-linejoin="round" points="${vs.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}"/>`;
+  const last = vals.at(-1)!;
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><line x1="${P}" x2="${W - P}" y1="${H - P}" y2="${H - P}" stroke="#e8dfd2"/>${opt.second ? line(opt.second, "#c9a46a", 1.5) : ""}${line(vals, opt.color, 2.5)}<circle cx="${x(vals.length - 1)}" cy="${y(last)}" r="4" fill="${opt.color}"/><text x="${W - P}" y="14" text-anchor="end" font-size="12" font-weight="700" fill="${opt.color}">${opt.fmt(last)}</text></svg>`;
+}
+async function renderMonitor() {
+  if (!monRows) monRows = await loadMonitor();
+  const rows = monRows, live = rows.filter((r) => r.mode === "live" || r.mode === "record");
+  const worlds = rows.reduce((a, r) => a + r.worlds.ran, 0), checks = rows.reduce((a, r) => a + r.worlds.checks, 0), fails = rows.filter((r) => !r.ok).length;
+  const dec = live.reduce((a, r) => a + r.modelDecisions.parse + r.modelDecisions.offers, 0), fb = live.reduce((a, r) => a + r.modelDecisions.fellBack, 0);
+  const days = rows.length ? Math.max(1, (Date.parse(rows.at(-1)!.at) - Date.parse(rows[0].at)) / 86_400_000) : 1;
+  $("#moKpis").innerHTML = [["Runs", rows.length], ["Last run", rows.length ? ago(rows.at(-1)!.at) : "pending"], ["Failed runs", fails], ["Worlds tested", worlds.toLocaleString()],
+    ["Safety checks", checks.toLocaleString()], ["Model decided", dec + fb ? `${Math.round((dec / (dec + fb)) * 100)}%` : "–"], ["p50 live", live.length ? `${live.at(-1)!.p50ms} ms` : "–"], ["Cost / day", live.length ? `$${(live.reduce((a, r) => a + r.costUsd, 0) / days).toFixed(2)}` : "$0.00"]]
+    .map(([k, v]) => `<div class="tk"><span>${k}</span><b>${v}</b></div>`).join("");
+  $("#moPass").innerHTML = spark(rows.map((r) => (r.scenarios.passed / Math.max(1, r.scenarios.ran)) * 100), { max: 100, min: 0, color: "#3f7d5a", fmt: (v) => `${Math.round(v)}%` });
+  let acc = 0; $("#moWorlds").innerHTML = spark(rows.map((r) => (acc += r.worlds.ran)), { color: "#7b1e3a", fmt: (v) => v.toLocaleString() });
+  $("#moLat").innerHTML = live.length ? spark(live.map((r) => r.p50ms), { color: "#5b6b8c", fmt: (v) => `${v} ms`, second: live.map((r) => r.p95ms) }) : `<div class="none">Live latency appears once runs use the live model.</div>`;
+  $("#moRuns").innerHTML = rows.length ? `<div class="mowrap"><table class="mot"><thead><tr><th>When</th><th>Model</th><th>Scenarios</th><th>New worlds</th><th>Real-user</th><th>Calls</th><th>p50</th><th>Cost</th><th></th></tr></thead><tbody>${rows.slice(-12).reverse().map((r) => `<tr><td>${new Date(r.at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</td><td>${r.mode === "replay" ? "recorded" : esc(r.model)}</td><td>${r.scenarios.passed}/${r.scenarios.ran}</td><td>${r.worlds.ran} · ${r.worlds.failed} failed</td><td>${r.users.asExpected}/${r.users.ran}</td><td>${r.calls}</td><td>${r.p50ms ? `${r.p50ms} ms` : "–"}</td><td>$${r.costUsd.toFixed(3)}</td><td class="${r.ok ? "ok" : "bad"}">${r.ok ? "✓" : "✗"}</td></tr>`).join("")}</tbody></table></div>`
+    : `<p style="color:var(--dim);margin:0">No scheduled runs yet. They run at about 7:17 am, 3:17 pm and 11:17 pm New York time.</p>`;
 }
 
 // =====================================================================
