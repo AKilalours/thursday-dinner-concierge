@@ -1,0 +1,41 @@
+name: agent watch
+
+on:
+  schedule:
+    - cron: "17 12,20,4 * * *"   # ~7:17am, 3:17pm, 11:17pm New York
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency: agent-watch
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Run Agent Watch
+        id: watch
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANDE_LLM_MODE: ${{ secrets.ANTHROPIC_API_KEY != '' && 'live' || 'replay' }}
+        run: node evals/monitor.ts
+      - name: Commit the results
+        run: |
+          git config user.name "agent-watch[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/monitor.json evals/history
+          git commit -m "Agent Watch $(date -u +'%Y-%m-%d %H:%M') UTC: ${{ steps.watch.outcome }}" || exit 0
+          git pull --rebase && git push
+      - name: Open an issue on failure
+        if: steps.watch.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --title "Agent Watch failure $(date -u +'%Y-%m-%d %H:%M') UTC" --body-file evals/history/FAILURE.md
