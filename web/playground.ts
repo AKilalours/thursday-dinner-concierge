@@ -568,6 +568,8 @@ function renderGroups() {
 }
 $("#runFuzz").onclick = async () => {
   const b = $<HTMLButtonElement>("#runFuzz"); b.disabled = true; const out: Record<string, number> = {}; let checks = 0, fails = 0;
+  // Show the worlds, not whichever scenario detail was open (the dots used to fill out of sight below it).
+  $("#detail").innerHTML = ""; $("#dTitle").textContent = "Random worlds";
   const col: Record<string, string> = { booked: "#3f7d5a", escalated: "#b8862b", rejected_by_booker: "#7a4fb0", awaiting_approval: "#7b1e3a", needs_clarification: "#8c7c6f" };
   const dots = $$<HTMLElement>("#field i"); dots.forEach((d) => (d.style.background = ""));
   for (let i = 0; i < 300; i++) {
