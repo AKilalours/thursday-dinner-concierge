@@ -42,12 +42,16 @@ Evals only test what you thought of. So I gave the app to a real person. **Akila
 
 `npm run evals:users` replays 25 requests typed the way people type, in CI, on every push: **25/25** now do what a person would expect (22 book, 2 correctly wait for a manager because they're under 24 h notice, 1 asks about budget).
 
-## ▶ Two more videos in 4K
+## ▶ Three more videos in 4K
 
 <table>
 <tr>
 <td width="50%" valign="top"><a href="docs/img/can-you-trick-it.mp4"><img src="docs/img/can-you-trick-it.gif" alt="Five attacks on the agent, each one blocked"></a><br><b>Can you trick it?</b> Five attacks on an agent that can book and pay: a scam hidden in a venue's email, booking without approval, a double send, six direct attacks on the database, and 300 random worlds. 309 attempts, none got through. <a href="docs/img/can-you-trick-it.mp4">Watch in 4K ↗</a> · <a href="https://akilalours.github.io/thursday-dinner-concierge/#controls">try it ↗</a></td>
 <td width="50%" valign="top"><a href="docs/img/the-finance-view.mp4"><img src="docs/img/the-finance-view.gif" alt="The live desk, offer comparison, policy replay and spend"></a><br><b>The other half of the job.</b> What finance and ops see: a live desk of requests, every offer side by side, a policy change replayed against every past request before it ships, and where the money goes. <a href="docs/img/the-finance-view.mp4">Watch in 4K ↗</a> · <a href="https://akilalours.github.io/thursday-dinner-concierge/#policy">try it ↗</a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="docs/img/both-sides.mp4"><img src="docs/img/both-sides.gif" alt="Play the restaurant, then see the invoice"></a><br><b>Both sides of the table.</b> Play the restaurant for three rounds: say yes and win, hide a scam and get caught, then type a reply your own way. Then the invoice finance receives: drag a dinner onto a budget and watch the purchase order go over. <a href="docs/img/both-sides.mp4">Watch in 4K ↗</a> · <a href="https://akilalours.github.io/thursday-dinner-concierge/#partner">try it ↗</a></td>
+<td width="50%" valign="top"></td>
 </tr>
 </table>
 
