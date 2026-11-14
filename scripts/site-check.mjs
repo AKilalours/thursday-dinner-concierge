@@ -109,6 +109,11 @@ await page.waitForSelector("table.ctable tbody tr", { timeout: 30000 }).catch(()
 
 await page.evaluate(() => window.go("controls")); await page.click("#runAll"); await page.waitForTimeout(4000);
 const ctl = await page.textContent("#cSum"); if (/fail/i.test(ctl) && !/0 fail/i.test(ctl)) fail(1440, `controls: ${ctl}`);
+// Venue side: play the restaurant, offer the room, and the agent must reach a verdict. Invoice: lines render and the CSV downloads.
+await page.evaluate(() => window.go("partner")); await page.click("#ptGo"); await page.waitForSelector("#ptSend:not([disabled])", { timeout: 30000 }).catch(() => fail(1440, "venue side: no inquiry arrived"));
+await page.click('#ptQuick button[data-b="accept"]'); await page.click("#ptSend"); await page.waitForSelector("#ptVerdict .ptv", { timeout: 30000 }).catch(() => fail(1440, "venue side: no verdict"));
+await page.evaluate(() => window.go("invoice")); await page.waitForSelector("#invLines .invl", { timeout: 10000 }).catch(() => fail(1440, "invoice: no lines"));
+{ const dl = page.waitForEvent("download", { timeout: 5000 }).catch(() => null); await page.click("#invCsv"); const d = await dl; if (!d || !d.suggestedFilename().endsWith(".csv")) fail(1440, "invoice: CSV did not download"); }
 // Ranking eval runs in the page and must match CI: memory never hurts.
 await page.evaluate(() => window.go("memory")); await page.waitForFunction(() => /hurt/.test(document.querySelector("#rkMeta")?.textContent ?? ""), null, { timeout: 30000 }).catch(() => fail(1440, "ranking eval did not finish"));
 const rk = await page.textContent("#rkMeta"); if (!/hurt 0\b/.test(rk)) fail(1440, `ranking: ${rk}`);

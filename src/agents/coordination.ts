@@ -67,6 +67,7 @@ export async function coordinate(ctx: Ctx, req: BookingRequest, candidates: Cand
     threads.push({ venue: c.venue, candidate: c, threadId, sentAt: sent.sentAt, status: "waiting", offer: null, triage: null, injectionFlagged: false, notes: [] });
   }
   await log(ctx, "coordination", "inquiries_sent", `emailed ${threads.map((t) => t.venue.name).join(", ")}`);
+  await ctx.world.settle(); // a person playing a venue answers before the clock moves; nothing to wait for otherwise
 
   const open = () => threads.filter((t) => t.status === "waiting" || t.status === "followed_up");
   const elapsed = (t: Thread) => (Date.parse(ctx.world.now) - Date.parse(t.sentAt)) / 3_600_000;

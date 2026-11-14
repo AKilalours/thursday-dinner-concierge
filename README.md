@@ -20,7 +20,7 @@
 <table align="center"><tr>
 <td align="center"><h3>53/53</h3>eval scenarios</td>
 <td align="center"><h3>0 / 2,030</h3>safety checks failed<br>in 300 random worlds</td>
-<td align="center"><h3>111</h3>tests, incl.<br>real Postgres</td>
+<td align="center"><h3>114</h3>tests, incl.<br>real Postgres</td>
 <td align="center"><h3>25/25</h3>real-user<br>sentences</td>
 <td align="center"><h3>55% → 72%</h3>first pick confirms,<br>no memory → memory</td>
 <td align="center"><h3>16</h3>bugs caught →<br>permanent cases</td>
@@ -75,6 +75,7 @@ Each run appends a row to [`docs/monitor.json`](docs/monitor.json), charted on t
 ### Click any screen to open it
 
 <table>
+<tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#partner"><img src="docs/img/partner.png" alt="Venue side"></a><br><b>Venue side</b> · you're the restaurant: answer the agent, win or lose the booking <a href="https://akilalours.github.io/thursday-dinner-concierge/#partner">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#invoice"><img src="docs/img/invoice.png" alt="Invoice"></a><br><b>Invoice</b> · one statement, pre-coded; drag a dinner onto a budget <a href="https://akilalours.github.io/thursday-dinner-concierge/#invoice">open ↗</a></td></tr>
 <tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#home"><img src="docs/img/home.png" alt="Home"></a><br><b>Home</b> · one sentence → booked <a href="https://akilalours.github.io/thursday-dinner-concierge/#home">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#explore"><img src="docs/img/explore.png" alt="Explore"></a><br><b>Explore</b> · real NYC map → shortlist → RFP <a href="https://akilalours.github.io/thursday-dinner-concierge/#explore">open ↗</a></td></tr>
 <tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#chat"><img src="docs/img/chat.png" alt="Chat"></a><br><b>Chat</b> · “move it to Friday” <a href="https://akilalours.github.io/thursday-dinner-concierge/#chat">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#desk"><img src="docs/img/desk.png" alt="Live desk"></a><br><b>Live desk</b> · requests flow, you approve <a href="https://akilalours.github.io/thursday-dinner-concierge/#desk">open ↗</a></td></tr>
 <tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#compare"><img src="docs/img/compare.png" alt="Compare"></a><br><b>Compare</b> · every offer side by side <a href="https://akilalours.github.io/thursday-dinner-concierge/#compare">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#traces"><img src="docs/img/traces.png" alt="Traces"></a><br><b>Traces</b> · every agent step and Claude call <a href="https://akilalours.github.io/thursday-dinner-concierge/#traces">open ↗</a></td></tr>
@@ -108,6 +109,7 @@ flowchart LR
 | **Typed tools** | zod in and out, run as the EA *for* the executive, idempotent, audited. `book`, `pay_deposit`, `amend_booking` and `cancel_booking` need an approved proposal. |
 | **Evals** | 53 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
 | **Memory** | Every venue reply leaves facts ("the Library really seats 10", "offered as asked", "declined"). Sourcing ranks on that track record next time. Private memories protected by row-level security. |
+| **Both sides of the marketplace** | **Venue side**: a person stands in for the first venue the agent emails. Their reply (a quick reply or anything they type) goes through the same extraction, injection check and policy comparison as a simulated venue's, and they see what the agent read and why they won or lost. **Invoice**: every confirmed dinner on one statement, pre-coded to a cost center, PO and GL account, with PO balances that follow as you drag a line onto a budget, and a CSV export. |
 | **Ranking eval** | `npm run evals:ranking`: 10 worlds where each venue has a hidden temperament, 400 past bookings, 600 held-out requests ranked with and without memory. First pick confirms 55% → 72%, MRR 0.72 → 0.82, hit@3 89% → 92%, 0 requests made worse. Gated in CI; runs live on the Memory page. |
 | **Fast judgments** | Triage, SMS consent, urgency, injection. Threshold per label, timeout, safe fallback, `rules → shadow → live`. |
 </details>

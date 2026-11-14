@@ -122,6 +122,8 @@ function go(page: string) {
   if (page === "calendar") void renderCal();
   if (page === "traces") renderTraces();
   if (page === "monitor") void renderMonitor();
+  if (page === "partner") ptRenderBook();
+  if (page === "invoice") void renderInvoice();
   if (page === "home" && !hBusy && !hDone) requestAnimationFrame(() => { hFit(); hMap(); });
   if (page === "explore") requestAnimationFrame(() => { if (!xFitted) { xFitAll(); xFitted = true; } else xm.render(); });
   if (["controls", "evals", "compare", "fix", "memory"].includes(page)) autoRun(page);
@@ -1813,6 +1815,101 @@ function autoRun(page: string) {
     if (page === "memory") $<HTMLButtonElement>("#rkGo").click();
   }, 450);
 }
+
+// =====================================================================
+// VENUE SIDE: the marketplace's other half. You answer the agent's inquiry as the restaurant; your email is read
+// exactly like a simulated venue's (same extraction, same injection check, same policy comparison).
+// =====================================================================
+const ptStats = { asked: 0, won: 0, revenue: 0 };
+let ptBusy = false;
+const PT_QUICK: [string, Behavior][] = [["Offer the room", "accept"], ["Raise the minimum", "counter_price"], ["Another night", "counter_date"], ["Room's too small", "counter_capacity"], ["Fully booked", "decline"], ["Slip in a scam", "injection"]];
+function ptRenderBook() { $("#ptBook").innerHTML = [["Inquiries", ptStats.asked], ["Won", ptStats.won], ["Revenue", usd(ptStats.revenue)]].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join(""); }
+function ptStep(text: string, cls = "") { $$("#ptSteps .wait").forEach((x) => x.classList.remove("wait")); $("#ptSteps").append(el("div", `ptst ${cls}`, `<i></i>${esc(text)}`)); }
+async function ptRun() {
+  const text = $<HTMLInputElement>("#ptAsk").value.trim(); if (ptBusy || !text) return; ptBusy = true;
+  const go = $<HTMLButtonElement>("#ptGo"), send = $<HTMLButtonElement>("#ptSend"), skip = $<HTMLButtonElement>("#ptSkip"), box = $<HTMLTextAreaElement>("#ptReply"); go.disabled = true;
+  $("#ptSteps").innerHTML = ""; $("#ptRead").innerHTML = `<div class="empty">Your reply is read here.</div>`; $("#ptVerdict").innerHTML = ""; $("#ptQuick").innerHTML = ""; box.value = "";
+  $("#ptMail").innerHTML = `<div class="empty">The agent is choosing venues…</div>`; $("#ptWho").textContent = "Your inbox";
+  const store = new MemoryStore(); await store.init(venues);
+  const rest: Behavior[] = ["accept", "counter_price", "decline"], seen = new Map<string, Behavior>();
+  const world = new VenueWorld(venues, (id) => { if (!seen.has(id)) seen.set(id, rest[seen.size % rest.length]); return seen.get(id)!; }, NOW, 31 + ptStats.asked);
+  let mine: Venue | null = null;
+  world.playFirstVenue((venueId, inquiry, meta) => new Promise<string | null>((resolve) => {
+    mine = venues.find((v) => v.id === venueId)!; ptStats.asked++; ptRenderBook();
+    $("#ptWho").textContent = `Your inbox · ${mine.name}`;
+    $("#ptMail").innerHTML = `<div class="from">From the concierge · ${esc(company.name)}</div>${esc(inquiry.body)}`;
+    $("#ptQuick").innerHTML = PT_QUICK.map(([l, b]) => `<button data-b="${b}" class="${b === "injection" ? "scam" : ""}">${l}</button>`).join("");
+    $$<HTMLButtonElement>("#ptQuick button").forEach((q) => q.onclick = () => { $$("#ptQuick button").forEach((x) => x.classList.remove("on")); q.classList.add("on"); box.value = world.draft(venueId, q.dataset.b as Behavior, meta); });
+    box.disabled = false; send.disabled = false; skip.disabled = false; ptStep("Venues emailed · waiting for you", "wait");
+    const done = (t: string | null) => { box.disabled = true; send.disabled = true; skip.disabled = true; $$<HTMLButtonElement>("#ptQuick button").forEach((x) => (x.disabled = true)); ptStep(t ? "Reply sent" : "You stayed silent", t ? "" : "bad"); resolve(t); };
+    send.onclick = () => { if (box.value.trim()) done(box.value); else box.focus(); }; skip.onclick = () => done(null);
+  }));
+  const said: Record<string, string> = { parsed: "Request understood", sourced: "Venues shortlisted", followed_up: "The agent followed up", compared: "Offers compared against policy" };
+  const shown = new Set<string>();
+  const res = await runConcierge({
+    text, actor: priya, principal: dana, today: "2026-11-09", store, world, llm, venues, company, shortlistSize: 3,
+    onEvent: (e) => { if (said[e.kind] && !shown.has(e.kind)) { shown.add(e.kind); ptStep(said[e.kind]); } },
+    approver: async (p, st) => { for (const r of p.requiredRoles) await st.decide(p.id, approverFor(r, priya).id, r, "approve"); return "approved"; },
+  });
+  record(res, world, "Venue side");
+  const me = mine as Venue | null;
+  if (!me) { $("#ptMail").innerHTML = `<div class="empty">No venue was emailed.</div>`; $("#ptVerdict").innerHTML = `<div class="ptv lose"><b>No inquiry</b><span>${esc(res.messagesToBooker.at(-1) ?? "")}</span></div>`; ptBusy = false; go.disabled = false; return; }
+  const about = res.trace.filter((e) => e.agent === "coordination" && e.text.startsWith(me.name));
+  const o = about.find((e) => e.kind === "offer")?.data?.offer as { roomName: string | null; minSpendCents: number | null; depositPct: number | null; holdExpiresHours: number | null; capacity: number | null; alternativeDates?: string[] } | undefined;
+  const flagged = about.some((e) => e.kind === "injection_flagged");
+  $("#ptRead").innerHTML = (o ? `<div class="ptf">${[["Room", o.roomName ?? "–"], ["Minimum", o.minSpendCents !== null ? usd(o.minSpendCents) : "–"], ["Deposit", o.depositPct !== null ? `${o.depositPct}%` : "–"], ["Hold", o.holdExpiresHours ? `${o.holdExpiresHours} h` : "–"]].map(([k, v]) => `<div><span>${k}</span><b>${esc(String(v))}</b></div>`).join("")}</div>`
+    : `<div class="empty">${about.some((e) => e.kind === "gave_up") ? "No reply to read." : "Read as: not an offer."}</div>`)
+    + (flagged ? `<div class="ptflag">⚠ Instructions in your email were ignored. The booker was warned.</div>` : "");
+  const won = res.outcome === "booked" && res.chosenVenueId === me.id, cmp = res.trace.filter((e) => e.kind === "compared").at(-1)?.data as { usable: { venue: string; perHeadAllIn: number }[]; rejected: { venue: string; why: string }[] } | undefined;
+  if (won) {
+    const bk = res.proposals.find((p) => p.kind === "book")!, dep = res.proposals.find((p) => p.kind === "pay_deposit");
+    ptStats.won++; ptStats.revenue += bk.amountCents; ptRenderBook(); confetti();
+    $("#ptVerdict").innerHTML = `<div class="ptv win"><b>You won it · ${usd(bk.amountCents)}</b><span>${bk.partySize} guests${dep ? ` · ${usd(dep.amountCents)} deposit paid to your account on file` : ""}</span></div>`;
+    ptStep("Booked with you");
+  } else {
+    const why = cmp?.rejected.find((r) => r.venue === me.name)?.why, winner = res.chosenVenueId ? venues.find((v) => v.id === res.chosenVenueId)! : null;
+    const mineP = cmp?.usable.find((u) => u.venue === me.name)?.perHeadAllIn, theirP = winner ? cmp?.usable.find((u) => u.venue === winner.name)?.perHeadAllIn : undefined;
+    const line = flagged && winner ? `${winner.name} took it: a venue whose email didn't try to instruct the agent` : why ? why[0].toUpperCase() + why.slice(1) : mineP && theirP ? `${winner!.name} came in at $${Math.round(theirP)} a head; you were $${Math.round(mineP)}` : winner ? `${winner.name} took it` : "Nobody was booked";
+    $("#ptVerdict").innerHTML = `<div class="ptv lose"><b>Not this time</b><span>${esc(line)}</span></div>`;
+    ptStep(winner ? `Booked with ${winner.name}` : "No booking", "bad");
+  }
+  ptBusy = false; go.disabled = false;
+}
+$("#ptGo").onclick = () => void ptRun(); $<HTMLInputElement>("#ptAsk").onkeydown = (e) => { if (e.key === "Enter") void ptRun(); };
+ptRenderBook();
+
+// =====================================================================
+// INVOICE: every confirmed dinner on one statement, pre-coded to a cost center, PO and GL account. Drag a line
+// onto a budget (or tap its chip) to recode it; the PO balances follow.
+// =====================================================================
+const CENTERS = [
+  { id: "sales", name: "Sales", po: "PO-4411", gl: "6420 Client entertainment", budget: 400_000, color: "#7b1e3a" },
+  { id: "mkt", name: "Marketing", po: "PO-4412", gl: "6435 Events", budget: 300_000, color: "#b8862b" },
+  { id: "exec", name: "Executive", po: "PO-4413", gl: "6420 Client entertainment", budget: 300_000, color: "#5b6b8c" },
+  { id: "people", name: "People", po: "PO-4414", gl: "6450 Team events", budget: 200_000, color: "#3f7d5a" },
+];
+const invCode = new Map<string, string>();
+const centerOf = (r: BkRow) => CENTERS.find((c) => c.id === (invCode.get(r.id) ?? CENTERS[venues.indexOf(r.v) % 3].id))!;
+async function invRows() { return (await bkRows()).filter((r) => r.status === "confirmed" && r.src !== "Live desk"); }
+async function renderInvoice() {
+  const rows = await invRows(), total = rows.reduce((a, r) => a + r.approved, 0), saved = rows.reduce((a, r) => a + receipt(r).disc, 0);
+  const spent = (id: string) => rows.filter((r) => centerOf(r).id === id).reduce((a, r) => a + r.approved, 0);
+  $("#invKpis").innerHTML = [["Dinners", rows.length], ["Invoice total", usd(total)], ["Saved · preferred rates", usd(saved)], ["Budgets over", CENTERS.filter((c) => spent(c.id) > c.budget).length]].map(([k, v]) => `<div class="tk"><span>${k}</span><b>${v}</b></div>`).join("");
+  $("#invPos").innerHTML = CENTERS.map((c) => { const s = spent(c.id), over = s > c.budget; return `<div class="invpo ${over ? "bust" : ""}" data-c="${c.id}"><div class="top"><b>${c.name}</b><span>${c.po}</span></div><div class="pbar"><i style="width:${Math.min(100, (s / c.budget) * 100)}%"></i></div><small>${usd(s)} of ${usd(c.budget)}${over ? ` · over by ${usd(s - c.budget)}` : ` · ${usd(c.budget - s)} left`}</small></div>`; }).join("");
+  $("#invLines").innerHTML = rows.length ? rows.map((r) => { const c = centerOf(r); return `<div class="invl" draggable="true" data-id="${r.id}"><span>${localDate(r.startsAt).slice(5)}</span><div><b>${esc(r.v.name)}</b><small>${r.partySize} guests · ${c.gl}</small></div><span class="amt">${usd(r.approved)}</span><button class="invc" data-id="${r.id}" title="Tap to recode"><i style="background:${c.color}"></i>${c.name}</button></div>`; }).join("") : `<div class="empty">No confirmed dinners yet.</div>`;
+  $$<HTMLButtonElement>("#invLines .invc").forEach((b) => b.onclick = () => { const r = rows.find((x) => x.id === b.dataset.id)!, i = CENTERS.indexOf(centerOf(r)); invCode.set(r.id, CENTERS[(i + 1) % CENTERS.length].id); void renderInvoice(); });
+  $$<HTMLElement>("#invLines .invl").forEach((l) => { l.addEventListener("dragstart", (e) => { e.dataTransfer!.setData("text/plain", l.dataset.id!); l.classList.add("drag"); }); l.addEventListener("dragend", () => l.classList.remove("drag")); });
+  $$<HTMLElement>("#invPos .invpo").forEach((po) => {
+    po.addEventListener("dragover", (e) => { e.preventDefault(); po.classList.add("over"); }); po.addEventListener("dragleave", () => po.classList.remove("over"));
+    po.addEventListener("drop", (e) => { e.preventDefault(); const id = e.dataTransfer!.getData("text/plain"); if (id) { invCode.set(id, po.dataset.c!); toast("Recoded", `Moved to ${CENTERS.find((c) => c.id === po.dataset.c)!.name}`); void renderInvoice(); } });
+  });
+}
+$("#invCsv").onclick = async () => {
+  const rows = await invRows(), q = (x: string | number) => `"${String(x).replace(/"/g, '""')}"`;
+  const csv = [["date", "venue", "room", "guests", "cost_center", "po", "gl_account", "amount_usd", "saved_usd"].join(","),
+    ...rows.map((r) => { const c = centerOf(r); return [localDate(r.startsAt), r.v.name, r.room.name, r.partySize, c.name, c.po, c.gl, (r.approved / 100).toFixed(2), (receipt(r).disc / 100).toFixed(2)].map(q).join(","); })].join("\r\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "entertainment-invoice-2026-11.csv"; document.body.append(a); a.click(); a.remove();
+};
 
 // =====================================================================
 // AGENT WATCH: the scheduled runs (npm run monitor, 3x a day in CI), read from the repo so the page is always current

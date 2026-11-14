@@ -359,6 +359,19 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
 .me{display:none;width:34px;height:34px;border-radius:50%;background:var(--wine);color:#fff;font:700 12px Inter;align-items:center;justify-content:center;flex:none}
 @media (max-width:1099px){.me{display:flex;order:2}.bar .menuBtn{margin-left:auto}}
 @media (max-width:700px){.bar .kbtn{display:none}.bar #tourBtn{padding:7px 11px!important}.hchips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.hchips .chip{flex:none}}
+.pt3{display:grid;grid-template-columns:.8fr 1.2fr 1fr;gap:14px;align-items:start}@media(max-width:1100px){.pt3{grid-template-columns:1fr}}
+.ptsteps{margin-top:12px;display:flex;flex-direction:column;gap:6px}.ptst{display:flex;gap:8px;align-items:center;font-size:13px;color:#6d5d51;animation:rise .3s}.ptst i{width:8px;height:8px;border-radius:50%;background:var(--sage);flex:none}.ptst.wait i{background:var(--brass);animation:pulse 1s infinite}.ptst.bad i{background:var(--rose)}
+.ptmail{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:#fff;font-size:13.5px;line-height:1.5;white-space:pre-wrap;min-height:120px;max-height:230px;overflow:auto}.ptmail .from{font:700 11px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;white-space:normal}
+.ptreply{width:100%;box-sizing:border-box;min-height:150px;margin:10px 0;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font:13.5px/1.5 Inter,system-ui;background:#fff;resize:vertical}.ptreply:disabled{background:#f6f1ea}.ptreply:focus{outline:none;border-color:var(--wine);box-shadow:0 0 0 3px #7b1e3a22}
+#ptQuick{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}#ptQuick button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font:600 12.5px Inter;color:#4a3b32;cursor:pointer;transition:all .15s}#ptQuick button:hover:not(:disabled):not(.on){border-color:var(--wine);color:var(--wine)}#ptQuick button.on{background:var(--wine);border-color:var(--wine);color:#fff}#ptQuick button:disabled{opacity:.5;cursor:default}#ptQuick button.scam{border-color:#e8b9c3;color:var(--rose)}#ptQuick button.scam.on{background:var(--rose);border-color:var(--rose);color:#fff}
+.ptf{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ptf div{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--paper);animation:rise .3s}.ptf span{display:block;font:700 10px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}.ptf b{font:700 16px Fraunces,Georgia,serif}
+.ptflag{margin-top:8px;border-radius:12px;padding:9px 12px;font:600 13px Inter;background:#f7dfe4;color:var(--rose);animation:rise .3s}
+.ptv{margin-top:10px;border-radius:14px;padding:14px;animation:rise .35s}.ptv b{display:block;font:800 24px Fraunces,Georgia,serif}.ptv span{font-size:13px}.ptv.win{background:#e3f0e7;color:#22543a}.ptv.lose{background:#f3ece1;color:#5c4a3d}
+.ptbook{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.ptbook div{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--paper)}.ptbook span{display:block;font:700 10px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}.ptbook b{font:800 20px Fraunces,Georgia,serif}
+.trk.inv4{grid-template-columns:repeat(4,1fr)}@media(max-width:700px){.trk.inv4{grid-template-columns:repeat(2,1fr)}}.invpo{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;background:var(--paper);transition:box-shadow .15s,border-color .15s}.invpo.over{border-color:var(--wine);box-shadow:0 0 0 3px #7b1e3a22}
+.invpo .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.invpo .top b{font:700 16px Fraunces,Georgia,serif}.invpo .top span{font:600 12px JetBrains Mono,monospace;color:var(--dim)}.invpo .pbar{height:10px;border-radius:5px;background:#f1e9dc;overflow:hidden;margin:8px 0 4px}.invpo .pbar i{display:block;height:100%;background:var(--sage);border-radius:5px;transition:width .5s cubic-bezier(.2,.8,.2,1),background .3s}.invpo.bust .pbar i{background:var(--rose)}.invpo small{font-size:12px;color:var(--dim)}.invpo.bust small{color:var(--rose);font-weight:700}
+.invlines{max-height:520px;overflow:auto}.invl{display:grid;grid-template-columns:52px 1fr 70px auto;gap:10px;align-items:center;padding:9px 6px;border-bottom:1px solid var(--line);cursor:grab;font-size:13px}.invl:active{cursor:grabbing}.invl.drag{opacity:.4}.invl b{font-weight:700}.invl small{display:block;color:var(--dim);font-size:11.5px}.invl .amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.invc{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font:700 11.5px Inter;cursor:pointer;white-space:nowrap}.invc:hover{border-color:var(--wine)}.invc i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
 .mog{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}@media(max-width:1000px){.mog{grid-template-columns:1fr}}.mochart{height:150px}.mochart svg{width:100%;height:100%;display:block}.mochart .none{height:100%;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:13px;text-align:center;padding:0 10px}
 .mot{width:100%;border-collapse:collapse;font-size:12.5px}.mot th{text-align:left;font:700 10.5px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);padding:6px 8px;border-bottom:1px solid var(--line)}.mot td{padding:7px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}.mot .ok{color:var(--sage);font-weight:800}.mot .bad{color:var(--rose);font-weight:800}.mowrap{overflow-x:auto}
 .trk{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin:6px 0 14px}.tk{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.tk span{display:block;font:700 10px Inter;text-transform:uppercase;letter-spacing:.06em;color:#8c7c6f}.tk b{font:800 19px Fraunces,Georgia,serif}
@@ -385,7 +398,8 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
     <button class="ws" id="wsBtn" title="Change who is signed in"><i class="meIni">AL</i><div><span class="meName">Akila Lourdes</span><small><span class="live"></span>Signed in</small></div></button>
     <span class="tsep">Concierge</span><button class="on" data-p="home">Home</button><button data-p="chat">Chat</button><button data-p="desk">Live desk</button>
     <span class="tsep">Plan</span><button data-p="explore">Explore</button><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Bookings</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
-    <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button>
+    <span class="tsep">Partners</span><button data-p="partner">Venue side</button>
+    <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button><button data-p="invoice">Invoice</button>
     <span class="tsep">Engineering</span><button data-p="traces">Traces</button><button data-p="monitor">Monitor</button><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
     <div class="navfoot">Built for Ande · AI Engineer<br>Independent project · fictional data</div>
   </nav>
@@ -490,6 +504,28 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
 <section class="page" id="p-policy">
   <h1>Policy</h1><p class="lead">Drag a rule. Replay every request.</p>
   <div class="gwrap pol"><div class="card" id="polForm"></div><div class="card gside" id="polImpact"></div></div>
+</section>
+
+<section class="page" id="p-partner">
+  <h1>Venue side</h1><p class="lead">You're the restaurant. Answer the agent.</p>
+  <div class="pt3">
+    <div class="card"><h3>A company asks</h3>
+      <input id="ptAsk" class="emin" value="private dinner for 10 with Globex next Friday" autocomplete="off">
+      <button class="btn pri" id="ptGo" style="margin-top:10px;width:100%">Send to venues</button>
+      <div class="ptsteps" id="ptSteps"></div></div>
+    <div class="card"><h3 id="ptWho">Your inbox</h3><div id="ptMail" class="ptmail"><div class="empty">Waiting for a request.</div></div>
+      <div class="chips" id="ptQuick"></div><textarea id="ptReply" class="ptreply" placeholder="Write your reply…" disabled></textarea>
+      <div class="cbtns"><button class="btn pri" id="ptSend" disabled>Send reply</button><button class="btn" id="ptSkip" disabled>Don't reply</button></div></div>
+    <div class="card"><h3>What the agent did</h3><div id="ptRead"><div class="empty">Your reply is read here.</div></div><div id="ptVerdict"></div>
+      <h3 style="margin-top:16px">Your corporate book</h3><div class="ptbook" id="ptBook"></div></div>
+  </div>
+</section>
+
+<section class="page" id="p-invoice">
+  <div class="ph"><div><h1>Invoice</h1><p class="lead">One invoice for the month. Drag a dinner onto a budget.</p></div><button class="btn pri" id="invCsv">Download CSV</button></div>
+  <div class="trk inv4" id="invKpis"></div>
+  <div class="sp"><div class="card"><h3>Budgets · purchase orders</h3><div id="invPos"></div></div>
+    <div class="card"><h3>Lines · pre-coded</h3><div id="invLines" class="invlines"></div></div></div>
 </section>
 
 <section class="page" id="p-monitor">

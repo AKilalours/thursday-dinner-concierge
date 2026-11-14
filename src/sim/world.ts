@@ -45,6 +45,19 @@ export class VenueWorld {
     this.behavior = behavior; this.now = now; this.r = rng(seed);
   }
 
+  // A person can stand in for one venue (the partner portal). Their reply is awaited before the clock moves, so
+  // the agent reads a real person's email exactly as it reads a simulated one.
+  private human: ((venueId: string, inquiry: Message, meta: InquiryMeta) => Promise<string | null>) | null = null;
+  private humanVenue: string | null = null;
+  private awaiting: Promise<void>[] = [];
+  /** The first venue the agent emails is answered by `responder` (null = no reply). */
+  playFirstVenue(responder: (venueId: string, inquiry: Message, meta: InquiryMeta) => Promise<string | null>) { this.human = responder; }
+  playedVenue() { return this.humanVenue; }
+  /** Resolves once every person-played venue has answered (or declined to). A no-op in every simulated world. */
+  async settle() { await Promise.all(this.awaiting.splice(0)); }
+  /** The email a venue with this behavior would write: the partner portal's quick replies. */
+  draft(venueId: string, b: Behavior, meta: InquiryMeta) { return this.compose(this.venues.get(venueId)!, b, meta).replace(/(\$[\d,]+)\.\d+(?=[\s,.)])/g, "$1"); }
+
   private pick<T>(xs: T[]): T { return xs[Math.floor(this.r() * xs.length)]; }
   private later(hours: number) { return new Date(Date.parse(this.now) + hours * 3_600_000).toISOString(); }
 
@@ -53,6 +66,16 @@ export class VenueWorld {
     const msg: Message = { id: `msg_${++this.n}`, threadId, venueId, direction: "out", at: this.now, subject, body };
     this.outbox.push(msg);
     if (meta) this.meta.set(threadId, meta);
+    if (this.human && kind === "inquiry" && !this.humanVenue) this.humanVenue = venueId;
+    if (this.human && venueId === this.humanVenue) {
+      if (kind === "inquiry") {
+        const due = this.later(1.5), id = `msg_${++this.n}`;
+        this.awaiting.push(this.human(venueId, msg, this.meta.get(threadId)!).then((text) => {
+          if (text?.trim()) this.pending.push({ due, msg: { id, threadId, venueId, direction: "in", at: "", subject: `Re: ${subject.replace(/^Re: /, "")}`, body: text } });
+        }));
+      }
+      return msg;
+    }
     const b = this.behavior(venueId);
     const stage = this.stage.get(threadId) ?? 0;
     const reply = (hours: number, text: string) => {
