@@ -4,24 +4,25 @@ import { Classifier } from "./classifier.ts";
 import type { Mode } from "./classifier.ts";
 
 const has = (t: string, re: RegExp) => re.test(t.toLowerCase());
+// Venues confirm in plain words ("Yes, our room fits 10", "that date works", "we're open"), not just "available".
+const offerish = /available|happy to (host|hold)|we can (host|do|hold)|pencil(led)? (you|it) in|on hold for you|would love to host|^(?:(?:hi|hello|hey)\b[^.!?]{0,30}[,!.]\s*)?(?:yes|sure|absolutely|of course)\b|yes,? we can|(?:date|night|evening|that|friday|thursday|wednesday) works|(?:is|are) (?:open|free)\b(?!\?)|we(?:'re| are) open|free that|delighted to have|can seat \d/;
 
 /** What kind of venue email is this? Below threshold it goes to a person, never guessed. */
 export type Triage = "offer" | "decline" | "counter" | "question" | "payment_request" | "auto_reply" | "needs_human";
 export const replyTriage = (llm: LLM, mode: Mode = "rules") => new Classifier<string, Triage>({
-  name: "reply_triage", version: "1.2",
+  name: "reply_triage", version: "1.3",
   labels: ["offer", "decline", "counter", "question", "payment_request", "auto_reply", "needs_human"],
   thresholds: { offer: 0.7, decline: 0.7, counter: 0.7, question: 0.6, payment_request: 0.8, auto_reply: 0.8, needs_human: 0 },
   fallback: "needs_human",
   timeoutMs: 4000,
   rules(body) {
     if (has(body, /out of (the )?office|auto(matic)?[- ]reply|currently away|limited access to email/)) return { label: "auto_reply", confidence: 0.95, reason: "auto-reply phrasing" };
-    if (has(body, /unfortunately|fully (booked|committed)|not able to accommodate|unable to host|no availability|can't do|cannot accommodate/)
+    if (has(body, /unfortunately|fully (booked|committed)|not able to accommodate|unable to host|no availability|can't do|cannot accommodate|booked solid|won't be able to/)
       && !has(body, /could (do|offer)|instead|alternatively|would work|we have/)) return { label: "decline", confidence: 0.9, reason: "decline phrasing" };
     if (has(body, /instead|alternatively|could offer|the closest we|only (seats|fits|holds)|would need to be|minimum (has|would) (gone|go|be) up|revised/)) return { label: "counter", confidence: 0.8, reason: "alternative offered" };
     // An offer that also mentions payment (or hides injected bank details) is still an offer; it must not be lost.
-    const offerish = /available|happy to (host|hold)|we can (host|do|hold)|pencil(led)? (you|it) in|on hold for you|would love to host/;
     if (has(body, /(deposit|payment|invoice|wire|pay)\b.*(link|below|attached|account|routing|zelle|venmo)/s) && !has(body, offerish)) return { label: "payment_request", confidence: 0.85, reason: "asks for payment" };
-    if (has(body, /available|happy to (host|hold)|we can (host|do|hold)|pencil(led)? (you|it) in|on hold for you|would love to host/)) return { label: "offer", confidence: 0.85, reason: "availability confirmed" };
+    if (has(body, offerish)) return { label: "offer", confidence: 0.85, reason: "availability confirmed" };
     if (has(body, /\?\s*$|could you (confirm|let us know)|can you (confirm|share)|what time|how many/m)) return { label: "question", confidence: 0.7, reason: "asks a question" };
     return { label: "needs_human", confidence: 0.3, reason: "no clear signal" };
   },

@@ -154,6 +154,7 @@ flowchart LR
 | R14 | **Found testing as a real user:** "12/3" and "Christmas Eve" weren't understood as dates |
 | R15 | **Found testing as a real user:** a per-head budget nothing meets was a dead end; now it asks with the closest real price |
 | R16 | **Found testing as a real user:** a dinner booked for Dec 3 never appeared, because the calendar showed a fixed 3 weeks |
+| R17 | Venue replies in plain words ("Yes, our private room fits 10... minimum is $900") fell to the rules as "needs a human"; now read as offers with room, seats, minimum and deposit |
 </details>
 
 <details>

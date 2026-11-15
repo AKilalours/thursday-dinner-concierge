@@ -83,6 +83,14 @@ describe("offer extraction against every simulated email style", () => {
     const o = extractRules(m.body, venues[1], m.id, MON, true);
     assert.equal(o.roomName, "Main dining room"); assert.equal(o.capacity, null);
   });
+  it("regression R17: plain-word reply yields room, seats, minimum and deposit", () => {
+    const o = extractRules("Hi! Yes, our private room fits 10 that Friday at 7. The minimum is $900 with a 10% deposit", venues[1], "m", MON, true);
+    assert.deepEqual([o.roomName, o.capacity, o.minSpendCents, o.depositPct], [venues[1].rooms.find((r) => r.private)!.name, 10, 90000, 10]);
+  });
+  it("regression R17: \"Min spend $1,500, deposit 25%\" reads both numbers", () => {
+    const o = extractRules("Sure thing, Thursday is open. Min spend $1,500, deposit 25%.", venues[1], "m", MON, true);
+    assert.deepEqual([o.minSpendCents, o.depositPct], [150000, 25]);
+  });
   it("regression R6: the extraction prompt names every key the schema requires", () => {
     const prompt = offerSystemPrompt(venues[1], MON);
     for (const k of OFFER_KEYS) assert.ok(prompt.includes(`"${k}"`), `prompt is missing ${k}`);

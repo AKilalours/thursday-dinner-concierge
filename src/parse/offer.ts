@@ -13,16 +13,19 @@ const amountsIn = (body: string) => new Set([...body.matchAll(/\$\s?([\d,]+(?:\.
 export function extractRules(body: string, venue: Venue, messageId: string, today: string, available: boolean): Offer {
   const t = body.replace(/\s+/g, " ");
   const lower = t.toLowerCase();
-  const room = venue.rooms
+  const named = venue.rooms
     .filter((r) => lower.includes(r.name.toLowerCase()))
     .sort((a, b) => lower.indexOf(a.name.toLowerCase()) - lower.indexOf(b.name.toLowerCase()));
-  const capacity = lower.match(/only seats (\d{1,3})/) ?? lower.match(/(?:seats|fits|holds|accommodates|up to)\s+(?:up to\s+)?(\d{1,3})/);
+  // "our private room" names the room only when the venue has exactly one.
+  const privates = venue.rooms.filter((r) => r.private);
+  const room = named.length || privates.length !== 1 || !/private (dining )?room/.test(lower) ? named : privates;
+  const capacity = lower.match(/only seats (\d{1,3})/) ?? lower.match(/(?:seats?|fits|holds|accommodates|up to)\s+(?:up to\s+)?(\d{1,3})/);
   // Prefer the minimum that is actually on offer: "has gone up to $X" beats "our listed minimum is $Y".
   const min = t.match(/(?:gone up to|increased to|now)\s+\$([\d,]+)/i)
     ?? t.match(/\$([\d,]+)(?:\.\d{2})?\s+(?:food (?:and|&) beverage |f&b )?minimum/i)
-    ?? t.match(/minimum(?: spend)?(?: for [^$]{0,30})?(?: is| of| would be)?\s+\$([\d,]+)/i);
+    ?? t.match(/\bmin(?:imum)?(?: spend)?(?: for [^$]{0,30})?(?: is| of| would be)?:?\s+\$([\d,]+)/i);
   const perHead = t.match(/\$(\d{2,4})\s*(?:per person|pp|a head|per guest)/i);
-  const deposit = t.match(/(\d{1,3})%\s*deposit/i);
+  const deposit = t.match(/(\d{1,3})%\s*deposit/i) ?? t.match(/deposit(?: of| is)?:?\s+(\d{1,3})%/i);
   const hold = t.match(/hold (?:it|the room|this|the date)?\s*for (\d{1,3}) hours/i);
   const dest = t.match(/(?:account|acct)[^.\n]{0,20}?(\d{6,})/i) ?? t.match(/(?:routing|zelle|venmo|wire)[^.\n]{0,40}?(\d{6,}|@[\w.-]+)/i);
   const altDates = [...t.matchAll(/\b(?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day,\s+((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2})/g)]
