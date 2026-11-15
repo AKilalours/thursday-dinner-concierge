@@ -1,0 +1,45 @@
+{
+ "at": "2026-11-15T18:51:45.909Z",
+ "mode": "replay",
+ "model": "claude-sonnet-4-5",
+ "scenarios": {
+  "ran": 12,
+  "passed": 12,
+  "ids": [
+   "c02",
+   "c03",
+   "c04",
+   "c05",
+   "v01",
+   "v02",
+   "v03",
+   "v04",
+   "v05",
+   "v06",
+   "v07",
+   "v08"
+  ]
+ },
+ "modelDecisions": {
+  "parse": 12,
+  "offers": 19,
+  "fellBack": 0
+ },
+ "worlds": {
+  "ran": 500,
+  "checks": 3394,
+  "failed": 0,
+  "firstSeed": 29912811000
+ },
+ "users": {
+  "ran": 25,
+  "asExpected": 25
+ },
+ "calls": 43,
+ "p50ms": 0,
+ "p95ms": 0,
+ "tokens": 16097,
+ "costUsd": 0,
+ "ok": true,
+ "failures": []
+}
