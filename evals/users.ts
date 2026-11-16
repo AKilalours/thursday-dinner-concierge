@@ -1,6 +1,6 @@
 // npm run evals:users
-// 25 requests written the way real people type them (no templates), each with the outcome a person would expect.
-// This sweep found R13-R15; R12 was found by the first real user. Rules parsing, no key needed.
+// Requests written the way real people type them (no templates), each with the outcome a person would expect.
+// This sweep found R13-R15 and R18; R12 was found by the first real user. Rules parsing, no key needed.
 import { REAL_USER_REQUESTS, runUserRequest } from "./user-requests.ts";
 
 let ok = 0;

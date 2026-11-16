@@ -6,7 +6,7 @@
 //      covered every few runs. Model drift shows up as a failed check or a fallback to rules, never silently.
 //   2. Never-seen worlds: 500 random worlds seeded from the clock. No run repeats an earlier run's worlds, so every run
 //      is new adversarial coverage (silent venues, price hikes, injections, double bookings).
-//   3. Real-user sentences: the 25 requests typed the way people type.
+//   3. Real-user sentences: the requests typed the way people type.
 // Each run appends one row to docs/monitor.json (charted on the site's Monitor page) and writes a full report to
 // evals/history/. Any failure exits non-zero and writes evals/history/FAILURE.md, which CI turns into a GitHub issue.
 //

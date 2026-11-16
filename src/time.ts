@@ -57,11 +57,21 @@ export function resolveDate(text: string, today: string): ResolvedDate {
     return { date: candidate, ambiguous: false, reason: "holiday" };
   }
   if (/\btonight\b|\btoday\b/.test(t)) return { date: today, ambiguous: false, reason: "today" };
-  if (/\btomorrow\b/.test(t)) return { date: addDays(today, 1), ambiguous: false, reason: "tomorrow" };
+  // Regression R18 (found by testing as a real user): "dinner for 4 tmrw at 7" and "lunch for 6 on Wed" asked which date.
+  if (/\b(tomorrow|tmrw|tmr|tomorow|2morrow)\b/.test(t)) return { date: addDays(today, 1), ambiguous: false, reason: "tomorrow" };
 
-  const m = t.match(/\b(this|next|coming)?\s*(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+  // Regression R18: "team dinner for 9 on Thursday the 19th" booked this Thursday (the 12th). The day of month wins;
+  // if the weekday said doesn't match it, flag it so the proposal confirms the date.
+  const nth = t.match(/\b(?:on the|(sun|mon|tues|wednes|thurs|fri|satur)day,?(?: the)?)\s+(\d{1,2})(?:st|nd|rd|th)\b/);
+  if (nth && Number(nth[2]) >= 1 && Number(nth[2]) <= 31) {
+    const candidate = nextDayOfMonth(Number(nth[2]), today);
+    const ambiguous = !!nth[1] && DAYS[weekday(candidate)].slice(0, 3) !== nth[1].slice(0, 3);
+    return { date: candidate, ambiguous, reason: ambiguous ? "weekday and day of month disagree" : "day of month" };
+  }
+
+  const m = t.match(/\b(this|next|coming)?\s*(sun|mon|tue|wed|thu|fri|sat)(?:day|sday|nesday|rsday|urday|s|rs|r)?\b/);
   if (!m) return { date: null, ambiguous: true, reason: "no date given" };
-  const target = DAYS.indexOf(m[2]);
+  const target = DAYS.findIndex((d) => d.startsWith(m[2]));
   const now = weekday(today);
   let delta = (target - now + 7) % 7;
   if (m[1] === "next") {
@@ -72,6 +82,15 @@ export function resolveDate(text: string, today: string): ResolvedDate {
   }
   if (delta === 0) delta = m[1] === "this" ? 0 : 7;
   return { date: addDays(today, delta), ambiguous: false, reason: m[1] ?? "bare weekday" };
+}
+
+/** The next date on or after today that falls on this day of the month (skipping months too short for it). */
+function nextDayOfMonth(day: number, today: string): string {
+  const [y, m] = [Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1];
+  for (let k = 0; ; k++) {
+    const d = new Date(Date.UTC(y, m + k, day, 12));
+    if (d.getUTCDate() === day && ymd(d) >= today) return ymd(d);
+  }
 }
 
 /** Event start as an ISO instant, treating the office as UTC-5 (EST); precise enough for holds and lead time. */

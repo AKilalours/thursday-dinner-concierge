@@ -1,4 +1,4 @@
-// 25 requests written the way real people type them, each with the outcome a person would expect.
+// Requests written the way real people type them, each with the outcome a person would expect.
 // Shared by `npm run evals:users` and the scheduled monitor. No file system, no network.
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
 import { carefulApprover, runConcierge } from "../src/agents/concierge.ts";
@@ -34,6 +34,14 @@ export const REAL_USER_REQUESTS: [string, Outcome][] = [
   ["farewell dinner for Sam, 9 people, next Wednesday", "booked"],
   ["dinner for 6 under $60 a head this Friday", "needs_clarification"],
   ["dinner for 12 on Christmas Eve", "booked"],
+  ["dinner for 6 around 7 on Friday", "booked"],
+  ["diner for 5 on friday", "booked"],
+  ["dinner for a dozen next Friday", "booked"],
+  ["dinner for 4 tmrw at 7", "booked"],
+  ["lunch for 6 on Wed", "booked"],
+  ["dinner for 4, sat at 8", "booked"],
+  ["dinner for 5 next fri around 7pm", "booked"],
+  ["team dinner for 9 on Thursday the 19th", "booked"],
 ];
 
 export async function runUserRequest(text: string) {

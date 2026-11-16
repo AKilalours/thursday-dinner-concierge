@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -34,6 +34,22 @@ describe("found by testing as real users", () => {
     assert.equal(resolveDate("dinner for 12 on Christmas Eve", "2026-11-11").date, "2026-12-24");
     assert.equal(resolveDate("support 24/7", "2026-11-11").date, null);
     assert.equal(resolveDate("under $90/head on Dec 3", "2026-11-11").date, "2026-12-03");
+  });
+  it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
+    const d = (text: string) => resolveDate(text, "2026-11-11");
+    assert.equal(d("dinner for 4 tmrw at 7").date, "2026-11-12");
+    assert.equal(d("lunch for 6 on Wed").date, "2026-11-18");
+    assert.equal(d("dinner for 4, sat at 8").date, "2026-11-14");
+    assert.equal(d("next thurs").date, "2026-11-12");
+    assert.deepEqual(d("team dinner for 9 on Thursday the 19th"), { date: "2026-11-19", ambiguous: false, reason: "day of month" });
+    assert.equal(d("Friday the 19th").ambiguous, true, "a weekday that doesn't match the date is confirmed, not guessed");
+    assert.equal(d("dinner on the 5th").date, "2026-12-05", "a day already past rolls to next month");
+    assert.equal(d("sunset dinner for 4").date, null);
+  });
+  it("R18: \"Thursday the 19th\" books the 19th, not this Thursday", async () => {
+    const r = await run("team dinner for 9 on Thursday the 19th", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.at(-1)!, /Thu Nov 19/);
   });
   it("R15: a budget nothing meets gets the closest real price, not a dead end", async () => {
     const r = await run("dinner for 6 under $60 a head this Friday", "2026-11-11");
