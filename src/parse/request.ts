@@ -31,12 +31,17 @@ export function partySizeFrom(text: string): number | null {
 }
 
 function timeFrom(text: string, kind: EventKind): string {
-  const m = text.toLowerCase().match(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/) ?? text.toLowerCase().match(/\bat\s+(\d{1,2})(?::(\d{2}))?\b/);
+  const t = text.toLowerCase();
+  // Regression R21: "at 7.30pm" read "30pm" as the hour (42:00) and crashed the booking; "7.30" booked 7:00 and
+  // "noon" booked 12:30. A dot separates minutes too, and an impossible time falls back to the default, never a crash.
+  if (/\b(?:noon|midday)\b/.test(t)) return "12:00";
+  const m = t.match(/\b(?:at\s+)?(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)\b/) ?? t.match(/\bat\s+(\d{1,2})(?:[:.](\d{2}))?\b/);
   if (m) {
     let h = Number(m[1]);
     if (m[3] === "pm" && h < 12) h += 12;
+    if (m[3] === "am" && h === 12) h = 0;
     if (!m[3] && h < 11) h += 12; // "at 7" for a dinner means 7 pm
-    return `${String(h).padStart(2, "0")}:${m[2] ?? "00"}`;
+    if (h <= 23 && Number(m[2] ?? 0) < 60) return `${String(h).padStart(2, "0")}:${m[2] ?? "00"}`;
   }
   return kind === "client_lunch" ? "12:30" : kind === "happy_hour" ? "17:30" : "19:00";
 }

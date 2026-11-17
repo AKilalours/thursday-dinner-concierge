@@ -49,6 +49,8 @@ export const REAL_USER_REQUESTS: [string, Outcome][] = [
   ["client dinner for 4 with Globex on Dec 2, $150pp", "booked"],
   ["team dinner for 8 on Dec 3, budget $120 per person", "booked"],
   ["lunch for 3 next Tuesday, 80pp", "booked"],
+  ["dinner for 4 on Friday at 7.30pm", "booked"],
+  ["lunch for 4 at noon on Friday", "booked"],
 ];
 
 export async function runUserRequest(text: string) {

@@ -36,6 +36,14 @@ describe("request parsing (rules)", () => {
     assert.equal(parseRules("dinner for 4 at $120/head on Dec 2", MON).maxPerHeadCents, 12_000);
     assert.equal(parseRules("dinner for 8 people next Thursday at 7pm", MON).maxPerHeadCents, null);
   });
+  it("regression R21: \"7.30pm\", \"7.30\" and \"noon\" are the times people meant, and a nonsense time never crashes", () => {
+    const time = (s: string) => parseRules(s, MON).time;
+    assert.equal(time("dinner for 4 on Friday at 7.30pm"), "19:30");
+    assert.equal(time("dinner for 4 at 7.30 on Friday"), "19:30");
+    assert.equal(time("lunch for 4 at noon on Friday"), "12:00");
+    assert.equal(time("breakfast for 4 at 12am"), "00:00");
+    assert.equal(time("dinner for 4 at 30 on Friday"), "19:00");
+  });
   it("a team dinner has no client", () => {
     const r = parseRules("team dinner for 8 on Nov 20", MON);
     assert.equal(r.kind, "team_dinner"); assert.equal(r.clientName, null);
