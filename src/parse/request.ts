@@ -18,7 +18,12 @@ export function partySizeFrom(text: string): number | null {
   const t = text.toLowerCase();
   // Regression R4: a bare "<number> at" also matched dates ("Nov 18 at 7:30pm" became 18 guests), so a
   // headcount needs "for N", "party of N" or "N people/guests"; anything else is asked, not guessed.
-  const n = t.match(/\b(?:for|party of|group of|table for)\s+(\d{1,3})\b(?!\s*(?:am|pm|:\d))/) ?? t.match(/\b(\d{1,3})\s*(?:people|guests|pax|of us|ppl|attendees|folks|covers)\b/);
+  const forN = t.match(/\b(?:for|party of|group of|table for)\s+(\d{1,3})\b(?!\s*(?:am|pm|:\d))/);
+  if (forN) return Number(forN[1]);
+  // Regression R19: "for me and 3 clients" asked how many guests, and "myself and 5 people" booked 5; the booker counts too.
+  const me = t.match(/\b(?:me|myself)\s*(?:and|\+|plus|&)\s*(\d{1,3}|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b(?!\s*(?:am|pm|:\d))/);
+  if (me) return (WORDS[me[1]] ?? Number(me[1])) + 1;
+  const n = t.match(/\b(\d{1,3})\s*(?:people|guests|pax|of us|ppl|attendees|folks|covers)\b/);
   if (n) return Number(n[1]);
   const w = t.match(/\b(?:for|party of|group of|table for|a)\s+(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|eighteen|twenty|thirty|dozen)\b/)
     ?? t.match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|eighteen|twenty|thirty)\s+(?:people|guests|of us)\b/);

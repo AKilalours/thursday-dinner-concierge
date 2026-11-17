@@ -21,7 +21,7 @@
 <td align="center"><h3>53/53</h3>eval scenarios</td>
 <td align="center"><h3>0 / 2,030</h3>safety checks failed<br>in 300 random worlds</td>
 <td align="center"><h3>114</h3>tests, incl.<br>real Postgres</td>
-<td align="center"><h3>33/33</h3>real-user<br>sentences</td>
+<td align="center"><h3>35/35</h3>real-user<br>sentences</td>
 <td align="center"><h3>55% → 72%</h3>first pick confirms,<br>no memory → memory</td>
 <td align="center"><h3>16</h3>bugs caught →<br>permanent cases</td>
 </tr></table>
@@ -30,7 +30,7 @@
 
 <p align="center"><a href="docs/img/real-users.mp4"><img src="docs/img/real-users.gif" width="900" alt="Akilan and Mamatha Challa each sign in and book a dinner in one sentence"></a><br><sub><a href="docs/img/real-users.mp4">Watch in HD (1440p)</a></sub></p>
 
-Evals only test what you thought of. So I gave the app to a real person. **Akilan** used it with no instructions beyond "type a dinner the way you'd text a friend", and broke it on his first sentence. Then I walked through it as a second user, a team lead (**Mamatha Challa** in the video), plus 33 requests typed the way people type. Every failure became a fix and a permanent test the same day. The video re-enacts both sessions on the fixed build:
+Evals only test what you thought of. So I gave the app to a real person. **Akilan** used it with no instructions beyond "type a dinner the way you'd text a friend", and broke it on his first sentence. Then I walked through it as a second user, a team lead (**Mamatha Challa** in the video), plus 35 requests typed the way people type. Every failure became a fix and a permanent test the same day. The video re-enacts both sessions on the fixed build:
 
 | Who | What they typed | What went wrong | Now |
 |---|---|---|---|
@@ -40,7 +40,7 @@ Evals only test what you thought of. So I gave the app to a real person. **Akila
 | Mamatha | "dinner for 6 under $60 a head" | Dead end: "no venue could host" (R15) | Asks, with the closest real price: "about $88 a head all-in, book that?" |
 | Mamatha | booked Dec 3, opened Calendar | The calendar showed a fixed 3 weeks, so her dinner was invisible (R16) | Calendar grows to the last booked dinner |
 
-`npm run evals:users` replays 33 requests typed the way people type, in CI, on every push: **33/33** now do what a person would expect (30 book, 2 correctly wait for a manager because they're under 24 h notice, 1 asks about budget).
+`npm run evals:users` replays 35 requests typed the way people type, in CI, on every push: **35/35** now do what a person would expect (32 book, 2 correctly wait for a manager because they're under 24 h notice, 1 asks about budget).
 
 ## ▶ Three more videos in 4K
 

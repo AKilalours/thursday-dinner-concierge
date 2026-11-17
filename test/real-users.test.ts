@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -6,6 +6,7 @@ import { carefulApprover, runConcierge } from "../src/agents/concierge.ts";
 import { offline } from "../src/llm/client.ts";
 import { VenueWorld } from "../src/sim/world.ts";
 import { MemoryStore } from "../src/store/memory.ts";
+import { partySizeFrom } from "../src/parse/request.ts";
 import { resolveDate } from "../src/time.ts";
 
 async function run(text: string, today: string, legacy?: { r13?: boolean; r15?: boolean }) {
@@ -50,6 +51,16 @@ describe("found by testing as real users", () => {
     const r = await run("team dinner for 9 on Thursday the 19th", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.match(r.messagesToBooker.at(-1)!, /Thu Nov 19/);
+  });
+  it("R19: \"me and 3 clients\" is a party of 4; the booker counts too", async () => {
+    assert.equal(partySizeFrom("dinner for me and 3 clients next Thursday"), 4);
+    assert.equal(partySizeFrom("lunch for myself and 5 people on Dec 2"), 6, "\"5 people\" alone booked 5");
+    assert.equal(partySizeFrom("lunch for me + 2 colleagues"), 3);
+    assert.equal(partySizeFrom("dinner for 4: me and 3 clients"), 4, "a stated total wins");
+    assert.equal(partySizeFrom("dinner for me and my boss"), null, "no number is asked, not guessed");
+    const r = await run("dinner for me and 3 clients next Thursday", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.equal(r.request?.partySize, 4);
   });
   it("R15: a budget nothing meets gets the closest real price, not a dead end", async () => {
     const r = await run("dinner for 6 under $60 a head this Friday", "2026-11-11");

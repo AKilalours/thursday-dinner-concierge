@@ -123,5 +123,7 @@ export const SCENARIOS: Scenario[] = [
   // R14 (found testing as a real user): US dates and holiday evenings asked "which date?".
   { id: "reg10", group: "regression", text: "dinner for 5 with Globex on 12/3", expect: { outcome: "booked", partySize: 5, date: "2026-12-03" } },
   { id: "reg11", group: "regression", text: "team dinner for 12 on Christmas Eve", expect: { outcome: "booked", partySize: 12, date: "2026-12-24" } },
+  // R19 (found testing as a real user): "for me and 3 clients" asked how many guests; the booker counts too.
+  { id: "reg12", group: "regression", text: "dinner for me and 3 clients with Globex on Dec 2", expect: { outcome: "booked", partySize: 4, date: "2026-12-02" } },
   { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];
