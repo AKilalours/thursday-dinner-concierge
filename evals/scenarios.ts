@@ -125,5 +125,7 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg11", group: "regression", text: "team dinner for 12 on Christmas Eve", expect: { outcome: "booked", partySize: 12, date: "2026-12-24" } },
   // R19 (found testing as a real user): "for me and 3 clients" asked how many guests; the booker counts too.
   { id: "reg12", group: "regression", text: "dinner for me and 3 clients with Globex on Dec 2", expect: { outcome: "booked", partySize: 4, date: "2026-12-02" } },
+  // R20 (found testing as a real user): "$40pp" without "under" was ignored as a budget, so an over-cap venue was booked.
+  { id: "reg13", group: "regression", text: "dinner for 12 with Acme next Thursday, private, $40pp", expect: { outcome: "needs_clarification" } },
   { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];

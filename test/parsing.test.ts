@@ -30,6 +30,12 @@ describe("request parsing (rules)", () => {
     const r = parseRules("dinner for a dozen with Umbrella on Nov 18 at 7:30pm, under $150 a head, two vegetarians", MON);
     assert.equal(r.partySize, 12); assert.equal(r.time, "19:30"); assert.equal(r.maxPerHeadCents, 15_000); assert.deepEqual(r.dietary, ["vegetarian"]);
   });
+  it("a per-head budget without \"under\" is still a cap (R20)", () => {
+    assert.equal(parseRules("dinner for 6, $60pp, this Friday", MON).maxPerHeadCents, 6_000);
+    assert.equal(parseRules("dinner for 4 next Thursday, 100 per person", MON).maxPerHeadCents, 10_000);
+    assert.equal(parseRules("dinner for 4 at $120/head on Dec 2", MON).maxPerHeadCents, 12_000);
+    assert.equal(parseRules("dinner for 8 people next Thursday at 7pm", MON).maxPerHeadCents, null);
+  });
   it("a team dinner has no client", () => {
     const r = parseRules("team dinner for 8 on Nov 20", MON);
     assert.equal(r.kind, "team_dinner"); assert.equal(r.clientName, null);

@@ -50,7 +50,11 @@ export function parseRules(text: string, today: string): BookingRequest {
     : "client_dinner";
   const client = text.match(/\bwith (?:the )?([A-Z][\w&.'-]*(?:\s+[A-Z][\w&.'-]*)?)(?:\s+(?:team|folks|group|execs|leadership|crew))?/);
   const clientName = client && !/^(Our|My|The|A|An|Some)$/.test(client[1]) ? client[1] : null;
-  const perHead = t.match(/(?:under|below|max(?:imum)?|no more than|up to)\s+\$?(\d{2,4})\s*(?:\/|a|per)?\s*(?:head|person|pp|guest)/);
+  // Regression R20: "$60pp" and "100 per person" without "under" were ignored, so an over-budget venue got booked.
+  // A per-head figure in a booking request is the booker's ceiling, so it reads as a cap with or without "under".
+  const perHead = t.match(/(?:under|below|max(?:imum)?|no more than|up to)\s+\$?(\d{2,4})\s*(?:\/|a|per)?\s*(?:head|person|pp|guest)/)
+    ?? t.match(/\$(\d{2,4})\s*(?:\/|a|per)?\s*(?:head|person|pp|guest)\b/)
+    ?? t.match(/\b(\d{2,4})\s*(?:(?:\/|a|per)\s*(?:head|person|guest)|pp)\b/);
   const d = resolveDate(text, today);
   return {
     partySize: partySizeFrom(text) ?? 2,
