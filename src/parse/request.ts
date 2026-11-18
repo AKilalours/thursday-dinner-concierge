@@ -47,6 +47,21 @@ export function dietaryFrom(text: string): string[] {
   return [...new Set([...known, ...other])];
 }
 
+// Regression R23: "$1,500 all in" and "budget 2k" were ignored, so nothing capped the spend. A total only means
+// something per head once the headcount is known, so it is divided by a stated party size and ignored otherwise.
+export function totalBudgetCents(text: string): number | null {
+  const t = text.toLowerCase();
+  // After "total"/"all in" the figure needs a "$" or "k", so "dinner for 120 total" stays a headcount.
+  const money = String.raw`(\$\d{1,3}(?:,\d{3})+|\$\d{3,6}|\$?\d{1,3}(?:\.\d)?k)(?![\d,])`;
+  const bare = String.raw`\$?(\d{1,3}(?:,\d{3})+|\d{3,6}|\d{1,3}(?:\.\d)?k)(?![\d,])`;
+  const m = t.match(new RegExp(String.raw`${money}\s*(?:total|all[- ]in|in total|overall)\b`))
+    ?? t.match(new RegExp(String.raw`\b(?:total budget|budget|spend)\s*(?:of|is|:|around|about|max)?\s*${bare}(?!\s*(?:\/|a |per |pp|each))`));
+  if (!m) return null;
+  const k = m[1].endsWith("k");
+  const n = Number(m[1].replace(/[$,k]/g, ""));
+  return Math.round((k ? n * 1000 : n) * 100);
+}
+
 function timeFrom(text: string, kind: EventKind): string {
   const t = text.toLowerCase();
   // Regression R21: "at 7.30pm" read "30pm" as the hour (42:00) and crashed the booking; "7.30" booked 7:00 and
@@ -77,6 +92,8 @@ export function parseRules(text: string, today: string): BookingRequest {
   const perHead = t.match(/(?:under|below|max(?:imum)?|no more than|up to)\s+\$?(\d{2,4})\s*(?:\/|a|per)?\s*(?:head|person|pp|guest)/)
     ?? t.match(/\$(\d{2,4})\s*(?:\/|a|per)?\s*(?:head|person|pp|guest)\b/)
     ?? t.match(/\b(\d{2,4})\s*(?:(?:\/|a|per)\s*(?:head|person|guest)|pp)\b/);
+  const total = totalBudgetCents(text), party = partySizeFrom(text);
+  const fromTotal = !perHead && total !== null && party ? Math.floor(total / party) : null;
   const d = resolveDate(text, today);
   return {
     partySize: partySizeFrom(text) ?? 2,
@@ -89,7 +106,7 @@ export function parseRules(text: string, today: string): BookingRequest {
     privateRoom: /\bprivate\b|privately|\bpdr\b|buyout|private dining|our own room|somewhere quiet|closed[- ]door/.test(t),
     neighborhood: NEIGHBORHOODS.find((n) => t.includes(n)) ?? (/near (the )?office|close to (the )?office/.test(t) ? "office" : null),
     cuisine: CUISINES.find((c) => new RegExp(`\\b${c}\\b`).test(t))?.replace(/^steak$/, "steakhouse").replace(/^(sushi|omakase)$/, "japanese") ?? null,
-    maxPerHeadCents: perHead ? Number(perHead[1]) * 100 : null,
+    maxPerHeadCents: perHead ? Number(perHead[1]) * 100 : fromTotal,
     dietary: dietaryFrom(t),
     notes: "",
   };
@@ -133,7 +150,8 @@ export async function parseRequest(llm: LLM, text: string, today: string): Promi
     privateRoom: v.privateRoom,
     neighborhood: v.neighborhood?.toLowerCase() ?? base.neighborhood,
     cuisine: v.cuisine?.toLowerCase() ?? base.cuisine,
-    maxPerHeadCents: v.maxPerHeadDollars !== null ? Math.round(v.maxPerHeadDollars * 100) : base.maxPerHeadCents,
+    // A cap code derived from a total wins: the model may report the total itself as the per-head figure.
+    maxPerHeadCents: v.maxPerHeadDollars !== null && totalBudgetCents(text) === null ? Math.round(v.maxPerHeadDollars * 100) : base.maxPerHeadCents,
     time: v.time24h ?? base.time,
     dietary: v.dietary,
     notes: v.notes,

@@ -53,6 +53,16 @@ describe("request parsing (rules)", () => {
     assert.deepEqual(diet("book dinner for 7 people, 2 vegetarians and 1 gluten free"), ["vegetarian", "gluten-free"]);
     assert.deepEqual(diet("dinner for 4 at a seafood place on Friday"), []);
   });
+  it("regression R23: a total budget becomes a per-head cap once the headcount is known", () => {
+    const cap = (s: string) => parseRules(s, MON).maxPerHeadCents;
+    assert.equal(cap("dinner for 6 this Friday, $300 total"), 5_000);
+    assert.equal(cap("team dinner for 8 on Dec 3, budget 2k"), 25_000);
+    assert.equal(cap("dinner for 10 on Dec 2, $1,500 all in"), 15_000);
+    assert.equal(cap("dinner for 3 on Friday, budget of $1000"), 33_333);
+    assert.equal(cap("team dinner for 8 on Dec 3, budget $120 per person"), 12_000);
+    assert.equal(cap("dinner on Friday, $500 total"), null);
+    assert.equal(cap("dinner for 120 total on Dec 3"), null);
+  });
   it("a team dinner has no client", () => {
     const r = parseRules("team dinner for 8 on Nov 20", MON);
     assert.equal(r.kind, "team_dinner"); assert.equal(r.clientName, null);

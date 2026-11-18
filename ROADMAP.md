@@ -4,8 +4,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Ideas
 
-- More everyday sentences in evals/user-requests.ts (now 40): "next week", "around 7ish", a total budget ("$1,500 total") instead of per head.
-- A total budget ("$1,500 all in", "budget 2k") is ignored; divide by the party size into a per-head cap, with a confirm.
+- More everyday sentences in evals/user-requests.ts (now 47): "next week", "around 7ish", "dinner for 6 sometime next week".
 - Chat: understand "cancel it", "push it an hour later", "add a vegan" after a booking, each as a proposal the booker approves.
 - Approvals inbox: a manager view of proposals waiting for sign-off, with the reason and a cheaper alternative.
 - Invoice: month picker and a per-cost-center subtotal row in the CSV.
@@ -18,10 +17,12 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "dinner for me, Sam and Priya" names guests without a number; count named people (with a confirm) instead of asking.
 - `npm run build:web` on a fresh clone rewrites docs/app.js with different minified names; pin esbuild exactly so builds are reproducible.
 - "dinner for 6 next week" asks which date; offer the 5 weekdays as one-tap choices instead of a free-text question.
+- A total budget with no headcount ("dinner on Friday, $500 total") is dropped; keep it and apply it once the party size is answered.
 - The model's time24h is only shape-checked ("25:00" passes); reject an impossible hour so a model slip cannot crash a booking like R21 did.
 
 ## Shipped
 
+- 2026-11-18: A total budget ("$300 total", "budget 2k", "$1,500 all in") is divided by the party size into a per-head cap, so a venue over it is no longer booked (R23); real-user sentences 44 → 47.
 - 2026-11-18: Allergies typed plainly ("no shellfish", "allergic to nuts", "nut-free", "dairy free", "celiac", "allergic to sesame") now reach the venue email and the proposal instead of being dropped (R22); real-user sentences 42 → 44.
 - 2026-11-17: "dinner for 4 on Friday at 7.30pm" no longer crashes (it read "30pm" as 42:00); "7.30" books 7:30 not 7:00, and "noon" books 12:00 not 12:30 (R21); real-user sentences 40 → 42.
 - 2026-11-17: "$60pp", "100 per person" and "$120/head" are read as a per-head cap even without "under", so an over-budget venue is no longer booked (R20); real-user sentences 35 → 40.

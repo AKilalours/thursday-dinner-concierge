@@ -131,5 +131,7 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg14", group: "regression", text: "dinner for 6 with Globex on Dec 2 at 7.30pm", expect: { outcome: "booked", partySize: 6, date: "2026-12-02" } },
   // R22 (found testing as a real user): "no shellfish" and "allergic to nuts" were dropped, so the venue was never told.
   { id: "reg15", group: "regression", text: "dinner for 6 with Globex on Dec 2, one guest allergic to nuts, no shellfish", expect: { outcome: "booked", partySize: 6, date: "2026-12-02" } },
+  // R23 (found testing as a real user): "$300 total" for 6 was ignored, so a venue over $50 a head was booked.
+  { id: "reg16", group: "regression", text: "dinner for 6 with Globex on Dec 2, $300 total", expect: { outcome: "needs_clarification" } },
   { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];
