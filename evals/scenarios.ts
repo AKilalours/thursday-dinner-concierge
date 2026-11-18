@@ -129,5 +129,7 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg13", group: "regression", text: "dinner for 12 with Acme next Thursday, private, $40pp", expect: { outcome: "needs_clarification" } },
   // R21 (found testing as a real user): "at 7.30pm" read "30pm" as the hour (42:00) and the booking crashed.
   { id: "reg14", group: "regression", text: "dinner for 6 with Globex on Dec 2 at 7.30pm", expect: { outcome: "booked", partySize: 6, date: "2026-12-02" } },
+  // R22 (found testing as a real user): "no shellfish" and "allergic to nuts" were dropped, so the venue was never told.
+  { id: "reg15", group: "regression", text: "dinner for 6 with Globex on Dec 2, one guest allergic to nuts, no shellfish", expect: { outcome: "booked", partySize: 6, date: "2026-12-02" } },
   { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];

@@ -17,11 +17,12 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - Venue side: read a stated time ("that Friday at 7") into the offer, so a different time is caught as a counter.
 - "dinner for me, Sam and Priya" names guests without a number; count named people (with a confirm) instead of asking.
 - `npm run build:web` on a fresh clone rewrites docs/app.js with different minified names; pin esbuild exactly so builds are reproducible.
-- Allergies typed plainly ("no shellfish", "nut-free", "allergic to nuts", "dairy free") are dropped by the rules parser, so the venue is never told.
+- "dinner for 6 next week" asks which date; offer the 5 weekdays as one-tap choices instead of a free-text question.
 - The model's time24h is only shape-checked ("25:00" passes); reject an impossible hour so a model slip cannot crash a booking like R21 did.
 
 ## Shipped
 
+- 2026-11-18: Allergies typed plainly ("no shellfish", "allergic to nuts", "nut-free", "dairy free", "celiac", "allergic to sesame") now reach the venue email and the proposal instead of being dropped (R22); real-user sentences 42 → 44.
 - 2026-11-17: "dinner for 4 on Friday at 7.30pm" no longer crashes (it read "30pm" as 42:00); "7.30" books 7:30 not 7:00, and "noon" books 12:00 not 12:30 (R21); real-user sentences 40 → 42.
 - 2026-11-17: "$60pp", "100 per person" and "$120/head" are read as a per-head cap even without "under", so an over-budget venue is no longer booked (R20); real-user sentences 35 → 40.
 - 2026-11-17: "dinner for me and 3 clients" books 4 instead of asking how many guests, and "myself and 5 people" books 6, not 5 (R19); real-user sentences 33 → 35.

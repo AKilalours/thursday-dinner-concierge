@@ -12,7 +12,15 @@ const WORDS: Record<string, number> = {
 };
 export const NEIGHBORHOODS = ["flatiron", "midtown", "tribeca", "west village", "soho", "chelsea", "financial district", "williamsburg"];
 const CUISINES = ["italian", "steakhouse", "steak", "japanese", "sushi", "omakase", "new american", "french", "mediterranean", "korean", "seafood"];
-const DIETARY = ["vegetarian", "vegan", "gluten-free", "gluten free", "kosher", "halal", "nut allergy", "shellfish allergy"];
+// Regression R22: "no shellfish", "allergic to nuts" and "dairy free" were dropped, so the venue was never told.
+// People rarely type the label itself, so each need lists the ways it is actually written.
+const DIETARY: [string, RegExp][] = [
+  ["vegetarian", /\bvegetarians?\b/], ["vegan", /\bvegans?\b/], ["kosher", /\bkosher\b/], ["halal", /\bhalal\b/],
+  ["gluten-free", /\bgluten[- ]?free\b|\bno gluten\b|\bc(?:o)?eliac\b/],
+  ["dairy-free", /\bdairy[- ]?free\b|\bno dairy\b|\blactose\b/],
+  ["nut-allergy", /\b(?:tree[- ])?nut[- ](?:free|allerg\w*)|\bno (?:tree )?nuts\b|\ballergic to (?:tree )?nuts?\b/],
+  ["shellfish-allergy", /\bshellfish\b/],
+];
 
 export function partySizeFrom(text: string): number | null {
   const t = text.toLowerCase();
@@ -28,6 +36,15 @@ export function partySizeFrom(text: string): number | null {
   const w = t.match(/\b(?:for|party of|group of|table for|a)\s+(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|eighteen|twenty|thirty|dozen)\b/)
     ?? t.match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|eighteen|twenty|thirty)\s+(?:people|guests|of us)\b/);
   return w ? WORDS[w[1]] : null;
+}
+
+export function dietaryFrom(text: string): string[] {
+  const t = text.toLowerCase();
+  const known = DIETARY.filter(([, re]) => re.test(t)).map(([label]) => label);
+  // Any other "allergic to X" is still passed on, so a venue hears about sesame even without a rule for it.
+  const other = [...t.matchAll(/\ballergic to ([a-z]+)/g)].map((m) => m[1].replace(/s$/, ""))
+    .filter((x) => !["nut", "tree", "shellfish"].includes(x)).map((x) => `${x}-allergy`);
+  return [...new Set([...known, ...other])];
 }
 
 function timeFrom(text: string, kind: EventKind): string {
@@ -73,7 +90,7 @@ export function parseRules(text: string, today: string): BookingRequest {
     neighborhood: NEIGHBORHOODS.find((n) => t.includes(n)) ?? (/near (the )?office|close to (the )?office/.test(t) ? "office" : null),
     cuisine: CUISINES.find((c) => new RegExp(`\\b${c}\\b`).test(t))?.replace(/^steak$/, "steakhouse").replace(/^(sushi|omakase)$/, "japanese") ?? null,
     maxPerHeadCents: perHead ? Number(perHead[1]) * 100 : null,
-    dietary: DIETARY.filter((x) => t.includes(x)).map((x) => x.replace(" ", "-")),
+    dietary: dietaryFrom(t),
     notes: "",
   };
 }
