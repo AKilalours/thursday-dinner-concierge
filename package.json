@@ -18,6 +18,7 @@
     "evals:classifiers": "node evals/classify.ts",
     "evals:replay": "node evals/replay.ts",
     "evals:metamorphic": "node evals/meta.ts",
+    "users:import": "node evals/import-reports.ts",
     "monitor": "ANDE_LLM_MODE=${ANDE_LLM_MODE:-replay} node --env-file-if-exists=.env evals/monitor.ts",
     "evals:live": "ANDE_LLM_MODE=record node --env-file-if-exists=.env evals/run.ts && node web/build.mjs",
     "llm:check": "node --env-file-if-exists=.env evals/check.ts",

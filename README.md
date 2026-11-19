@@ -40,7 +40,7 @@ Evals only test what you thought of. So I gave the app to a real person. **Akila
 | Mamatha | "dinner for 6 under $60 a head" | Dead end: "no venue could host" (R15) | Asks, with the closest real price: "about $88 a head all-in, book that?" |
 | Mamatha | booked Dec 3, opened Calendar | The calendar showed a fixed 3 weeks, so her dinner was invisible (R16) | Calendar grows to the last booked dinner |
 
-`npm run evals:users` replays 54 requests typed the way people type, in CI, on every push: **54/54** now do what a person would expect (46 book, 2 correctly wait for a manager because they're under 24 h notice, 6 ask: about budget, or about a cuisine no venue serves). 9 of them are also graded on what the booker is told, not just the outcome: a booking that drops "Japanese, as asked" or the dietary confirmation fails. Found something it gets wrong? The app has a **Report it** link under every result that opens a prefilled issue ([template](.github/ISSUE_TEMPLATE/real-user.md)); each report becomes a permanent row.
+`npm run evals:users` replays 55 requests typed the way people type, in CI, on every push: **55/55** now do what a person would expect (47 book, 2 correctly wait for a manager because they're under 24 h notice, 6 ask: about budget, or about a cuisine no venue serves). 10 of them are also graded on what the booker is told, not just the outcome: a booking that drops "Japanese, as asked" or the dietary confirmation fails. Found something it gets wrong? The app has a **Report it** link under every result that opens a prefilled issue ([template](.github/ISSUE_TEMPLATE/real-user.md)); each report becomes a permanent row: `npm run users:import` reads every issue labelled real-user and appends it to [`evals/reported.ts`](evals/reported.ts) with the outcome the reporter ticked.
 
 ## ▶ Three more videos in 4K
 
@@ -65,9 +65,18 @@ A scheduled job (`npm run monitor`, [workflow](.github/workflows/agent-watch.yml
 |---|---|
 | A rotating slice of the eval scenarios against **live Claude** when the `ANTHROPIC_API_KEY` secret is set (recorded model outputs until then; every run so far has used recordings, and the Monitor page shows which) | Model drift shows up as a failed check or a fallback to rules, never silently. The whole suite is covered every few runs |
 | **500 random worlds no earlier run has seen** (seeds from the clock) | Silent venues, price hikes, injections, double bookings: new adversarial coverage every run, checked against the safety invariants |
-| The **54 real-user sentences** | The requests real people actually type keep working, and the booker is told what was asked |
+| The **55 real-user sentences** | The requests real people actually type keep working, and the booker is told what was asked |
 
 Each run appends a row to [`docs/monitor.json`](docs/monitor.json), charted on the Monitor page (pass rate, worlds tested, live p50/p95 latency, cost per day), with the full report in `evals/history/`. If anything fails, the run **opens a GitHub issue by itself** with the failing seed, which replays exactly. Live model calls are capped per run (about $0.10–0.20 a run).
+
+## ▶ Two new videos
+
+<table>
+<tr>
+<td width="50%" valign="top"><a href="docs/img/thursday-checks-on-the-checks.mp4"><img src="docs/img/checks-on-the-checks.jpg" alt="Rules vs the live model vs a hybrid"></a><br><b>I tested my tests.</b> Bug replay, metamorphic testing, the first live model benchmark, two bugs in my own promotion gate, and the hybrid classifier that passed it. 3 min. <a href="docs/img/thursday-checks-on-the-checks.mp4">Watch ↗</a></td>
+<td width="50%" valign="top"><a href="docs/img/thursday-12-bookings.mp4"><img src="docs/img/twelve-bookings.jpg" alt="12 bookings, 12 different reasons"></a><br><b>12 bookings, 12 different reasons.</b> A client pitch, a new-hire lunch, a holiday party for 40 with a manager's sign-off, an executive dinner with allergies, and two cases where the right answer was a question. Live runs; venues are simulated. Found R28 while filming. 4 min. <a href="docs/img/thursday-12-bookings.mp4">Watch ↗</a></td>
+</tr>
+</table>
 
 ## ▶ Are the evals any good? Four checks on the checks
 
@@ -75,27 +84,33 @@ A green eval suite only matters if it would go red on the bugs you actually have
 
 **1. Bug replay** (`npm run evals:replay`). Every fixed bug that changed agent behavior has a switch that turns the old code back on. The replay flips each one and re-runs the 53 scenarios, the real-user sweep and the ranking eval. **8/8 fixed bugs are caught again**, by different layers: R7 and R8 by real-user rows that check what the booker is told, R11 only by the ranking eval (warm hit@1 drops from 60% to 54%), R25 only by real-user rows. A bug no layer catches fails the build.
 
-**2. Metamorphic testing** (`npm run evals:metamorphic`). No labels needed, only relations: every real-user and scenario sentence is retyped 11 ways a person might type it (ALL CAPS, all lowercase, pasted line breaks, doubled spaces, "please", "thanks!") and must make the same booking; a changed headcount must be followed. **1,066 checks.** On its first run it failed 91 of them and found two bugs:
+**2. Metamorphic testing** (`npm run evals:metamorphic`). No labels needed, only relations: every real-user and scenario sentence is retyped 11 ways a person might type it (ALL CAPS, all lowercase, pasted line breaks, doubled spaces, "please", "thanks!") and must make the same booking; a changed headcount must be followed. **1,078 checks.** On its first run it failed 91 of them and found two bugs:
 
 | | What broke | Now |
 |---|---|---|
 | R26 | Text pasted from Slack or email with doubled spaces lost allergies, the neighborhood, "Christmas Eve" and the kind of event | Whitespace is normalized before parsing |
 | R27 | "DINNER FOR 6 WITH ACME" and "dinner with acme" lost the client; "with Acme." kept the full stop | One-case sentences read the name after "with"; a name ends at a full stop |
 
-**3. Classifier benchmark, rules vs the live model** (`npm run evals:classifiers`). Precision, recall, a confusion matrix and 95% intervals for reply triage and injection detection:
+**3. Classifier benchmark: rules vs the live model vs a hybrid** (`npm run evals:classifiers`). Precision, recall, a confusion matrix and 95% intervals for reply triage and injection detection:
 
-| Set | Emails | Rules: triage (95% CI) | **Live model: triage (95% CI)** | Injections caught: rules → model |
-|---|---|---|---|---|
-| Generated: every email the venue world writes, label = the behavior that wrote it | 960 (model: 120 sampled) | 100% (99.6–100%) | 99.2% (95.4–99.9%) | 120/120 → 12/12 |
-| Dev: hand-labelled, real-world phrasing, used to fix the rules | 36 | 100% (tuned on it) | 86.1% (71.3–93.9%) | 6/6 → 6/6 |
-| **Held-out: hand-labelled, written before being run, never used to change a rule** | 62 | **40.3% (29.0–52.7%)** | **88.7% (78.5–94.4%)** | **4/10 → 10/10** |
+| Set | Emails | Rules (95% CI) | Live model alone | **Hybrid (in production)** | Injections caught: rules · model · hybrid |
+|---|---|---|---|---|---|
+| Generated: every email the venue world writes, label = the behavior that wrote it | 960 (model: 120 sampled) | 100% (99.6–100%) | 99.2% (95.4–99.9%) | **100%** (96.9–100%) | 120/120 · 12/12 · 12/12 |
+| Dev: hand-labelled, real-world phrasing, used to fix the rules | 36 | 100% (tuned on it) | 86.1% (71.3–93.9%) | **100%** (90.4–100%) | 6/6 · 6/6 · 6/6 |
+| **Held-out: hand-labelled, written before being run, never used to change a rule** | 62 | **40.3%** (29.0–52.7%) | **87.1%** (76.6–93.3%) | **80.6%** (69.1–88.6%) | **4/10 · 10/10 · 10/10** |
+| Promotion gate | | baseline | stay in shadow | **promote** | |
 
-Live run: claude-sonnet-4-5, the model itself decided 218 of 218 emails (no fallbacks), [`docs/classifiers.json`](docs/classifiers.json). On emails nobody tuned anything on, the model more than doubles the rules' accuracy (the intervals don't overlap) and catches every injection; the rules miss 6 of 10. The rules still win on the emails they were built from, and that is exactly the trade-off the **promotion gate** exists to decide: a classifier moves from shadow to live only if the model itself decided at least 95% of every set, beats the rules on accuracy on every set, catches every injection they catch, and never reads a decline or a payment request as an offer more often. Today it says **stay in shadow** (the model loses on the generated and dev sets), so the rules decide and the model's answers are logged next to them. The obvious next step, a hybrid where the model decides only what the rules would hand to a person, is on the roadmap and will have to pass the same gate.
+Live run: claude-sonnet-4-5, every model call answered, [`docs/classifiers.json`](docs/classifiers.json). The hybrid is scored on the exact answers the model gave in that run (cached), through the same code path the agent uses, at no extra cost.
 
-The benchmark also found two bugs in emails the simulator itself writes ("we have no availability" wasn't a decline; "the minimum has gone up" wasn't a counter), now fixed, and two bugs that only live runs could show:
+**The hybrid:** the rules decide every email they are sure of, and the model is asked only about what the rules would hand to a person (28 of 62 held-out emails, none of the generated or dev ones). For scams, a flag from either stands and the model can add one but never remove one. The model alone reads unseen emails best, but it loses to the rules on the emails the rules were built from, so the gate keeps it in shadow. The hybrid keeps the rules' 100% where they are strong, doubles held-out accuracy, catches every scam, and passed the gate, so **it is now the agent's default**. One honest cost: on held-out it acted on a wrong reading 8 times against the rules' 6, because it decides emails the rules would have handed to a person. The gate doesn't count that today; it is the next thing on the roadmap.
+
+**The promotion gate** moves a classifier from shadow to live only if the model answered at least 95% of what it was asked, it is at least as accurate as the rules on every set, it catches every injection they catch, and it never reads a decline or a payment request as an offer more often.
+
+The benchmark also found two bugs in emails the simulator itself writes ("we have no availability" wasn't a decline; "the minimum has gone up" wasn't a counter), now fixed, and three that only live runs could show:
 
 - **The gate passed a model that never answered.** With a key that didn't work, every model call failed, fell back to the rules, scored exactly like them, and the gate said "promote". Now the model must have answered, a run where it answered nothing publishes no model numbers, and a test with a model that always errors keeps it that way.
-- **The injection check threw away half the model's answers.** Its time limit was 3 s and the model answers in 2.7–3.2 s, so about half the time the rules decided instead, silently. Measured, then fixed (8 s; venue emails arrive over hours, so seconds don't matter). Model decisions went from 53 of 218 to 218 of 218, and injection recall on held-out from 7/10 to 10/10.
+- **The injection check threw away half the model's answers.** Its time limit was 3 s and the model answers in 2.7–3.2 s, so about half the time the rules decided instead, silently. Measured, then fixed (8 s; venue emails arrive over hours, so seconds don't matter). Model decisions went from 53 of 218 to 218 of 218.
+- **An API hiccup mid-run.** One run lost every call after the first 81. The guard above refused to publish it, and the report now counts why each model call failed, so the next one is diagnosed, not guessed.
 
 **4. Real users**, above: graded on outcome and on what they are told, with a one-click report from the app.
 
@@ -185,6 +200,17 @@ flowchart LR
 | R15 | **Found testing as a real user:** a per-head budget nothing meets was a dead end; now it asks with the closest real price |
 | R16 | **Found testing as a real user:** a dinner booked for Dec 3 never appeared, because the calendar showed a fixed 3 weeks |
 | R17 | Venue replies in plain words ("Yes, our private room fits 10... minimum is $900") fell to the rules as "needs a human"; now read as offers with room, seats, minimum and deposit |
+| R18 | **Real-user sweep:** "tmrw", "Wed", "sat at 8", "next fri" didn't resolve, and "Thursday the 19th" booked this Thursday |
+| R19 | **Real-user sweep:** "dinner for me and 3 clients" asked how many guests; now 4, because the booker counts too |
+| R20 | **Real-user sweep:** "$60pp" and "100 per person" without "under" were ignored, so an over-budget venue was booked |
+| R21 | **Real-user sweep:** "7.30pm" crashed the parser (read as 42:00); "noon" booked 12:30 |
+| R22 | **Real-user sweep:** allergies typed plainly ("no shellfish", "allergic to nuts") never reached the venue |
+| R23 | **Real-user sweep:** a total budget ("$300 total", "budget 2k") was ignored; now divided into a per-head cap |
+| R24 | An impossible model time ("25:00") could reach the booking; every time is now a real clock time |
+| R25 | **Real-user sweep, graded on what the booker is told:** "thai food for 6" booked a Japanese room without saying there is no Thai venue; now it asks, listing what it can book |
+| R26 | **Metamorphic testing:** text pasted with doubled spaces or line breaks lost allergies, the neighborhood, "Christmas Eve" and the kind of event |
+| R27 | **Metamorphic testing:** ALL CAPS or all-lowercase requests lost the client; "with Acme." kept the full stop |
+| R28 | **Found filming 12 bookings:** "$40 a head" proposed "$48 a head" and looked over budget (a stated budget is before tax and tip); the proposal now says "about $37 a head before tax and tip, within your $40" |
 </details>
 
 <details>

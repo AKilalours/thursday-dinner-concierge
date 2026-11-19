@@ -5,7 +5,8 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 ## Ideas
 
 - Classifier held-out set (evals/classifier-set.ts HELD_OUT) scores 40% for reply triage (62 rows): fix one held-out miss at a time, move that row to DEV_SET and write a new unseen held-out row, so the held-out number stays honest. Start with the one wrong action: "pay the deposit ... to account" inside an offer was read as a payment request.
-- Hybrid reply triage: rules decide what they're confident about, the model decides what the rules would hand to a person. Benchmark it as a third column and put it through the same promotion gate (live run on held-out: rules 40%, model 89%).
+- Promotion gate: also require the candidate to act on a wrong label no more often than the rules (the hybrid acts wrongly on 8 held-out emails vs the rules' 6, because it decides what the rules would hand to a person). Decide the rule before the next live run, not after.
+- Retry a model call once on HTTP 429/529 with backoff; the benchmark now counts why calls fail, so measure first.
 - Metamorphic: add rewrites that change meaning on purpose (date, time, budget) and check the parse follows each one.
 - R10 ("somewhere in SoHo" booked Williamsburg) is caught by only one scenario in the bug replay; add a real-user row that would catch it too.
 - More everyday sentences in evals/user-requests.ts (now 52): "next week", "around 7ish", "dinner for 6 sometime next week".
@@ -26,6 +27,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Shipped
 
+- 2026-11-19: Hybrid reply triage passed the promotion gate on a live run (held-out 80.6% vs rules 40.3%, injections 10/10 vs 4/10, 100% on generated and dev) and is now the agent's default; R28 a stated per-head budget is explained in the booker's terms; `npm run users:import` turns Report it issues into permanent eval rows.
 - 2026-11-19: First live classifier benchmark (claude-sonnet-4-5): held-out triage 88.7% vs rules 40.3%, injections 10/10 vs 4/10; gate says stay in shadow. Found and fixed an injection timeout (3 s vs 2.7-3.2 s model latency) that discarded half the model's answers.
 - 2026-11-19: Metamorphic parsing eval (1,066 checks; found and fixed R26 doubled spaces and R27 one-case client names), R25 a cuisine no venue serves is asked about, held-out classifier set grown to 62 with 95% intervals, promotion gate can no longer be passed by a model that never answered, and an eval-quality card on the Evals page.
 - 2026-11-19: Evals: bug replay (each fixed bug turned back on is caught again, 7/7), classifier benchmark with a held-out set and a shadow-to-live promotion gate, real-user rows graded on what the booker is told, and a Report it link in the app. The benchmark found and fixed two triage bugs; confirmations no longer promise dietary reminders when there are none.

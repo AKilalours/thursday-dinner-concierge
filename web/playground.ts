@@ -567,7 +567,9 @@ function showRun(id: string) {
 }
 let inv = 0, invFail = 0;
 // ---- Are the evals any good? Bug replay, metamorphic rewrites and the classifier benchmark, run in the browser.
-type ClassJson = { model: null | { name: string; at: string } & Record<"generated" | "dev" | "heldOut", { triage: { n: number; accuracy: number; ci: [number, number]; wrongAction: number }; injection: { labels: { injection: { recall: number; support: number } } } }>; gate: null | { promote: boolean; reasons: string[] } };
+type ClassRun = null | { name: string; at: string } & Record<"generated" | "dev" | "heldOut", { triage: { n: number; accuracy: number; ci: [number, number]; wrongAction: number; modelAsked?: number }; injection: { labels: { injection: { recall: number; support: number } } } }>;
+type Gate = null | { promote: boolean; reasons: string[] };
+type ClassJson = { model: ClassRun; gate: Gate; hybrid?: ClassRun; hybridGate?: Gate };
 async function loadClassJson(): Promise<ClassJson | null> {
   for (const u of ["https://raw.githubusercontent.com/AKilalours/thursday-dinner-concierge/main/docs/classifiers.json", "./classifiers.json"]) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) return await r.json() as ClassJson; } catch { /* next */ } }
   return null;
@@ -585,11 +587,16 @@ $("#runQ").onclick = async () => {
   $("#qMeta").innerHTML = `<div class="qbig ${m.failures.length ? "bad" : ""}">${m.checks - m.failures.length}/${m.checks}</div><div class="cs">${m.sentences} sentences, each retyped 11 ways plus a changed headcount: every rewrite kept the right booking. Found R26 (doubled spaces lost allergies and the area) and R27 (ALL CAPS lost the client).</div>${m.failures.slice(0, 5).map((f) => `<div class="qrow"><i class="bad">✗</i><span>${esc(f.rewrite)}: “${esc(f.variant)}”</span></div>`).join("")}`;
   const [rules, cj] = await Promise.all([benchmark(offline, "rules"), loadClassJson()]);
   const sets = [["generated", "Generated · label = the behavior that wrote it"], ["dev", "Dev · hand-labelled, used to fix the rules"], ["heldOut", "Held-out · hand-labelled, never tuned on"]] as const;
-  $("#qClass").innerHTML = `<div class="ctwrap"><table class="ctable wrap"><thead><tr><th>Set</th><th>Emails</th><th>Rules: triage</th><th>Wrong actions</th><th>Injections caught</th><th>${cj?.model ? `Model (${esc(cj.model.name)})` : "Model"}</th></tr></thead><tbody>${sets.map(([k, name]) => {
-    const r = rules[k], md = cj?.model?.[k];
-    return `<tr><td>${name}</td><td>${r.triage.n}</td><td><b>${pct1(r.triage.accuracy)}</b>${ciBar(r.triage.accuracy, r.triage.ci)}</td><td>${r.triage.wrongAction}</td><td>${r.injection.labels.injection.recall * r.injection.labels.injection.support | 0}/${r.injection.labels.injection.support}</td><td>${md ? `<b>${pct1(md.triage.accuracy)}</b>${ciBar(md.triage.accuracy, md.triage.ci)}<div class="cs">${md.triage.wrongAction} wrong actions · ${Math.round(md.injection.labels.injection.recall * md.injection.labels.injection.support)}/${md.injection.labels.injection.support} injections${k === "generated" ? ` · ${md.triage.n} sampled` : ""}</div>` : '<span class="cs">needs a key: <code>npm run evals:classifiers</code> with ANDE_LLM_MODE=live</span>'}</td></tr>`;
+  const cell = (md: ClassRun, k: "generated" | "dev" | "heldOut", what: string) => {
+    const x = md?.[k];
+    return x ? `<b>${pct1(x.triage.accuracy)}</b>${ciBar(x.triage.accuracy, x.triage.ci)}<div class="cs">${x.triage.wrongAction} wrong actions · ${Math.round(x.injection.labels.injection.recall * x.injection.labels.injection.support)}/${x.injection.labels.injection.support} injections${what === "hybrid" && x.triage.modelAsked !== undefined ? ` · asked the model ${x.triage.modelAsked}×` : ""}${k === "generated" ? ` · ${x.triage.n} sampled` : ""}</div>` : '<span class="cs">needs a live run: <code>npm run evals:classifiers</code> with ANDE_LLM_MODE=live</span>';
+  };
+  const gateLine = (name: string, g: Gate | undefined) => g ? `<div class="gstep ${g.promote ? "ok" : ""}" style="margin-top:8px"><b>${name}: ${g.promote ? "promote" : "stays in shadow"}.</b> ${g.reasons.length ? esc(g.reasons.join(" · ")) : "Answered what it was asked, at least as accurate as the rules on every set, catches every injection they catch, never reads a decline or a payment request as an offer more often."}</div>` : "";
+  $("#qClass").innerHTML = `<div class="ctwrap"><table class="ctable wrap"><thead><tr><th>Set</th><th>Emails</th><th>Rules</th><th>${cj?.model ? `Model (${esc(cj.model.name)})` : "Model"}</th><th>Hybrid · rules first, model for the rest</th></tr></thead><tbody>${sets.map(([k, name]) => {
+    const r = rules[k];
+    return `<tr><td>${name}</td><td>${r.triage.n}</td><td><b>${pct1(r.triage.accuracy)}</b>${ciBar(r.triage.accuracy, r.triage.ci)}<div class="cs">${r.triage.wrongAction} wrong actions · ${Math.round(r.injection.labels.injection.recall * r.injection.labels.injection.support)}/${r.injection.labels.injection.support} injections</div></td><td>${cell(cj?.model ?? null, k, "model")}</td><td>${cell(cj?.hybrid ?? null, k, "hybrid")}</td></tr>`;
   }).join("")}</tbody></table></div>
-  ${cj?.gate ? `<div class="gstep ${cj.gate.promote ? "ok" : ""}" style="margin-top:10px"><b>Promotion gate: ${cj.gate.promote ? "the model may replace the rules" : "the model stays in shadow"}.</b> ${cj.gate.reasons.length ? esc(cj.gate.reasons.join(" · ")) : "It beats the rules on every set, catches every injection they catch, and never reads a decline or a payment request as an offer more often."}</div>` : ""}
+  ${gateLine("Promotion gate, model alone", cj?.gate)}${gateLine("Promotion gate, hybrid", cj?.hybridGate)}
   <div class="qh" style="margin-top:12px;font-size:13px">Rules on the held-out set</div>${confusion(rules.heldOut.triage as Report<string>)}`;
   await sleep(30);
   $("#qReplay").innerHTML = "";

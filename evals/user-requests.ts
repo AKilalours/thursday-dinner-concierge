@@ -7,11 +7,12 @@ import { offline } from "../src/llm/client.ts";
 import { VenueWorld } from "../src/sim/world.ts";
 import { MemoryStore } from "../src/store/memory.ts";
 import type { Ctx } from "../src/tools/registry.ts";
+import { REPORTED } from "./reported.ts";
 
 export const TODAY = "2026-11-11";
 /** [what they typed, the outcome a person expects, optionally something the booker must be told]. */
 export type UserRow = [string, Outcome, RegExp?];
-export const REAL_USER_REQUESTS: UserRow[] = [
+const TYPED: UserRow[] = [
   ["dinner for 2 next Friday, somewhere private", "booked"],
   ["lunch with a client tomorrow, 3 people", "booked"],
   ["book a table for 5 on Saturday night", "booked"],
@@ -67,7 +68,11 @@ export const REAL_USER_REQUESTS: UserRow[] = [
   ["team dinner for 8 in the West Village on Dec 10", "booked", /Halden & Vine|Juniper Hall|The Velvet Ledger|Rue Margaux/],
   ["thai food for 6 next wednesday", "needs_clarification", /No venue in the network serves Thai/],
   ["mexican dinner for 10 on Dec 4", "needs_clarification", /serves Mexican/],
+  ["team lunch for 12 on Dec 2, $40 a head", "booked", /before tax and tip, within your \$40/],
 ];
+
+/** Typed by me and testers, plus every sentence real people reported from the app (evals/reported.ts). */
+export const REAL_USER_REQUESTS: UserRow[] = [...TYPED, ...REPORTED.map(([t, o, m]) => [t, o, m] as UserRow)];
 
 /** Runs one row and says why it failed, or null. Shared by the sweep, the monitor, the bug replay and the tests. */
 export async function checkUserRow([text, want, mustSay]: UserRow, legacy?: Ctx["legacy"]): Promise<{ outcome: Outcome; why: string | null; last: string | undefined }> {

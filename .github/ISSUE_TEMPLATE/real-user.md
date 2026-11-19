@@ -13,9 +13,13 @@ labels: real-user
 
 **What happened** (booked, asked me something, escalated, nothing)
 
-**What I expected**
+**What I expected** (tick one)
+
+- [ ] it should have booked
+- [ ] it should have asked me a question first
+- [ ] it should have passed it to a manager
 
 <!--
-Each report becomes a row in evals/user-requests.ts with the outcome you expected (and, if it matters, what the
-booker should be told), so the same sentence is checked on every commit and three times a day by Agent Watch.
+`npm run users:import` turns each report into a row in evals/reported.ts with the outcome you ticked, so the same
+sentence is checked on every commit and three times a day by Agent Watch.
 -->

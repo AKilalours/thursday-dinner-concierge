@@ -16,7 +16,7 @@ import { addDays, startsAt, weekday } from "../time.ts";
 import type { Ctx, TraceEvent } from "../tools/registry.ts";
 import { call, log } from "../tools/registry.ts";
 import { book, createProposal, eventWindow, leadHours, notifyBooker, payDeposit } from "../tools/tools.ts";
-import { estimate, perHeadFor } from "../policy/policy.ts";
+import { ALL_IN, estimate, perHeadFor } from "../policy/policy.ts";
 import { compare } from "./comparison.ts";
 import type { Option } from "./comparison.ts";
 import { coordinate } from "./coordination.ts";
@@ -75,7 +75,10 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
     store: input.store, world: input.world, llm: input.llm, company: input.company ?? COMPANY, venues: input.venues,
     actor: input.actor, principal: input.principal, runId, today: input.today, smsOptedOut: input.smsOptedOut ?? new Set(), trace: [], onEvent: input.onEvent, legacy: input.legacy, requestedAt: input.world.now,
   };
-  const mode = input.judgmentMode ?? "rules";
+  // Hybrid passed the promotion gate on the first live run (docs/classifiers.json): held-out reply triage 80.6% vs the
+  // rules' 40.3%, 10/10 injections vs 4/10, and no worse than the rules on any set. The rules still decide everything
+  // they are sure of; the model is asked only what the rules would hand to a person. Without a model it is the rules.
+  const mode = input.judgmentMode ?? "hybrid";
   const result: RunResult = { runId, outcome: "escalated", request: null, proposals: [], bookingId: null, paymentId: null, chosenVenueId: null, messagesToBooker: [], trace: ctx.trace, parseDecidedBy: "rules" };
   const tell = async (text: string) => {
     result.messagesToBooker.push(text);
@@ -114,7 +117,7 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   // is no Thai venue. A cuisine nobody in the network serves is now a question, with the cuisines that are available.
   if (req.cuisine && !ctx.legacy?.r25 && !ctx.venues.some((v) => v.cuisine === req.cuisine)) {
     const cz = req.cuisine[0].toUpperCase() + req.cuisine.slice(1);
-    const have = [...new Set(ctx.venues.map((v) => v.cuisine))].sort();
+    const have = [...new Set(ctx.venues.map((v) => v.cuisine))].sort().map((c) => c.replace(/\b[a-z]/g, (x) => x.toUpperCase()));
     result.outcome = "needs_clarification";
     await log(ctx, "concierge", "clarify", `no ${req.cuisine} venue in the network; asking instead of substituting`);
     await tell(`No venue in the network serves ${cz} food, so I haven't contacted anyone. I can book ${have.slice(0, -1).join(", ")} or ${have.at(-1)}. Which would you like, or should I pick the best fit for ${req.partySize}?`);
@@ -229,6 +232,9 @@ async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, inp
   ].filter(Boolean);
   const summary = `${v.name}, ${room.name}, ${human(req.date!)} at ${clock(req.time)}, ${req.partySize} guests${req.clientName ? ` with ${req.clientName}` : ""}. `
     + `Minimum ${usd(opt.minSpendCents)}; about ${usd(opt.policy.estimate.allInCents)} all-in (${usd(opt.policy.estimate.perHeadAllInCents)} a head, under the ${usd(ctx.company.policy.perHeadCapCents[req.kind])} cap). `
+    // Regression R28 (found filming 12 bookings): "$40 a head" booked at "$48 a head" looked over budget. A stated budget
+    // is before tax and tip, so the booker is told the number in their own terms.
+    + (req.maxPerHeadCents ? `That's about ${usd(Math.round(opt.policy.estimate.perHeadAllInCents / ALL_IN))} a head before tax and tip, within your ${usd(req.maxPerHeadCents)}. ` : "")
     + (v.preferredRatePct ? `Preferred corporate rate: ${v.preferredRatePct}% off, saving about ${usd(opt.policy.estimate.savingsCents)}. ` : "")
     + `Deposit ${opt.policy.depositCents ? usd(opt.policy.depositCents) : "none"}; free cancellation until ${v.cancellationHours} h before.`
     // Regression R8 (found by the LLM judge): dietary needs were sent to the venue but never confirmed to the booker.
