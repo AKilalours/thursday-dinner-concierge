@@ -3,6 +3,11 @@ import type { Proposal, Role, Venue } from "../domain/types.ts";
 import { StoreError } from "./store.ts";
 import type { BookingRow, Memory, PaymentRow, Step, Store, VenueFact } from "./store.ts";
 
+export interface StoreSnapshot {
+  v: 1; proposals: Proposal[]; bookings: (BookingRow & { status: "confirmed" | "cancelled" })[]; payments: PaymentRow[]; facts: VenueFact[];
+  memories: Memory[]; steps: [string, Step[]][]; audit: { runId: string | null; actorId: string; action: string; detail: Record<string, unknown> }[];
+}
+
 export class MemoryStore implements Store {
   private now = new Date().toISOString();
   private venues = new Map<string, Venue>();
@@ -124,6 +129,23 @@ export class MemoryStore implements Store {
   }
   async auditLog(runId: string) {
     return this.auditRows.filter((a) => a.runId === runId).map(({ actorId, action, detail }) => ({ actorId, action, detail }));
+  }
+
+  /**
+   * Everything a booker's past visits left behind, as plain JSON, so the browser can keep it between visits.
+   * Restoring puts back state that already passed every rule when it was written; it never creates a booking.
+   */
+  snapshot(): StoreSnapshot {
+    return structuredClone({ v: 1 as const, proposals: [...this.proposals.values()], bookings: this.bookings, payments: this.payments, facts: this.factRows, memories: this.memoryRows,
+      steps: [...this.stepLog.entries()], audit: this.auditRows });
+  }
+  restore(s: StoreSnapshot) {
+    if (s?.v !== 1) return;
+    for (const p of s.proposals) this.proposals.set(p.id, structuredClone(p));
+    this.bookings.push(...structuredClone(s.bookings)); this.payments.push(...structuredClone(s.payments));
+    this.factRows.push(...structuredClone(s.facts)); this.memoryRows.push(...structuredClone(s.memories));
+    for (const [id, log] of s.steps) { this.runs.add(id); this.stepLog.set(id, structuredClone(log)); }
+    this.auditRows.push(...structuredClone(s.audit));
   }
 
   /** Test helpers. */

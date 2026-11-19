@@ -6,7 +6,9 @@ import { z } from "zod";
 import { structured } from "../llm/client.ts";
 import type { LLM } from "../llm/client.ts";
 
-export type Mode = "rules" | "shadow" | "live" | "hybrid";
+/** hybrid_strict: a hybrid where the model's answer counts only at 0.9 confidence or more; below that, the rules' answer stands. */
+export type Mode = "rules" | "shadow" | "live" | "hybrid" | "hybrid_strict";
+export const STRICT_CONFIDENCE = 0.9;
 
 export interface Judgment<L extends string> {
   label: L;
@@ -66,7 +68,7 @@ export class Classifier<I, L extends string> {
       : { label: this.spec.fallback, confidence: r.confidence, decidedBy: "fallback", reason: `below threshold: ${r.reason}`, latencyMs: 0 };
 
     if (this.mode === "rules" || this.llm.mode === "off") return { ...ruled, latencyMs: Date.now() - t0 };
-    if (this.mode === "hybrid") {
+    if (this.mode === "hybrid" || this.mode === "hybrid_strict") {
       const ask = this.spec.hybridAsk ?? ((x) => x.decidedBy === "fallback" || x.label === this.spec.fallback);
       if (!ask({ label: ruled.label, decidedBy: ruled.decidedBy as "rules" | "fallback" })) return { ...ruled, latencyMs: Date.now() - t0 };
     }
@@ -77,7 +79,7 @@ export class Classifier<I, L extends string> {
       shadowLog.push({ classifier: this.spec.name, version: this.spec.version, rules: ruled.label, model: m.value?.label ?? null, agree: m.value ? m.value.label === ruled.label : null });
       return { ...ruled, shadow, latencyMs: Date.now() - t0, modelAnswered: !!m.value };
     }
-    if (m.value && this.gate(m.value.label as L, m.value.confidence)) {
+    if (m.value && this.gate(m.value.label as L, m.value.confidence) && (this.mode !== "hybrid_strict" || m.value.confidence >= STRICT_CONFIDENCE)) {
       return { label: m.value.label as L, confidence: m.value.confidence, decidedBy: "model", reason: m.value.reason, latencyMs: Date.now() - t0, modelAnswered: true };
     }
     // Timeout, error, or not confident enough: the rules decide, and below-threshold rules fall back.

@@ -203,6 +203,22 @@ table.grid .vh{position:sticky;left:0;background:var(--paper);z-index:1;text-ali
 .qbig{font:800 34px Fraunces,Georgia,serif;color:var(--sage)}.qbig.bad{color:var(--rose)}
 .cm{border-collapse:collapse;font-size:11px;margin-top:8px}.cm td,.cm th{width:46px;height:30px;text-align:center;border:1px solid #fff}.cm th{color:var(--dim);font-weight:600;font-size:10px}.cm th.r{text-align:right;padding-right:6px;width:auto}
 .ci{display:inline-block;position:relative;width:90px;height:8px;background:#f1e9dc;border-radius:4px;vertical-align:middle;margin-left:6px}.ci span{position:absolute;top:0;bottom:0;border-radius:4px;background:#c9a46a}.ci em{position:absolute;top:-3px;width:3px;height:14px;background:var(--wine);border-radius:2px}
+.mbox.wide{width:min(720px,94vw)}.teamg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}@media(max-width:640px){.teamg{grid-template-columns:repeat(2,1fr)}}
+.teamc{display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:left;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px;cursor:pointer;font:inherit}
+.teamc:hover{border-color:var(--wine)}.teamc.on{border-color:var(--wine);background:#fbf3f5}.teamc i{grid-row:1/3;width:30px;height:30px;border-radius:50%;background:var(--wine);color:#fff;font:700 11px Inter;font-style:normal;display:grid;place-items:center}
+.teamc span{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.teamc small{font-size:11px;color:var(--dim)}
+.pill.past{background:#f6ecd9;color:#8a6420;margin-left:4px}
+.trq{flex:1;min-width:220px;border:1px solid var(--line);border-radius:12px;padding:9px 12px;font:inherit;background:#fff}
+.mostrip{display:flex;gap:4px;flex-wrap:wrap}.mostrip button{width:22px;height:30px;border-radius:6px;border:0;cursor:pointer;background:var(--sage);opacity:.85}.mostrip button.bad{background:var(--rose)}.mostrip button.live{box-shadow:inset 0 -6px 0 #c9a46a}.mostrip button.on{outline:3px solid var(--wine);opacity:1}
+.mot tr.mor{cursor:pointer}.mot tr.mor:hover td{background:#fbf6ee}.mot tr.mor.on td{background:#f6ecd9}.modet td{background:#fffaf2;font-size:12px;color:var(--dim);white-space:normal}.modet b{color:var(--ink)}
+.mochart svg circle.pt{cursor:pointer}.mochart svg circle.pt:hover{r:6}
+.invl{cursor:pointer}.invl.sel{background:#fbf3f5;border-color:var(--wine)}.invpo{cursor:pointer}.invpo.flt{outline:2px solid var(--wine)}
+.rcpt{margin-top:12px;border:1px dashed #d9c8ae;border-radius:14px;padding:14px;background:#fffdf8}.rcpt .rl{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}.rcpt .rl.t{border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-weight:800}
+.invsub{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);padding:6px 10px;border-top:1px dashed var(--line)}.invsub b{color:var(--ink)}
+.mixbar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:6px 0}.mixbar i{display:block;height:100%}
+.trr .pastb{font-size:10px;font-weight:800;color:#8a6420;background:#f6ecd9;border-radius:6px;padding:1px 6px;margin-left:6px}
+.tre.hid{display:none}.tre.play{background:#f6ecd9}
+#moKpis{grid-template-columns:repeat(5,1fr)}@media(max-width:760px){#moKpis{grid-template-columns:repeat(2,1fr)}}
 .ctwrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
 table.ctable{border-collapse:collapse;width:100%;font-size:13px}table.ctable th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}table.ctable th.sortable{cursor:pointer}table.ctable th.on{color:var(--wine)}
 table.ctable td{padding:10px;border-bottom:1px solid #f1e9dc;vertical-align:top;white-space:nowrap}table.ctable tr.dim td{opacity:.5}table.ctable tr.picked td{background:#fbf6ee}table.ctable input{accent-color:var(--wine);width:16px;height:16px}
@@ -376,7 +392,7 @@ form.mbox{display:block}.emin{width:100%;border:1px solid var(--line);border-rad
 .ptflag{margin-top:8px;border-radius:12px;padding:9px 12px;font:600 13px Inter;background:#f7dfe4;color:var(--rose);animation:rise .3s}
 .ptv{margin-top:10px;border-radius:14px;padding:14px;animation:rise .35s}.ptv b{display:block;font:800 24px Fraunces,Georgia,serif}.ptv span{font-size:13px}.ptv.win{background:#e3f0e7;color:#22543a}.ptv.lose{background:#f3ece1;color:#5c4a3d}
 .ptbook{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.ptbook div{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--paper)}.ptbook span{display:block;font:700 10px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}.ptbook b{font:800 20px Fraunces,Georgia,serif}
-.trk.inv4{grid-template-columns:repeat(4,1fr)}@media(max-width:700px){.trk.inv4{grid-template-columns:repeat(2,1fr)}}.invpo{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;background:var(--paper);transition:box-shadow .15s,border-color .15s}.invpo.over{border-color:var(--wine);box-shadow:0 0 0 3px #7b1e3a22}
+.trk.inv4{grid-template-columns:repeat(5,1fr)}@media(max-width:700px){.trk.inv4{grid-template-columns:repeat(2,1fr)}}.invpo{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;background:var(--paper);transition:box-shadow .15s,border-color .15s}.invpo.over{border-color:var(--wine);box-shadow:0 0 0 3px #7b1e3a22}
 .invpo .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.invpo .top b{font:700 16px Fraunces,Georgia,serif}.invpo .top span{font:600 12px JetBrains Mono,monospace;color:var(--dim)}.invpo .pbar{height:10px;border-radius:5px;background:#f1e9dc;overflow:hidden;margin:8px 0 4px}.invpo .pbar i{display:block;height:100%;background:var(--sage);border-radius:5px;transition:width .5s cubic-bezier(.2,.8,.2,1),background .3s}.invpo.bust .pbar i{background:var(--rose)}.invpo small{font-size:12px;color:var(--dim)}.invpo.bust small{color:var(--rose);font-weight:700}
 .invlines{max-height:520px;overflow:auto}.invl{display:grid;grid-template-columns:52px 1fr 70px auto;gap:10px;align-items:center;padding:9px 6px;border-bottom:1px solid var(--line);cursor:grab;font-size:13px}.invl:active{cursor:grabbing}.invl.drag{opacity:.4}.invl b{font-weight:700}.invl small{display:block;color:var(--dim);font-size:11.5px}.invl .amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .invc{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font:700 11.5px Inter;cursor:pointer;white-space:nowrap}.invc:hover{border-color:var(--wine)}.invc i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
@@ -530,15 +546,17 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
 </section>
 
 <section class="page" id="p-invoice">
-  <div class="ph"><div><h1>Invoice</h1><p class="lead">One invoice for the month. Drag a dinner onto a budget.</p></div><button class="btn pri" id="invCsv">Download CSV</button></div>
+  <div class="ph"><div><h1>Invoice</h1><p class="lead">One invoice for the month. Drag a dinner onto a budget, tap a line for the receipt.</p></div><button class="btn pri" id="invCsv">Download CSV</button></div>
+  <div class="row" style="margin-bottom:12px;gap:10px;flex-wrap:wrap"><div class="seg" id="invMonth"></div><div class="cs" id="invFilt"></div><div class="cs" id="invVisit" style="margin-left:auto"></div></div>
   <div class="trk inv4" id="invKpis"></div>
-  <div class="sp"><div class="card"><h3>Budgets · purchase orders</h3><div id="invPos"></div></div>
-    <div class="card"><h3>Lines · pre-coded</h3><div id="invLines" class="invlines"></div></div></div>
+  <div class="sp"><div class="card"><h3>Budgets · purchase orders · tap one to filter</h3><div id="invPos"></div><div id="invMix" style="margin-top:12px"></div></div>
+    <div class="card"><h3>Lines · pre-coded</h3><div id="invLines" class="invlines"></div><div id="invRcpt"></div></div></div>
 </section>
 
 <section class="page" id="p-monitor">
-  <h1>Agent Watch</h1><p class="lead">The full suite, run on a schedule against the live model. Every row is a real run.</p>
+  <div class="ph"><div><h1>Agent Watch</h1><p class="lead">The full suite, run on a schedule 3 times a day. Every row is a real run; tap one to open it.</p></div><div class="seg" id="moRange"><button data-r="10" class="on">Last 10</button><button data-r="30">Last 30</button><button data-r="all">All</button></div></div>
   <div class="trk" id="moKpis"></div>
+  <div class="card" style="margin-bottom:14px"><div class="pt">Every run · green passed, red failed, gold used live Claude · tap one</div><div id="moStrip" class="mostrip"></div></div>
   <div class="mog"><div class="card"><div class="pt">Scenarios passing per run</div><div id="moPass" class="mochart"></div></div>
     <div class="card"><div class="pt">Never-seen worlds tested (cumulative)</div><div id="moWorlds" class="mochart"></div></div>
     <div class="card"><div class="pt">Live model latency, p50 / p95</div><div id="moLat" class="mochart"></div></div></div>
@@ -546,8 +564,9 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
 </section>
 
 <section class="page" id="p-traces">
-  <h1>Traces</h1>
+  <div class="ph"><div><h1>Traces</h1><p class="lead">Every agent run, span by span. Search, filter, or press ▶ to replay one.</p></div></div>
   <div class="trk" id="trKpis"></div>
+  <div class="row" style="margin-bottom:12px;gap:10px;flex-wrap:wrap"><input id="trQ" class="trq" placeholder="Search runs: Acme, vegetarian, escalated…"><div class="seg" id="trOut"><button data-o="all" class="on">All</button><button data-o="booked">Booked</button><button data-o="asked">Asked</button><button data-o="other">Escalated / rejected</button></div><div class="chips" id="trLanes"></div></div>
   <div class="trgrid"><div class="card trcol"><div class="pt">Runs</div><div id="trRuns" class="trlist"></div></div>
     <div class="card trcol"><div id="trWater"></div></div>
     <div class="trcol2"><div class="card"><div id="trJson"></div></div><div class="card" style="margin-top:12px"><div class="pt">Model calls</div><div id="trCalls"></div></div></div></div>
@@ -636,7 +655,7 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
       <div><div class="qh">1 · Bug replay</div><div class="cs">Each fixed bug turned back on. Is it caught again?</div><div id="qReplay" class="qbox"><div class="empty">Not run yet.</div></div></div>
       <div><div class="qh">2 · Metamorphic</div><div class="cs">Every sentence retyped: caps, lowercase, pasted line breaks, "please". The booking must not change.</div><div id="qMeta" class="qbox"><div class="empty">Not run yet.</div></div></div>
     </div>
-    <div class="qh" style="margin-top:14px">3 · Classifier benchmark: rules vs live model vs hybrid, with 95% intervals</div>
+    <div class="qh" style="margin-top:14px">3 · Classifier benchmark: rules vs live model vs two hybrids, with 95% intervals</div>
     <div id="qClass" class="qbox"><div class="empty">Not run yet.</div></div>
   </div>
 </section>

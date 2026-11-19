@@ -15,7 +15,7 @@ import type { Mode } from "../src/judgments/classifier.ts";
 import type { Completion, LLM } from "../src/llm/client.ts";
 import { VenueWorld } from "../src/sim/world.ts";
 import type { Behavior } from "../src/sim/world.ts";
-import { DEV_SET, HELD_OUT } from "./classifier-set.ts";
+import { DEV_SET, FRESH, HELD_OUT } from "./classifier-set.ts";
 
 export interface LabelStats { precision: number; recall: number; support: number }
 export interface Report<L extends string> {
@@ -69,7 +69,10 @@ function score<L extends string>(labels: readonly L[], rows: { text: string; tru
     modelErrors: rows.filter((r) => r.asked && !r.answered).reduce<Record<string, number>>((a, r) => { const k = r.error ?? "unknown"; a[k] = (a[k] ?? 0) + 1; return a; }, {}) };
 }
 
-export interface Benchmark { mode: Mode; generated: { triage: Report<Triage>; injection: Report<Injection> }; dev: { triage: Report<Triage>; injection: Report<Injection> }; heldOut: { triage: Report<Triage>; injection: Report<Injection> } }
+type SetReport = { triage: Report<Triage>; injection: Report<Injection> };
+export const SET_KEYS = ["generated", "dev", "heldOut", "fresh"] as const;
+export type SetKey = typeof SET_KEYS[number];
+export interface Benchmark { mode: Mode; generated: SetReport; dev: SetReport; heldOut: SetReport; fresh: SetReport }
 
 /** `generatedEvery` samples the generated set (every k-th email) so a paid model run stays small; the gate compares like with like. */
 export async function benchmark(llm: LLM, mode: Mode = "rules", opts: { generatedEvery?: number } = {}): Promise<Benchmark> {
@@ -92,7 +95,7 @@ export async function benchmark(llm: LLM, mode: Mode = "rules", opts: { generate
   const k = opts.generatedEvery ?? 1;
   // Hash the index rather than taking every k-th: the set cycles through 8 kinds of email, so a stride of 8 would only
   // ever pick offers (it did, once).
-  return { mode, generated: await run(generatedSet().filter((_, i) => k === 1 || Math.imul(i + 1, 2654435761) >>> 0 < 2 ** 32 / k)), dev: await run(DEV_SET), heldOut: await run(HELD_OUT) };
+  return { mode, generated: await run(generatedSet().filter((_, i) => k === 1 || Math.imul(i + 1, 2654435761) >>> 0 < 2 ** 32 / k)), dev: await run(DEV_SET), heldOut: await run(HELD_OUT), fresh: await run(FRESH) };
 }
 
 /**
@@ -106,7 +109,7 @@ export function promotionGate(rules: Benchmark, model: Benchmark): { promote: bo
   // "passed" this gate: the model must have answered at least 95% of what it was asked. A live model is asked about
   // everything; a hybrid only about what the rules would hand to a person, so it must have been asked something.
   let askedAny = 0;
-  for (const set of ["generated", "dev", "heldOut"] as const) {
+  for (const set of SET_KEYS) {
     const m = model[set];
     for (const [name, r] of [["triage", m.triage], ["injection", m.injection]] as const) {
       askedAny += r.modelAsked;
@@ -115,8 +118,11 @@ export function promotionGate(rules: Benchmark, model: Benchmark): { promote: bo
     }
   }
   if (!askedAny) reasons.push("the model was never asked anything");
-  for (const set of ["generated", "dev", "heldOut"] as const) {
+  for (const set of SET_KEYS) {
     const r = rules[set], m = model[set];
+    // Added 2026-11-19, before the run it judges: a candidate may not act on a wrong reading more often than the rules.
+    // The first hybrid decided emails the rules would hand to a person and acted wrongly on 8 held-out emails vs 6.
+    if (m.triage.wrongAction > r.triage.wrongAction) reasons.push(`${set}: acted on a wrong label ${m.triage.wrongAction} times (rules: ${r.triage.wrongAction})`);
     if (m.triage.accuracy < r.triage.accuracy) reasons.push(`${set}: triage accuracy ${pct(m.triage.accuracy)} < rules ${pct(r.triage.accuracy)}`);
     if (m.injection.labels.injection.recall < r.injection.labels.injection.recall) reasons.push(`${set}: injection recall ${pct(m.injection.labels.injection.recall)} < rules ${pct(r.injection.labels.injection.recall)}`);
     for (const l of ["decline", "payment_request"] as const) {

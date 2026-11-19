@@ -12,7 +12,7 @@ const OUT = new URL("../docs/classifiers.json", import.meta.url);
 // A run without a key keeps the last model result instead of erasing it.
 const previous = existsSync(OUT) ? JSON.parse(readFileSync(OUT, "utf8")) : null;
 const rules = await benchmark(offline, "rules");
-const SETS = { generated: "generated (simulator, ground truth)", dev: "dev (hand-labelled, used to fix rules)", heldOut: "held-out (hand-labelled, never tuned on)" } as const;
+const SETS = { generated: "generated (simulator, ground truth)", dev: "dev (hand-labelled, used to fix rules)", heldOut: "held-out (hand-labelled, never tuned on)", fresh: "fresh (written after the first hybrid run, never run before this one)" } as const;
 
 function print(b: Benchmark) {
   for (const [k, name] of Object.entries(SETS) as [keyof typeof SETS, string][]) {
@@ -36,8 +36,8 @@ for (const k of ["generated", "dev"] as const) {
 if (rules.dev.triage.accuracy < 0.95) failures.push(`dev triage accuracy ${pct(rules.dev.triage.accuracy)} < 95%`);
 
 const llm = llmFromEnv();
-let gate: ReturnType<typeof promotionGate> | null = null, hybridGate: ReturnType<typeof promotionGate> | null = null;
-let model: Benchmark | null = null, hybrid: Benchmark | null = null;
+let gate: ReturnType<typeof promotionGate> | null = null, hybridGate: ReturnType<typeof promotionGate> | null = null, strictGate: ReturnType<typeof promotionGate> | null = null;
+let model: Benchmark | null = null, hybrid: Benchmark | null = null, strict: Benchmark | null = null;
 if (llm.mode === "live" || llm.mode === "record") {
   // About 1 in 8 generated emails (~120) plus every hand-labelled one: about 440 model calls, a dollar or two. The hybrid
   // is then scored on the same answers from the cache, at no extra cost, through the same production code path.
@@ -45,19 +45,22 @@ if (llm.mode === "live" || llm.mode === "record") {
   const cached = new CachedLLM(llm);
   model = await benchmark(cached, "live", { generatedEvery: every });
   hybrid = await benchmark(cached, "hybrid", { generatedEvery: every });
+  strict = await benchmark(cached, "hybrid_strict", { generatedEvery: every });
   const sampledRules = await benchmark(offline, "rules", { generatedEvery: every });
   console.log(`\n--- model (${process.env.ANDE_MODEL ?? "claude-sonnet-4-5"}, generated set sampled every ${every}) ---`); print(model);
   console.log("\n--- hybrid: rules decide what they're sure of, the model decides the rest; injection flags from either ---"); print(hybrid);
+  console.log("\n--- hybrid strict: as hybrid, but the model's answer counts only at 0.9 confidence or more ---"); print(strict);
   gate = promotionGate(sampledRules, model);
   hybridGate = promotionGate(sampledRules, hybrid);
-  const answered = model.heldOut.triage.modelAnswered + model.dev.triage.modelAnswered;
+  strictGate = promotionGate(sampledRules, strict);
+  const answered = model.heldOut.triage.modelAnswered + model.dev.triage.modelAnswered + model.fresh.triage.modelAnswered;
   if (answered === 0) {
     // Nothing the model said is in these numbers, so they must not be published as the model's.
     console.log("\nThe model answered none of the emails (bad key, no network or a proxy). Nothing written for the model.");
-    failures.push("model run produced no model decisions"); model = null; hybrid = null; gate = null; hybridGate = null;
+    failures.push("model run produced no model decisions"); model = null; hybrid = null; strict = null; gate = null; hybridGate = null; strictGate = null;
   }
   const say = (g: ReturnType<typeof promotionGate>) => `${g.promote ? "PROMOTE" : "stay in shadow"}${g.reasons.map((r) => `\n  - ${r}`).join("")}`;
-  if (gate && hybridGate) console.log(`\npromotion gate, model alone: ${say(gate)}\npromotion gate, hybrid: ${say(hybridGate)}`);
+  if (gate && hybridGate && strictGate) console.log(`\npromotion gate, model alone: ${say(gate)}\npromotion gate, hybrid: ${say(hybridGate)}\npromotion gate, hybrid strict: ${say(strictGate)}`);
 } else console.log("\nmodel: no key, skipped (set ANDE_LLM_MODE=live to run the promotion gate)");
 
 const slim = (x: Benchmark) => Object.fromEntries((Object.keys(SETS) as (keyof typeof SETS)[]).map((k) => [k, {
@@ -65,5 +68,6 @@ const slim = (x: Benchmark) => Object.fromEntries((Object.keys(SETS) as (keyof t
   injection: { n: x[k].injection.n, labels: x[k].injection.labels, missed: x[k].injection.wrongAction, modelAsked: x[k].injection.modelAsked, modelAnswered: x[k].injection.modelAnswered },
 }]));
 writeFileSync(OUT, JSON.stringify({ rules: slim(rules), model: model ? { name: process.env.ANDE_MODEL ?? "claude-sonnet-4-5", at: new Date().toISOString(), ...slim(model) } : previous?.model ?? null, gate: gate ?? previous?.gate ?? null,
-  hybrid: hybrid ? { name: process.env.ANDE_MODEL ?? "claude-sonnet-4-5", at: new Date().toISOString(), ...slim(hybrid) } : previous?.hybrid ?? null, hybridGate: hybridGate ?? previous?.hybridGate ?? null }) + "\n");
+  hybrid: hybrid ? { name: process.env.ANDE_MODEL ?? "claude-sonnet-4-5", at: new Date().toISOString(), ...slim(hybrid) } : previous?.hybrid ?? null, hybridGate: hybridGate ?? previous?.hybridGate ?? null,
+  strict: strict ? { name: process.env.ANDE_MODEL ?? "claude-sonnet-4-5", at: new Date().toISOString(), ...slim(strict) } : previous?.strict ?? null, strictGate: strictGate ?? previous?.strictGate ?? null }) + "\n");
 if (failures.length) { console.log(`\nFAILED:\n${failures.map((f) => `  - ${f}`).join("\n")}`); process.exitCode = 1; }

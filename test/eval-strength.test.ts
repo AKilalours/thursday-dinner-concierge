@@ -41,7 +41,7 @@ describe("classifier benchmark", () => {
     assert.equal(g.promote, false);
     assert.ok(g.reasons.some((r) => /decline emails read as offers/.test(r)));
     const better = clone(); better.heldOut.triage.accuracy = 0.95;
-    better.mode = "live"; for (const k of ["generated", "dev", "heldOut"] as const) for (const r of [better[k].triage, better[k].injection]) { r.modelAsked = r.n; r.modelAnswered = r.n; }
+    better.mode = "live"; for (const k of ["generated", "dev", "heldOut", "fresh"] as const) for (const r of [better[k].triage, better[k].injection]) { r.modelAsked = r.n; r.modelAnswered = r.n; }
     assert.deepEqual(promotionGate(rules, better), { promote: true, reasons: [] });
   });
 
@@ -147,5 +147,24 @@ describe("real-user reports become eval rows", () => {
   it("skips a report with no expected outcome instead of guessing one", async () => {
     const { parseReport } = await import("../evals/reports.ts");
     assert.equal(parseReport({ number: 9, title: 'Real user: "dinner for 4"', body: "it was weird" }).ok, false);
+  });
+});
+
+describe("tighter gate and the strict hybrid", () => {
+  it("a candidate that acts on a wrong label more often than the rules stays in shadow", async () => {
+    const rules = await benchmark(offline);
+    const c: Benchmark = structuredClone(rules); c.mode = "live";
+    for (const k of ["generated", "dev", "heldOut", "fresh"] as const) for (const r of [c[k].triage, c[k].injection]) { r.modelAsked = r.n; r.modelAnswered = r.n; }
+    c.heldOut.triage.accuracy = 0.9; c.heldOut.triage.wrongAction = rules.heldOut.triage.wrongAction + 2;
+    const g = promotionGate(rules, c);
+    assert.equal(g.promote, false);
+    assert.ok(g.reasons.some((r) => /acted on a wrong label/.test(r)));
+  });
+
+  it("hybrid strict ignores a model answer below 0.9 confidence", async () => {
+    const llm: LLM = { mode: "live", async complete() { return { text: '{"label":"decline","confidence":0.8,"reason":"x"}', inputTokens: 1, outputTokens: 1, model: "fake" }; } };
+    const loose = await replyTriage(llm, "hybrid").classify("Thank you, but that date doesn't work for us.");
+    const strict = await replyTriage(llm, "hybrid_strict").classify("Thank you, but that date doesn't work for us.");
+    assert.deepEqual([loose.label, strict.label], ["decline", "needs_human"]);
   });
 });

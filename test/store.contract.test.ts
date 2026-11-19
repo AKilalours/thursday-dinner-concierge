@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { StoreError } from "../src/store/store.ts";
 import type { Store } from "../src/store/store.ts";
 import { proposal, storeFactories } from "./helpers.ts";
+import { MemoryStore } from "../src/store/memory.ts";
 
 const code = (c: string) => (e: unknown) => e instanceof StoreError && e.code === c;
 
@@ -165,3 +166,25 @@ for (const [name, make] of storeFactories()) {
     });
   });
 }
+
+describe("saved history: snapshot and restore", () => {
+  it("a restored store has the same bookings and payments, and its rules still hold", async () => {
+    const { runConcierge, carefulApprover } = await import("../src/agents/concierge.ts");
+    const { buildVenues, COMPANY, user } = await import("../data/seed.ts");
+    const { VenueWorld } = await import("../src/sim/world.ts");
+    const { offline } = await import("../src/llm/client.ts");
+    const venues = buildVenues(), a = new MemoryStore(); await a.init(venues);
+    const actor = user("usr_priya");
+    const res = await runConcierge({ text: "dinner for 6 with Acme on Nov 19", actor, principal: user("usr_dana"), today: "2026-11-09", store: a, venues, llm: offline, company: COMPANY,
+      world: new VenueWorld(venues, () => "accept", "2026-11-09T15:00:00.000Z"),
+      approver: async (p, s) => carefulApprover(actor, { partySize: p.partySize, date: "2026-11-19", privateRoom: false })(p, s) });
+    assert.equal(res.outcome, "booked");
+    const b = new MemoryStore(); await b.init(venues); b.restore(JSON.parse(JSON.stringify(a.snapshot())));
+    assert.deepEqual(b.allBookings(), a.allBookings());
+    assert.deepEqual(b.allPayments(), a.allPayments());
+    // The same room can't be booked twice after a restore either.
+    const bk = b.allBookings()[0], prop = (await b.getProposal(bk.proposalId))!;
+    await assert.rejects(b.book({ ...bk, id: "bk_dupe" }), /approved book proposal|double/);
+    assert.equal(prop.status, "executed");
+  });
+});

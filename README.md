@@ -69,11 +69,21 @@ A scheduled job (`npm run monitor`, [workflow](.github/workflows/agent-watch.yml
 
 Each run appends a row to [`docs/monitor.json`](docs/monitor.json), charted on the Monitor page (pass rate, worlds tested, live p50/p95 latency, cost per day), with the full report in `evals/history/`. If anything fails, the run **opens a GitHub issue by itself** with the failing seed, which replays exactly. Live model calls are capped per run (about $0.10–0.20 a run).
 
+## ▶ Sign in as yourself, come back to your own history
+
+Sign in from the top-left and pick your name (or type one). Everything you do as that person is kept in your browser under your name: bookings, approvals, deposits, cost-center codes and every agent run. Sign in again tomorrow and it's all still there, marked **earlier visit**, and still live: you can change or cancel an earlier booking, and the change goes through the same approval rules. Switching people reloads the app from the next person's own history, so nobody sees anyone else's. Nothing leaves the browser.
+
+- **Invoice:** month tabs, tap a budget to filter, drag a dinner onto another budget, tap a line for its receipt (minimum, preferred rate, tax, service, deposit, payee on file, approvals) and jump to the agent run behind it.
+- **Traces:** search every run, filter by outcome or by agent, and press ▶ to replay a run span by span.
+- **Monitor:** every scheduled run as a strip you can tap, charts with per-run points, 10/30/all ranges, a countdown to the next run, and each run's scenarios, model decisions and full report.
+
+Restoring is a store snapshot (`MemoryStore.snapshot()` / `restore()`), tested so a restored booking can't be booked twice.
+
 ## ▶ Two new videos
 
 <table>
 <tr>
-<td width="50%" valign="top"><a href="docs/img/thursday-checks-on-the-checks.mp4"><img src="docs/img/checks-on-the-checks.jpg" alt="Rules vs the live model vs a hybrid"></a><br><b>I tested my tests.</b> Bug replay, metamorphic testing, the first live model benchmark, two bugs in my own promotion gate, and the hybrid classifier that passed it. 3 min. <a href="docs/img/thursday-checks-on-the-checks.mp4">Watch ↗</a></td>
+<td width="50%" valign="top"><a href="docs/img/thursday-checks-on-the-checks.mp4"><img src="docs/img/checks-on-the-checks.jpg" alt="Rules vs the live model vs a hybrid"></a><br><b>I tested my tests.</b> Bug replay, metamorphic testing, the first live model benchmark, two bugs in my own promotion gate, and how a tightened gate demoted my first hybrid and promoted a stricter one. 3 min. <a href="docs/img/thursday-checks-on-the-checks.mp4">Watch ↗</a></td>
 <td width="50%" valign="top"><a href="docs/img/thursday-12-bookings.mp4"><img src="docs/img/twelve-bookings.jpg" alt="12 bookings, 12 different reasons"></a><br><b>12 bookings, 12 different reasons.</b> A client pitch, a new-hire lunch, a holiday party for 40 with a manager's sign-off, an executive dinner with allergies, and two cases where the right answer was a question. Live runs; venues are simulated. Found R28 while filming. 4 min. <a href="docs/img/thursday-12-bookings.mp4">Watch ↗</a></td>
 </tr>
 </table>
@@ -91,20 +101,22 @@ A green eval suite only matters if it would go red on the bugs you actually have
 | R26 | Text pasted from Slack or email with doubled spaces lost allergies, the neighborhood, "Christmas Eve" and the kind of event | Whitespace is normalized before parsing |
 | R27 | "DINNER FOR 6 WITH ACME" and "dinner with acme" lost the client; "with Acme." kept the full stop | One-case sentences read the name after "with"; a name ends at a full stop |
 
-**3. Classifier benchmark: rules vs the live model vs a hybrid** (`npm run evals:classifiers`). Precision, recall, a confusion matrix and 95% intervals for reply triage and injection detection:
+**3. Classifier benchmark: rules vs the live model vs two hybrids** (`npm run evals:classifiers`). Precision, recall, a confusion matrix and 95% intervals for reply triage and injection detection:
 
-| Set | Emails | Rules (95% CI) | Live model alone | **Hybrid (in production)** | Injections caught: rules · model · hybrid |
+Second live run, claude-sonnet-4-5, every model call answered ([`docs/classifiers.json`](docs/classifiers.json)). Reply-type accuracy with 95% intervals, and injections caught:
+
+| Set | Emails | Rules | Model alone | Hybrid | **Hybrid strict (in production)** |
 |---|---|---|---|---|---|
-| Generated: every email the venue world writes, label = the behavior that wrote it | 960 (model: 120 sampled) | 100% (99.6–100%) | 99.2% (95.4–99.9%) | **100%** (96.9–100%) | 120/120 · 12/12 · 12/12 |
-| Dev: hand-labelled, real-world phrasing, used to fix the rules | 36 | 100% (tuned on it) | 86.1% (71.3–93.9%) | **100%** (90.4–100%) | 6/6 · 6/6 · 6/6 |
-| **Held-out: hand-labelled, written before being run, never used to change a rule** | 62 | **40.3%** (29.0–52.7%) | **87.1%** (76.6–93.3%) | **80.6%** (69.1–88.6%) | **4/10 · 10/10 · 10/10** |
-| Promotion gate | | baseline | stay in shadow | **promote** | |
+| Generated: label = the behavior that wrote it | 960 (others: 120 sampled) | 100% · 120/120 | 99.2% · 12/12 | 100% · 12/12 | **100%** · 12/12 |
+| Dev: used to fix the rules | 36 | 100% · 6/6 | 86.1% · 6/6 | 100% · 6/6 | **100%** · 6/6 |
+| Held-out: never used to change a rule | 62 | 40.3% (29–53) · 4/10 | 85.5% (75–92) · 10/10 | 79.0% (67–87) · 10/10 | **79.0%** (67–87) · 9/10 |
+| **Fresh: written after the first hybrid run, never run before this one** | 40 | 55.0% (40–69) · 6/7 | 90.0% (77–96) · 7/7 | 92.5% (80–97) · 7/7 | **92.5%** (80–97) · 7/7 |
+| Wrong actions on held-out | | 6 | 5 | **9** | **6** |
+| Promotion gate | | baseline | stay in shadow | **stay in shadow** | **promote** |
 
-Live run: claude-sonnet-4-5, every model call answered, [`docs/classifiers.json`](docs/classifiers.json). The hybrid is scored on the exact answers the model gave in that run (cached), through the same code path the agent uses, at no extra cost.
+**The promotion gate** moves a classifier from shadow to live only if the model answered at least 95% of what it was asked, and on every set it is at least as accurate as the rules, acts on a wrong reading no more often, catches every injection they catch, and never reads a decline or a payment request as an offer more often.
 
-**The hybrid:** the rules decide every email they are sure of, and the model is asked only about what the rules would hand to a person (28 of 62 held-out emails, none of the generated or dev ones). For scams, a flag from either stands and the model can add one but never remove one. The model alone reads unseen emails best, but it loses to the rules on the emails the rules were built from, so the gate keeps it in shadow. The hybrid keeps the rules' 100% where they are strong, doubles held-out accuracy, catches every scam, and passed the gate, so **it is now the agent's default**. One honest cost: on held-out it acted on a wrong reading 8 times against the rules' 6, because it decides emails the rules would have handed to a person. The gate doesn't count that today; it is the next thing on the roadmap.
-
-**The promotion gate** moves a classifier from shadow to live only if the model answered at least 95% of what it was asked, it is at least as accurate as the rules on every set, it catches every injection they catch, and it never reads a decline or a payment request as an offer more often.
+**How it got here, in order.** The first hybrid (rules decide what they are sure of, the model the rest) passed the original gate and went live. But on held-out it acted on a wrong reading 8–9 times against the rules' 6, because it decides emails the rules would hand to a person. So I added that rule to the gate, *before* the next run, and wrote down a stricter variant in advance: the model's answer counts only at 0.9 confidence or more. Because that variant was designed after the held-out set had been seen, I also wrote 40 **fresh** emails before running anything on them. On the second run, the tightened gate **demoted the first hybrid back to shadow** and promoted **hybrid strict**, which is now the agent's default: it keeps the rules' 100% where they are strong, roughly doubles accuracy on unseen emails (40% → 79% held-out, 55% → 92.5% fresh), and acts wrongly no more often than the rules. For scams, a flag from the rules always stands and the model can only add one. The model alone reads unseen emails best, but loses to the rules on the emails they were built from, so it stays in shadow. Numbers move a little between runs (model alone on held-out was 87.1% on the first run, 85.5% on this one), which is why every row has an interval.
 
 The benchmark also found two bugs in emails the simulator itself writes ("we have no availability" wasn't a decline; "the minimum has gone up" wasn't a counter), now fixed, and three that only live runs could show:
 

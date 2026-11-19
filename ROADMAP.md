@@ -4,8 +4,10 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Ideas
 
+- Real-user rows from the 15 named testers: run each person's own sentence under their sign-in (never invented), add any failure as a real-user row with their name.
+- Saved history across devices: today it lives in the browser; a signed-in server copy (the Worker plus a KV store) would follow a person to their phone.
+- Fresh classifier set: write the next 40 unseen emails before the next gate change, as was done for hybrid strict.
 - Classifier held-out set (evals/classifier-set.ts HELD_OUT) scores 40% for reply triage (62 rows): fix one held-out miss at a time, move that row to DEV_SET and write a new unseen held-out row, so the held-out number stays honest. Start with the one wrong action: "pay the deposit ... to account" inside an offer was read as a payment request.
-- Promotion gate: also require the candidate to act on a wrong label no more often than the rules (the hybrid acts wrongly on 8 held-out emails vs the rules' 6, because it decides what the rules would hand to a person). Decide the rule before the next live run, not after.
 - Retry a model call once on HTTP 429/529 with backoff; the benchmark now counts why calls fail, so measure first.
 - Metamorphic: add rewrites that change meaning on purpose (date, time, budget) and check the parse follows each one.
 - R10 ("somewhere in SoHo" booked Williamsburg) is caught by only one scenario in the bug replay; add a real-user row that would catch it too.
@@ -32,6 +34,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - 2026-11-20: "dinner for me and my boss" books 2 instead of asking how many; a singular role ("my boss", "a client", "my manager") counts as one guest, while plurals and groups ("my clients", "my team") are still asked (R30); real-user sentences 57 → 59.
 - 2026-11-19: "dinner for me, Sam and Priya" books 3 instead of asking how many guests; a list of names that includes the booker is counted, and "me and the team" or names without "me" are still asked (R29); real-user sentences 55 → 57.
 - 2026-11-19: `npm run site:check` works on a fresh clone: it falls back to a global Playwright (NODE_PATH or `npm root -g`) instead of failing with ERR_MODULE_NOT_FOUND, and says how to install it when there is none.
+- 2026-11-19: Gate tightened before the run it judged (no more wrong actions than the rules); it demoted the first hybrid to shadow and promoted hybrid strict (model counts only at 0.9 confidence): held-out 79% vs rules 40%, 40 fresh emails 92.5% vs 55%. Saved per-person history (sign in again and earlier bookings and runs are back, still changeable), 15 named team sign-ins, and interactive Invoice, Traces and Monitor pages.
 - 2026-11-19: Hybrid reply triage passed the promotion gate on a live run (held-out 80.6% vs rules 40.3%, injections 10/10 vs 4/10, 100% on generated and dev) and is now the agent's default; R28 a stated per-head budget is explained in the booker's terms; `npm run users:import` turns Report it issues into permanent eval rows.
 - 2026-11-19: First live classifier benchmark (claude-sonnet-4-5): held-out triage 88.7% vs rules 40.3%, injections 10/10 vs 4/10; gate says stay in shadow. Found and fixed an injection timeout (3 s vs 2.7-3.2 s model latency) that discarded half the model's answers.
 - 2026-11-19: Metamorphic parsing eval (1,066 checks; found and fixed R26 doubled spaces and R27 one-case client names), R25 a cuisine no venue serves is asked about, held-out classifier set grown to 62 with 95% intervals, promotion gate can no longer be passed by a model that never answered, and an eval-quality card on the Evals page.

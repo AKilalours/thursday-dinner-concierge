@@ -33,6 +33,7 @@ import { HOODS, OFFICE, RealMap, venueLatLng } from "./realmap.ts";
 import type { LatLng } from "./realmap.ts";
 import type { Behavior, Message } from "../src/sim/world.ts";
 import { MemoryStore } from "../src/store/memory.ts";
+import type { StoreSnapshot } from "../src/store/memory.ts";
 import { StoreError } from "../src/store/store.ts";
 import type { TraceEvent } from "../src/tools/registry.ts";
 
@@ -97,14 +98,15 @@ const ledger: { venue: string; guests: number; allIn: number; saved: number }[] 
 const stores: MemoryStore[] = [];
 const srcOf = new Map<MemoryStore, string>();
 function bump(id: string, v: string) { const k = $(`#${id}`); if (k.textContent !== v) { k.textContent = v; k.parentElement!.classList.remove("bump"); void k.offsetWidth; k.parentElement!.classList.add("bump"); } }
-interface RunLog { id: string; label: string; outcome: string; trace: TraceEvent[]; emails: number; at: number }
+interface RunLog { id: string; label: string; outcome: string; trace: TraceEvent[]; emails: number; at: number; past?: boolean; text?: string }
 const runsLog: RunLog[] = [];
 function record(res: RunResult, world: VenueWorld, label?: string) {
   const r0 = res.request; runsLog.unshift({ id: res.runId, label: label ?? (r0 ? `${r0.partySize} guests${r0.clientName ? ` · ${r0.clientName}` : ""}${r0.date ? ` · ${r0.date.slice(5)}` : ""}` : "request"), outcome: res.outcome, trace: [...res.trace], emails: world.sent().length + world.received().length, at: Date.now() });
+  histDirty = true;
   if (runsLog.length > 60) runsLog.length = 60;
   if ($("#p-traces.on")) renderTraces();
   // Pages that list bookings stay live while you look at them.
-  setTimeout(() => { if ($("#p-calendar.on")) void renderCal(); if ($("#p-bookings.on")) void renderBookings(); }, 0);
+  setTimeout(() => { if ($("#p-calendar.on")) void renderCal(); if ($("#p-bookings.on")) void renderBookings(); if ($("#p-invoice.on")) void renderInvoice(); }, 0);
   S.req++; S.mail += world.sent().length + world.received().length;
   S.inj += res.trace.filter((e) => e.kind === "injection_flagged").length;
   S.ai += res.trace.filter(isAI).length;
@@ -567,9 +569,9 @@ function showRun(id: string) {
 }
 let inv = 0, invFail = 0;
 // ---- Are the evals any good? Bug replay, metamorphic rewrites and the classifier benchmark, run in the browser.
-type ClassRun = null | { name: string; at: string } & Record<"generated" | "dev" | "heldOut", { triage: { n: number; accuracy: number; ci: [number, number]; wrongAction: number; modelAsked?: number }; injection: { labels: { injection: { recall: number; support: number } } } }>;
+type ClassRun = null | { name: string; at: string } & Record<"generated" | "dev" | "heldOut" | "fresh", { triage: { n: number; accuracy: number; ci: [number, number]; wrongAction: number; modelAsked?: number }; injection: { labels: { injection: { recall: number; support: number } } } }>;
 type Gate = null | { promote: boolean; reasons: string[] };
-type ClassJson = { model: ClassRun; gate: Gate; hybrid?: ClassRun; hybridGate?: Gate };
+type ClassJson = { model: ClassRun; gate: Gate; hybrid?: ClassRun; hybridGate?: Gate; strict?: ClassRun; strictGate?: Gate };
 async function loadClassJson(): Promise<ClassJson | null> {
   for (const u of ["https://raw.githubusercontent.com/AKilalours/thursday-dinner-concierge/main/docs/classifiers.json", "./classifiers.json"]) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) return await r.json() as ClassJson; } catch { /* next */ } }
   return null;
@@ -586,17 +588,17 @@ $("#runQ").onclick = async () => {
   const m = metamorphic();
   $("#qMeta").innerHTML = `<div class="qbig ${m.failures.length ? "bad" : ""}">${m.checks - m.failures.length}/${m.checks}</div><div class="cs">${m.sentences} sentences, each retyped 11 ways plus a changed headcount: every rewrite kept the right booking. Found R26 (doubled spaces lost allergies and the area) and R27 (ALL CAPS lost the client).</div>${m.failures.slice(0, 5).map((f) => `<div class="qrow"><i class="bad">✗</i><span>${esc(f.rewrite)}: “${esc(f.variant)}”</span></div>`).join("")}`;
   const [rules, cj] = await Promise.all([benchmark(offline, "rules"), loadClassJson()]);
-  const sets = [["generated", "Generated · label = the behavior that wrote it"], ["dev", "Dev · hand-labelled, used to fix the rules"], ["heldOut", "Held-out · hand-labelled, never tuned on"]] as const;
-  const cell = (md: ClassRun, k: "generated" | "dev" | "heldOut", what: string) => {
+  const sets = [["generated", "Generated · label = the behavior that wrote it"], ["dev", "Dev · hand-labelled, used to fix the rules"], ["heldOut", "Held-out · hand-labelled, never tuned on"], ["fresh", "Fresh · written after the first hybrid run, never run before"]] as const;
+  const cell = (md: ClassRun | undefined, k: "generated" | "dev" | "heldOut" | "fresh", what: string) => {
     const x = md?.[k];
     return x ? `<b>${pct1(x.triage.accuracy)}</b>${ciBar(x.triage.accuracy, x.triage.ci)}<div class="cs">${x.triage.wrongAction} wrong actions · ${Math.round(x.injection.labels.injection.recall * x.injection.labels.injection.support)}/${x.injection.labels.injection.support} injections${what === "hybrid" && x.triage.modelAsked !== undefined ? ` · asked the model ${x.triage.modelAsked}×` : ""}${k === "generated" ? ` · ${x.triage.n} sampled` : ""}</div>` : '<span class="cs">needs a live run: <code>npm run evals:classifiers</code> with ANDE_LLM_MODE=live</span>';
   };
-  const gateLine = (name: string, g: Gate | undefined) => g ? `<div class="gstep ${g.promote ? "ok" : ""}" style="margin-top:8px"><b>${name}: ${g.promote ? "promote" : "stays in shadow"}.</b> ${g.reasons.length ? esc(g.reasons.join(" · ")) : "Answered what it was asked, at least as accurate as the rules on every set, catches every injection they catch, never reads a decline or a payment request as an offer more often."}</div>` : "";
-  $("#qClass").innerHTML = `<div class="ctwrap"><table class="ctable wrap"><thead><tr><th>Set</th><th>Emails</th><th>Rules</th><th>${cj?.model ? `Model (${esc(cj.model.name)})` : "Model"}</th><th>Hybrid · rules first, model for the rest</th></tr></thead><tbody>${sets.map(([k, name]) => {
+  const gateLine = (name: string, g: Gate | undefined) => g ? `<div class="gstep ${g.promote ? "ok" : ""}" style="margin-top:8px"><b>${name}: ${g.promote ? "promote" : "stays in shadow"}.</b> ${g.reasons.length ? esc(g.reasons.join(" · ")) : "Answered what it was asked; on every set at least as accurate as the rules, no more wrong actions, every injection they catch, and never reads a decline or a payment request as an offer more often."}</div>` : "";
+  $("#qClass").innerHTML = `<div class="ctwrap"><table class="ctable wrap"><thead><tr><th>Set</th><th>Emails</th><th>Rules</th><th>${cj?.model ? `Model (${esc(cj.model.name)})` : "Model"}</th><th>Hybrid</th><th>Hybrid strict · in production</th></tr></thead><tbody>${sets.map(([k, name]) => {
     const r = rules[k];
-    return `<tr><td>${name}</td><td>${r.triage.n}</td><td><b>${pct1(r.triage.accuracy)}</b>${ciBar(r.triage.accuracy, r.triage.ci)}<div class="cs">${r.triage.wrongAction} wrong actions · ${Math.round(r.injection.labels.injection.recall * r.injection.labels.injection.support)}/${r.injection.labels.injection.support} injections</div></td><td>${cell(cj?.model ?? null, k, "model")}</td><td>${cell(cj?.hybrid ?? null, k, "hybrid")}</td></tr>`;
+    return `<tr><td>${name}</td><td>${r.triage.n}</td><td><b>${pct1(r.triage.accuracy)}</b>${ciBar(r.triage.accuracy, r.triage.ci)}<div class="cs">${r.triage.wrongAction} wrong actions · ${Math.round(r.injection.labels.injection.recall * r.injection.labels.injection.support)}/${r.injection.labels.injection.support} injections</div></td><td>${cell(cj?.model ?? null, k, "model")}</td><td>${cell(cj?.hybrid ?? null, k, "hybrid")}</td><td>${cell(cj?.strict ?? null, k, "hybrid")}</td></tr>`;
   }).join("")}</tbody></table></div>
-  ${gateLine("Promotion gate, model alone", cj?.gate)}${gateLine("Promotion gate, hybrid", cj?.hybridGate)}
+  ${gateLine("Promotion gate, model alone", cj?.gate)}${gateLine("Promotion gate, hybrid", cj?.hybridGate)}${gateLine("Promotion gate, hybrid strict", cj?.strictGate)}
   <div class="qh" style="margin-top:12px;font-size:13px">Rules on the held-out set</div>${confusion(rules.heldOut.triage as Report<string>)}`;
   await sleep(30);
   $("#qReplay").innerHTML = "";
@@ -1172,7 +1174,7 @@ async function renderBookings() {
   $("#bkKpis").innerHTML = `<div class="kpi" style="--c:var(--wine)"><div class="k">Upcoming</div><b>${conf.length}</b></div><div class="kpi" style="--c:var(--sage)"><div class="k">Committed spend</div><b>${usd(conf.reduce((a, r) => a + r.approved, 0))}</b></div><div class="kpi" style="--c:var(--brass)"><div class="k">Deposits paid</div><b>${usd(conf.reduce((a, r) => a + r.paid, 0))}</b></div><div class="kpi" style="--c:#5b6b8c"><div class="k">Guests hosted</div><b>${conf.reduce((a, r) => a + r.partySize, 0)}</b></div>`;
   $("#bkTable").innerHTML = shown.length ? `<table class="ctable"><thead><tr><th>When</th><th>Venue</th><th>Guests</th><th>All-in</th><th>Deposit</th><th>Status</th><th>Booked from</th></tr></thead><tbody>${shown.map((r) => {
     const st = r.status === "confirmed" ? (carried.has(r.id) ? '<span class="st ok">Confirmed · changed</span>' : '<span class="st ok">Confirmed</span>') : changedTo.has(r.id) ? '<span class="st mute">Replaced</span>' : `<span class="st bad">Cancelled${cancelledHow.get(r.id) ? ` · ${cancelledHow.get(r.id)}` : ""}</span>`;
-    return `<tr class="bkr ${bkPick === r.id ? "picked" : ""} ${r.status === "cancelled" ? "dim" : ""}" data-id="${r.id}"><td><b>${when(r.startsAt)}</b><div class="cs">${localDate(r.startsAt)}</div></td><td><b>${esc(r.v.name)}</b><div class="cs">${esc(r.room.name)} · ${esc(r.v.neighborhood)}</div></td><td>${r.partySize}</td><td><b>${usd(r.approved)}</b></td><td>${r.paid ? usd(r.paid) : "—"}</td><td>${st}</td><td><span class="pill">${r.src}</span></td></tr>`;
+    return `<tr class="bkr ${bkPick === r.id ? "picked" : ""} ${r.status === "cancelled" ? "dim" : ""}" data-id="${r.id}"><td><b>${when(r.startsAt)}</b><div class="cs">${localDate(r.startsAt)}</div></td><td><b>${esc(r.v.name)}</b><div class="cs">${esc(r.room.name)} · ${esc(r.v.neighborhood)}</div></td><td>${r.partySize}</td><td><b>${usd(r.approved)}</b></td><td>${r.paid ? usd(r.paid) : "—"}</td><td>${st}</td><td><span class="pill">${r.src}</span>${isPast(r.store) ? '<span class="pill past">earlier visit</span>' : ""}</td></tr>`;
   }).join("")}</tbody></table>` : `<div class="empty">No ${bkFilter === "cancelled" ? "cancelled " : ""}bookings yet. <button class="btn pri" onclick="go('home')">Book one</button></div>`;
   $$<HTMLElement>("#bkTable .bkr").forEach((tr) => tr.onclick = () => { bkPick = tr.dataset.id!; void renderBookings(); });
   const r = rows.find((x) => x.id === bkPick); if (!r) { $("#bkSide").innerHTML = `<div class="cs">Select a booking to see the receipt, change it or cancel it.</div>`; return; }
@@ -1947,18 +1949,49 @@ const CENTERS = [
 const invCode = new Map<string, string>();
 const centerOf = (r: BkRow) => CENTERS.find((c) => c.id === (invCode.get(r.id) ?? CENTERS[venues.indexOf(r.v) % 3].id))!;
 async function invRows() { return (await bkRows()).filter((r) => r.status === "confirmed" && r.src !== "Live desk"); }
+let invMonth = "all", invCenter: string | null = null, invSel: string | null = null;
+const monthOf = (r: BkRow) => localDate(r.startsAt).slice(0, 7);
+const monthName = (m: string) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString([], { month: "long", year: "numeric" });
 async function renderInvoice() {
-  const rows = await invRows(), total = rows.reduce((a, r) => a + r.approved, 0), saved = rows.reduce((a, r) => a + receipt(r).disc, 0);
-  const spent = (id: string) => rows.filter((r) => centerOf(r).id === id).reduce((a, r) => a + r.approved, 0);
-  $("#invKpis").innerHTML = [["Dinners", rows.length], ["Invoice total", usd(total)], ["Saved · preferred rates", usd(saved)], ["Budgets over", CENTERS.filter((c) => spent(c.id) > c.budget).length]].map(([k, v]) => `<div class="tk"><span>${k}</span><b>${v}</b></div>`).join("");
-  $("#invPos").innerHTML = CENTERS.map((c) => { const s = spent(c.id), over = s > c.budget; return `<div class="invpo ${over ? "bust" : ""}" data-c="${c.id}"><div class="top"><b>${c.name}</b><span>${c.po}</span></div><div class="pbar"><i style="width:${Math.min(100, (s / c.budget) * 100)}%"></i></div><small>${usd(s)} of ${usd(c.budget)}${over ? ` · over by ${usd(s - c.budget)}` : ` · ${usd(c.budget - s)} left`}</small></div>`; }).join("");
-  $("#invLines").innerHTML = rows.length ? rows.map((r) => { const c = centerOf(r); return `<div class="invl" draggable="true" data-id="${r.id}"><span>${localDate(r.startsAt).slice(5)}</span><div><b>${esc(r.v.name)}</b><small>${r.partySize} guests · ${c.gl}</small></div><span class="amt">${usd(r.approved)}</span><button class="invc" data-id="${r.id}" title="Tap to recode"><i style="background:${c.color}"></i>${c.name}</button></div>`; }).join("") : `<div class="empty">No confirmed dinners yet.</div>`;
-  $$<HTMLButtonElement>("#invLines .invc").forEach((b) => b.onclick = () => { const r = rows.find((x) => x.id === b.dataset.id)!, i = CENTERS.indexOf(centerOf(r)); invCode.set(r.id, CENTERS[(i + 1) % CENTERS.length].id); void renderInvoice(); });
-  $$<HTMLElement>("#invLines .invl").forEach((l) => { l.addEventListener("dragstart", (e) => { e.dataTransfer!.setData("text/plain", l.dataset.id!); l.classList.add("drag"); }); l.addEventListener("dragend", () => l.classList.remove("drag")); });
-  $$<HTMLElement>("#invPos .invpo").forEach((po) => {
-    po.addEventListener("dragover", (e) => { e.preventDefault(); po.classList.add("over"); }); po.addEventListener("dragleave", () => po.classList.remove("over"));
-    po.addEventListener("drop", (e) => { e.preventDefault(); const id = e.dataTransfer!.getData("text/plain"); if (id) { invCode.set(id, po.dataset.c!); toast("Recoded", `Moved to ${CENTERS.find((c) => c.id === po.dataset.c)!.name}`); void renderInvoice(); } });
+  const all = await invRows(), months = [...new Set(all.map(monthOf))].sort();
+  if (invMonth !== "all" && !months.includes(invMonth)) invMonth = "all";
+  $("#invMonth").innerHTML = [`<button data-m="all" class="${invMonth === "all" ? "on" : ""}">All months</button>`, ...months.map((m) => `<button data-m="${m}" class="${invMonth === m ? "on" : ""}">${monthName(m).split(" ")[0]}</button>`)].join("");
+  $$<HTMLButtonElement>("#invMonth button").forEach((b) => b.onclick = () => { invMonth = b.dataset.m!; invSel = null; void renderInvoice(); });
+  const inMonth = all.filter((r) => invMonth === "all" || monthOf(r) === invMonth);
+  const rows = inMonth.filter((r) => !invCenter || centerOf(r).id === invCenter);
+  const total = rows.reduce((a, r) => a + r.approved, 0), saved = rows.reduce((a, r) => a + receipt(r).disc, 0), guests = rows.reduce((a, r) => a + r.partySize, 0);
+  const spent = (id: string) => inMonth.filter((r) => centerOf(r).id === id).reduce((a, r) => a + r.approved, 0);
+  $("#invVisit").textContent = `${me.name} · ${visitLine()}`;
+  $("#invFilt").innerHTML = invCenter ? `Showing ${CENTERS.find((c) => c.id === invCenter)!.name} only · <a href="#" id="invClr">show all</a>` : "";
+  $("#invClr")?.addEventListener("click", (e) => { e.preventDefault(); invCenter = null; void renderInvoice(); });
+  $("#invKpis").innerHTML = [["Dinners", rows.length], ["Invoice total", usd(total)], ["Per guest", guests ? usd(Math.round(total / guests)) : "–"], ["Saved · preferred rates", usd(saved)], ["Budgets over", CENTERS.filter((c) => spent(c.id) > c.budget).length]].map(([k, v]) => `<div class="tk"><span>${k}</span><b>${v}</b></div>`).join("");
+  $("#invPos").innerHTML = CENTERS.map((c) => { const sp = spent(c.id), over = sp > c.budget, n = inMonth.filter((r) => centerOf(r).id === c.id).length; return `<div class="invpo ${over ? "bust" : ""} ${invCenter === c.id ? "flt" : ""}" data-c="${c.id}"><div class="top"><b>${c.name}</b><span>${c.po} · ${n} dinner${n === 1 ? "" : "s"}</span></div><div class="pbar"><i style="width:${Math.min(100, (sp / c.budget) * 100)}%;background:${c.color}"></i></div><small>${usd(sp)} of ${usd(c.budget)}${over ? ` · over by ${usd(sp - c.budget)}` : ` · ${usd(c.budget - sp)} left`} · GL ${c.gl}</small></div>`; }).join("");
+  const tot = CENTERS.reduce((a, c) => a + spent(c.id), 0) || 1;
+  $("#invMix").innerHTML = `<div class="pt">Where the money went</div><div class="mixbar">${CENTERS.map((c) => `<i title="${c.name}: ${usd(spent(c.id))}" style="width:${(spent(c.id) / tot) * 100}%;background:${c.color}"></i>`).join("")}</div><div class="cs">${CENTERS.map((c) => `<span style="color:${c.color};font-weight:800">●</span> ${c.name} ${Math.round((spent(c.id) / tot) * 100)}%`).join(" &nbsp; ")}</div>`;
+  $("#invLines").innerHTML = rows.length ? rows.map((r) => { const c = centerOf(r); return `<div class="invl ${invSel === r.id ? "sel" : ""}" draggable="true" data-id="${r.id}"><span>${localDate(r.startsAt).slice(5)}</span><div><b>${esc(r.v.name)}</b><small>${r.partySize} guests · ${esc(r.room.name)}${isPast(r.store) ? " · earlier visit" : ""}</small></div><span class="amt">${usd(r.approved)}</span><button class="invc" data-id="${r.id}" title="Tap to recode"><i style="background:${c.color}"></i>${c.name}</button></div>`; }).join("")
+      + `<div class="invsub"><span>${rows.length} line${rows.length === 1 ? "" : "s"} · ${guests} guests</span><b>${usd(total)}</b></div>`
+    : `<div class="empty">${all.length ? "No dinners in this month or budget." : 'No confirmed dinners yet. <button class="btn pri" onclick="go(\'book\')">Book one</button>'}</div>`;
+  $$<HTMLButtonElement>("#invLines .invc").forEach((b) => b.onclick = (e) => { e.stopPropagation(); const r = rows.find((x) => x.id === b.dataset.id)!, i = CENTERS.indexOf(centerOf(r)); invCode.set(r.id, CENTERS[(i + 1) % CENTERS.length].id); histDirty = true; void renderInvoice(); });
+  $$<HTMLElement>("#invLines .invl").forEach((l) => {
+    l.onclick = () => { invSel = invSel === l.dataset.id ? null : l.dataset.id!; void renderInvoice(); };
+    l.addEventListener("dragstart", (e) => { e.dataTransfer!.setData("text/plain", l.dataset.id!); l.classList.add("drag"); }); l.addEventListener("dragend", () => l.classList.remove("drag"));
   });
+  $$<HTMLElement>("#invPos .invpo").forEach((po) => {
+    po.onclick = () => { invCenter = invCenter === po.dataset.c ? null : po.dataset.c!; void renderInvoice(); };
+    po.addEventListener("dragover", (e) => { e.preventDefault(); po.classList.add("over"); }); po.addEventListener("dragleave", () => po.classList.remove("over"));
+    po.addEventListener("drop", (e) => { e.preventDefault(); const id = e.dataTransfer!.getData("text/plain"); if (id) { invCode.set(id, po.dataset.c!); histDirty = true; toast("Recoded", `Moved to ${CENTERS.find((c) => c.id === po.dataset.c)!.name}`); void renderInvoice(); } });
+  });
+  const sel = rows.find((r) => r.id === invSel);
+  if (sel) {
+    const rc = receipt(sel), c = centerOf(sel), prop = await sel.store.getProposal(sel.proposalId), run = runsLog.findIndex((x) => x.id === prop?.runId);
+    const line = (k: string, v: string, cls = "") => `<div class="rl ${cls}"><span>${k}</span><b>${v}</b></div>`;
+    $("#invRcpt").innerHTML = `<div class="rcpt"><div class="trh"><b>${esc(sel.v.name)} · ${esc(sel.room.name)}</b><span class="mono">${sel.id}</span></div><div class="cs" style="margin-bottom:8px">${when(sel.startsAt)}, ${localDate(sel.startsAt)} · ${sel.partySize} guests · ${c.name} (${c.po}, ${c.gl})</div>
+      ${line(rc.min ? "Room minimum" : `Food and drink, ${usd(rc.per)} × ${sel.partySize}`, usd(rc.list))}${rc.disc ? line(`Preferred rate, ${sel.v.preferredRatePct}% off`, `−${usd(rc.disc)}`) : ""}${line("Tax 8.875%", usd(rc.tax))}${line("Service 20%", usd(rc.svc))}${line("Estimated all-in", usd(rc.total), "t")}
+      ${line("Approved amount", usd(sel.approved))}${line("Deposit paid", sel.paid ? `${usd(sel.paid)} → ${esc(sel.v.payeeId)} (payee on file)` : "none")}${line("Approvals", prop ? prop.requiredRoles.join(" + ") : "–")}
+      <div class="row" style="margin-top:10px;gap:8px">${run >= 0 ? `<button class="btn" id="rcTrace">Open the agent run ↗</button>` : `<span class="cs">Agent run from an earlier session not kept.</span>`}<button class="btn" id="rcBk">Open in Bookings</button></div></div>`;
+    $("#rcTrace")?.addEventListener("click", () => { trSel = run; trEv = -1; go("traces"); });
+    $("#rcBk").onclick = () => { bkPick = sel.id; go("bookings"); };
+  } else $("#invRcpt").innerHTML = rows.length ? '<div class="cs" style="margin-top:10px">Tap a line to see its receipt, approvals and the agent run behind it.</div>' : "";
 }
 $("#invCsv").onclick = async () => {
   const rows = await invRows(), q = (x: string | number) => `"${String(x).replace(/"/g, '""')}"`;
@@ -1977,7 +2010,7 @@ async function loadMonitor(): Promise<MonRow[]> {
   for (const u of MON_SRC) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) { const d = await r.json(); if (Array.isArray(d)) return d as MonRow[]; } } catch { /* next source */ } }
   return [];
 }
-function ago(iso: string) { const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; }
+function ago(iso: string) { const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; }
 function spark(vals: number[], opt: { max?: number; min?: number; color: string; fmt: (v: number) => string; second?: number[] }) {
   if (!vals.length) return `<div class="none">The first scheduled run will appear here.</div>`;
   const W = 420, H = 150, P = 22, max = opt.max ?? Math.max(...vals, ...(opt.second ?? []), 1), min = opt.min ?? 0;
@@ -1986,20 +2019,42 @@ function spark(vals: number[], opt: { max?: number; min?: number; color: string;
   const last = vals.at(-1)!;
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><line x1="${P}" x2="${W - P}" y1="${H - P}" y2="${H - P}" stroke="#e8dfd2"/>${opt.second ? line(opt.second, "#c9a46a", 1.5) : ""}${line(vals, opt.color, 2.5)}<circle cx="${x(vals.length - 1)}" cy="${y(last)}" r="4" fill="${opt.color}"/><text x="${W - P}" y="14" text-anchor="end" font-size="12" font-weight="700" fill="${opt.color}">${opt.fmt(last)}</text></svg>`;
 }
+let moRange: string = "10", moSel: string | null = null;
+function nextRun() {
+  // Agent Watch cron: 12:17, 20:17 and 04:17 UTC.
+  const now = new Date(), cands = [4, 12, 20].flatMap((h) => [0, 1].map((d) => Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + d, h, 17)));
+  const t = Math.min(...cands.filter((x) => x > now.getTime())), m = Math.round((t - now.getTime()) / 60000);
+  return `${Math.floor(m / 60)} h ${m % 60} min`;
+}
+function sparkPts(vals: number[], labels: string[], opt: { max?: number; min?: number; color: string; fmt: (v: number) => string; second?: number[] }) {
+  const base = spark(vals, opt); if (!vals.length) return base;
+  const W = 420, H = 150, P = 22, max = opt.max ?? Math.max(...vals, ...(opt.second ?? []), 1), min = opt.min ?? 0;
+  const x = (i: number) => P + (vals.length === 1 ? (W - 2 * P) / 2 : (i * (W - 2 * P)) / (vals.length - 1)), y = (v: number) => H - P - ((v - min) / Math.max(1e-9, max - min)) * (H - 2 * P);
+  return base.replace("</svg>", vals.map((v, i) => `<circle class="pt" data-at="${labels[i]}" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3.5" fill="#fff" stroke="${opt.color}" stroke-width="2"><title>${new Date(labels[i]).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}: ${opt.fmt(v)}</title></circle>`).join("") + "</svg>");
+}
 async function renderMonitor() {
   if (!monRows) monRows = await loadMonitor();
-  const rows = monRows, live = rows.filter((r) => r.mode === "live" || r.mode === "record");
-  const worlds = rows.reduce((a, r) => a + r.worlds.ran, 0), checks = rows.reduce((a, r) => a + r.worlds.checks, 0), fails = rows.filter((r) => !r.ok).length;
+  const allRows = monRows, rows = moRange === "all" ? allRows : allRows.slice(-Number(moRange)), live = allRows.filter((r) => r.mode === "live" || r.mode === "record");
+  $$<HTMLButtonElement>("#moRange button").forEach((b) => { b.classList.toggle("on", b.dataset.r === moRange); b.onclick = () => { moRange = b.dataset.r!; void renderMonitor(); }; });
+  const worlds = allRows.reduce((a, r) => a + r.worlds.ran, 0), checks = allRows.reduce((a, r) => a + r.worlds.checks, 0), fails = allRows.filter((r) => !r.ok).length;
   const dec = live.reduce((a, r) => a + r.modelDecisions.parse + r.modelDecisions.offers, 0), fb = live.reduce((a, r) => a + r.modelDecisions.fellBack, 0);
-  const days = rows.length ? Math.max(1, (Date.parse(rows.at(-1)!.at) - Date.parse(rows[0].at)) / 86_400_000) : 1;
-  $("#moKpis").innerHTML = [["Runs", rows.length], ["Last run", rows.length ? ago(rows.at(-1)!.at) : "pending"], ["Failed runs", fails], ["Worlds tested", worlds.toLocaleString()],
-    ["Safety checks", checks.toLocaleString()], ["Model decided", dec + fb ? `${Math.round((dec / (dec + fb)) * 100)}%` : "–"], ["p50 live", live.length ? `${live.at(-1)!.p50ms} ms` : "–"], ["Cost / day", live.length ? `$${(live.reduce((a, r) => a + r.costUsd, 0) / days).toFixed(2)}` : "$0.00"]]
+  const days = live.length ? Math.max(1, (Date.parse(live.at(-1)!.at) - Date.parse(live[0].at)) / 86_400_000) : 1;
+  $("#moKpis").innerHTML = [["Runs", allRows.length], ["Last run", allRows.length ? ago(allRows.at(-1)!.at) : "pending"], ["Next run", `in ${nextRun()}`], ["Failed runs", fails], ["Worlds tested", worlds.toLocaleString()],
+    ["Safety checks", checks.toLocaleString()], ["Live runs", `${live.length} of ${allRows.length}`], ["Model decided", dec + fb ? `${Math.round((dec / (dec + fb)) * 100)}%` : "–"], ["p50 live", live.length ? `${live.at(-1)!.p50ms} ms` : "–"], ["Cost / day", live.length ? `$${(live.reduce((a, r) => a + r.costUsd, 0) / days).toFixed(2)}` : "$0.00"]]
     .map(([k, v]) => `<div class="tk"><span>${k}</span><b>${v}</b></div>`).join("");
-  $("#moPass").innerHTML = spark(rows.map((r) => (r.scenarios.passed / Math.max(1, r.scenarios.ran)) * 100), { max: 100, min: 0, color: "#3f7d5a", fmt: (v) => `${Math.round(v)}%` });
-  let acc = 0; $("#moWorlds").innerHTML = spark(rows.map((r) => (acc += r.worlds.ran)), { color: "#7b1e3a", fmt: (v) => v.toLocaleString() });
-  $("#moLat").innerHTML = live.length ? spark(live.map((r) => r.p50ms), { color: "#5b6b8c", fmt: (v) => `${v} ms`, second: live.map((r) => r.p95ms) }) : `<div class="none">Live latency appears once runs use the live model.</div>`;
-  $("#moRuns").innerHTML = rows.length ? `<div class="mowrap"><table class="mot"><thead><tr><th>When</th><th>Model</th><th>Scenarios</th><th>New worlds</th><th>Real-user</th><th>Calls</th><th>p50</th><th>Cost</th><th></th></tr></thead><tbody>${rows.slice(-12).reverse().map((r) => `<tr><td>${new Date(r.at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</td><td>${r.mode === "replay" ? "recorded" : esc(r.model)}</td><td>${r.scenarios.passed}/${r.scenarios.ran}</td><td>${r.worlds.ran} · ${r.worlds.failed} failed</td><td>${r.users.asExpected}/${r.users.ran}</td><td>${r.calls}</td><td>${r.p50ms ? `${r.p50ms} ms` : "–"}</td><td>$${r.costUsd.toFixed(3)}</td><td class="${r.ok ? "ok" : "bad"}">${r.ok ? "✓" : "✗"}</td></tr>`).join("")}</tbody></table></div>`
+  $("#moStrip").innerHTML = allRows.map((r) => `<button class="${r.ok ? "" : "bad"} ${r.mode === "live" || r.mode === "record" ? "live" : ""} ${moSel === r.at ? "on" : ""}" data-at="${r.at}" title="${new Date(r.at).toLocaleString()} · ${r.ok ? "passed" : "failed"} · ${r.mode === "replay" ? "recorded" : "live"}"></button>`).join("") || '<span class="cs">The first scheduled run will appear here.</span>';
+  const labels = rows.map((r) => r.at);
+  $("#moPass").innerHTML = sparkPts(rows.map((r) => (r.scenarios.passed / Math.max(1, r.scenarios.ran)) * 100), labels, { max: 100, min: 0, color: "#3f7d5a", fmt: (v) => `${Math.round(v)}% scenarios` });
+  let acc = allRows.slice(0, allRows.length - rows.length).reduce((a, r) => a + r.worlds.ran, 0);
+  $("#moWorlds").innerHTML = sparkPts(rows.map((r) => (acc += r.worlds.ran)), labels, { color: "#7b1e3a", fmt: (v) => `${v.toLocaleString()} worlds` });
+  const lr = rows.filter((r) => r.mode === "live" || r.mode === "record");
+  $("#moLat").innerHTML = lr.length ? sparkPts(lr.map((r) => r.p50ms), lr.map((r) => r.at), { color: "#5b6b8c", fmt: (v) => `${v} ms p50`, second: lr.map((r) => r.p95ms) }) : `<div class="none">No live runs in this range yet. The next run uses live Claude now that the key is set (in ${nextRun()}).</div>`;
+  $$<SVGCircleElement>("#p-monitor circle.pt").forEach((c) => c.addEventListener("click", () => { moSel = c.dataset.at!; void renderMonitor(); }));
+  $$<HTMLButtonElement>("#moStrip button").forEach((b) => b.onclick = () => { moSel = moSel === b.dataset.at ? null : b.dataset.at!; void renderMonitor(); });
+  const shown = moSel && !rows.some((r) => r.at === moSel) ? [...rows, allRows.find((r) => r.at === moSel)!] : rows;
+  $("#moRuns").innerHTML = shown.length ? `<div class="mowrap"><table class="mot"><thead><tr><th>When</th><th>Model</th><th>Scenarios</th><th>New worlds</th><th>Real-user</th><th>Calls</th><th>p50</th><th>Cost</th><th></th></tr></thead><tbody>${shown.slice().reverse().map((r) => `<tr class="mor ${moSel === r.at ? "on" : ""}" data-at="${r.at}"><td>${new Date(r.at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</td><td>${r.mode === "replay" ? "recorded" : `<b style="color:#8a6420">● ${esc(r.model)}</b>`}</td><td>${r.scenarios.passed}/${r.scenarios.ran}</td><td>${r.worlds.ran} · ${r.worlds.failed} failed</td><td>${r.users.asExpected}/${r.users.ran}</td><td>${r.calls}</td><td>${r.p50ms ? `${r.p50ms} ms` : "–"}</td><td>$${r.costUsd.toFixed(3)}</td><td class="${r.ok ? "ok" : "bad"}">${r.ok ? "✓" : "✗"}</td></tr>${moSel === r.at ? `<tr class="modet"><td colspan="9"><b>Scenarios run:</b> ${r.scenarios.ids.map(esc).join(", ")}<br><b>Model decided:</b> ${r.modelDecisions.parse} request parses, ${r.modelDecisions.offers} offer readings, ${r.modelDecisions.fellBack} fell back to rules · <b>Safety checks:</b> ${r.worlds.checks.toLocaleString()} in ${r.worlds.ran} never-seen worlds · <b>Real-user sentences:</b> ${r.users.asExpected} of ${r.users.ran} as a person would expect<br>Full report: <a href="https://github.com/AKilalours/thursday-dinner-concierge/tree/main/evals/history" target="_blank" rel="noopener">evals/history/${r.at.slice(0, 13).replace("T", "_")}.json ↗</a></td></tr>` : ""}`).join("")}</tbody></table></div>`
     : `<p style="color:var(--dim);margin:0">No scheduled runs yet. They run at about 7:17 am, 3:17 pm and 11:17 pm New York time.</p>`;
+  $$<HTMLElement>("#moRuns tr.mor").forEach((t) => t.onclick = () => { moSel = moSel === t.dataset.at ? null : t.dataset.at!; void renderMonitor(); });
 }
 
 // =====================================================================
@@ -2007,44 +2062,116 @@ async function renderMonitor() {
 // =====================================================================
 let trSel = 0, trEv = -1;
 function renderTraces() { try { renderTracesInner(); } catch (err) { console.warn("traces", err); } }
+let trQ = "", trOut = "all", trPlay: ReturnType<typeof setInterval> | null = null;
+const trHide = new Set<string>();
+const askedOut = (o: string) => o === "needs_clarification";
 function renderTracesInner() {
   const calls = llmLog, live = calls.filter((c) => c.source === "live"), ok = calls.filter((c) => c.ok);
   const lat = ok.map((c) => c.ms).sort((a, b) => a - b), p = (q: number) => lat.length ? lat[Math.min(lat.length - 1, Math.floor(q * lat.length))] : 0;
-  const cost = live.reduce((a, c) => a + c.tin * 3e-6 + c.tout * 15e-6, 0);
-  $("#trKpis").innerHTML = [["Runs", runsLog.length], ["Model calls", calls.length], ["Live", `${calls.length ? Math.round((live.length / calls.length) * 100) : 0}%`], ["p50", `${p(0.5)} ms`], ["p95", `${p(0.95)} ms`], ["Tokens", (calls.reduce((a, c) => a + c.tin + c.tout, 0)).toLocaleString()], ["Live cost", `$${cost.toFixed(3)}`], ["Fallbacks", calls.filter((c) => !c.ok).length]]
+  const cost = live.reduce((a, c) => a + c.tin * 3e-6 + c.tout * 15e-6, 0), spans = runsLog.reduce((a, r) => a + r.trace.length, 0);
+  $("#trKpis").innerHTML = [["Runs", runsLog.length], ["Earlier visits", runsLog.filter((r) => r.past).length], ["Spans", spans.toLocaleString()], ["Booked", runsLog.filter((r) => r.outcome === "booked").length], ["Model calls", calls.length], ["Live", `${calls.length ? Math.round((live.length / calls.length) * 100) : 0}%`], ["p50", `${p(0.5)} ms`], ["Live cost", `$${cost.toFixed(3)}`]]
     .map(([k, v]) => `<div class="tk"><span>${k}</span><b>${v}</b></div>`).join("");
-  $("#trRuns").innerHTML = runsLog.map((r, i) => `<button class="trr ${i === trSel ? "on" : ""}" data-i="${i}"><i class="${r.outcome === "booked" ? "ok" : "bad"}"></i><div><b>${esc(r.label)}</b><span class="mono">${r.id} · ${r.trace.length} spans · ${r.emails} emails</span></div><em>${r.outcome.replace(/_/g, " ")}</em></button>`).join("") || '<div class="empty">Runs appear as the agent works.</div>';
-  $$<HTMLButtonElement>("#trRuns .trr").forEach((b) => b.onclick = () => { trSel = Number(b.dataset.i); trEv = -1; renderTraces(); });
-  const r = runsLog[trSel];
+  const q = trQ.toLowerCase();
+  const vis = runsLog.map((r, i) => ({ r, i })).filter(({ r }) => (trOut === "all" || (trOut === "booked" ? r.outcome === "booked" : trOut === "asked" ? askedOut(r.outcome) : r.outcome !== "booked" && !askedOut(r.outcome)))
+    && (!q || `${r.label} ${r.outcome} ${r.trace.map((e) => e.text).join(" ")}`.toLowerCase().includes(q)));
+  if (!vis.some((x) => x.i === trSel) && vis.length) { trSel = vis[0].i; trEv = -1; }
+  $("#trRuns").innerHTML = vis.map(({ r, i }) => `<button class="trr ${i === trSel ? "on" : ""}" data-i="${i}"><i class="${r.outcome === "booked" ? "ok" : "bad"}"></i><div><b>${esc(r.label)}</b>${r.past ? '<span class="pastb">earlier visit</span>' : ""}<span class="mono">${new Date(r.at).toLocaleDateString([], { month: "short", day: "numeric" })} · ${r.trace.length} spans · ${r.emails} emails</span></div><em>${r.outcome.replace(/_/g, " ")}</em></button>`).join("") || `<div class="empty">${runsLog.length ? "No run matches." : "Runs appear as the agent works."}</div>`;
+  $$<HTMLButtonElement>("#trRuns .trr").forEach((b) => b.onclick = () => { stopPlay(); trSel = Number(b.dataset.i); trEv = -1; renderTraces(); });
+  const lanes = ["concierge", "sourcing", "coordination", "comparison"];
+  $("#trLanes").innerHTML = lanes.map((l) => `<button class="chip ${trHide.has(l) ? "" : "on"}" data-l="${l}">${l}</button>`).join("");
+  $$<HTMLButtonElement>("#trLanes .chip").forEach((b) => b.onclick = () => { if (trHide.has(b.dataset.l!)) trHide.delete(b.dataset.l!); else trHide.add(b.dataset.l!); renderTraces(); });
+  const r = vis.length ? runsLog[trSel] : undefined;
   if (r) {
     const t0 = Date.parse(r.trace[0]?.at ?? r.trace.at(-1)?.at ?? ""), t1 = Date.parse(r.trace.at(-1)?.at ?? "") || t0 + 1, span = Math.max(1, t1 - t0);
-    const lanes = ["concierge", "sourcing", "coordination", "comparison"];
-    $("#trWater").innerHTML = `<div class="trh"><b>${esc(r.label)}</b><span class="mono">${r.id}</span></div><div class="lanes">${lanes.map((l) => `<span class="ln ${AGENT[l]}">${l}</span>`).join("")}</div>` + r.trace.map((e, i) => {
+    $("#trWater").innerHTML = `<div class="trh"><b>${esc(r.label)}</b><span class="mono">${r.id}</span></div><div class="row" style="gap:8px;margin:6px 0 8px"><button class="btn" id="trPlay">${trPlay ? "■ Stop" : "▶ Replay this run"}</button><span class="cs">${r.trace.length} spans over ${Math.max(1, Math.round(span / 60000))} simulated minutes · ${r.outcome.replace(/_/g, " ")}</span></div>` + r.trace.map((e, i) => {
       const x = ((Date.parse(e.at) - t0) / span) * 100, ai = isAI(e);
-      return `<div class="tre ${i === trEv ? "on" : ""} ${e.kind === "injection_flagged" ? "bad" : ""}" data-i="${i}"><span class="tlane ${AGENT[e.agent] ?? "c"}">${e.agent}</span><span class="tk2">${esc(e.kind.replace(/_/g, " "))}${ai ? '<span class="ai"></span>' : ""}</span><span class="bar3"><i style="left:${Math.min(97, x)}%" class="${AGENT[e.agent] ?? "c"}"></i></span><span class="mono tt">+${Math.round((Date.parse(e.at) - t0) / 60000)}m</span></div>`;
+      return `<div class="tre ${i === trEv ? "on" : ""} ${e.kind === "injection_flagged" ? "bad" : ""} ${trHide.has(e.agent) ? "hid" : ""}" data-i="${i}"><span class="tlane ${AGENT[e.agent] ?? "c"}">${e.agent}</span><span class="tk2">${esc(e.kind.replace(/_/g, " "))}${ai ? '<span class="ai"></span>' : ""}</span><span class="bar3"><i style="left:${Math.min(97, x)}%" class="${AGENT[e.agent] ?? "c"}"></i></span><span class="mono tt">+${Math.round((Date.parse(e.at) - t0) / 60000)}m</span></div>`;
     }).join("");
-    $$<HTMLElement>("#trWater .tre").forEach((d) => d.onclick = () => { trEv = Number(d.dataset.i); renderTraces(); });
+    $$<HTMLElement>("#trWater .tre").forEach((d) => d.onclick = () => { stopPlay(); trEv = Number(d.dataset.i); renderTraces(); });
+    $("#trPlay").onclick = () => {
+      if (trPlay) { stopPlay(); renderTraces(); return; }
+      trEv = -1; trPlay = setInterval(() => { trEv++; if (trEv >= r.trace.length) { stopPlay(); trEv = r.trace.length - 1; } renderTraces(); $("#trWater .tre.on")?.scrollIntoView({ block: "nearest" }); }, 420);
+      renderTraces();
+    };
     const e = r.trace[trEv];
-    $("#trJson").innerHTML = e ? `<div class="trh"><b>${esc(e.kind)}</b><span>${esc(e.agent)}</span></div><div class="cs" style="margin-bottom:6px">${esc(e.text)}</div><pre class="json">${esc(JSON.stringify(e.data ?? {}, null, 2)).slice(0, 4000)}</pre>` : '<div class="cs">Tap a span.</div>';
-  }
-  $("#trCalls").innerHTML = calls.slice(0, 40).map((c) => `<div class="trc"><span class="src ${c.source}">${c.source === "live" ? "● live" : c.source === "recorded" ? "recorded" : "fallback"}</span><span class="mono">${esc(c.task)}</span><span class="mono">${c.ms} ms</span><span class="mono">${c.tin + c.tout} tok</span></div>`).join("") || '<div class="cs">No model calls yet.</div>';
+    $("#trJson").innerHTML = e ? `<div class="trh"><b>${esc(e.kind.replace(/_/g, " "))}</b><span>${esc(e.agent)} · ${when(e.at)}</span></div><div class="cs" style="margin-bottom:6px">${esc(e.text)}</div>${isAI(e) ? '<div class="cs" style="margin-bottom:6px"><b>Decided by the model</b>, checked by code before it counted.</div>' : ""}<pre class="json">${esc(JSON.stringify(e.data ?? {}, null, 2)).slice(0, 4000)}</pre>` : '<div class="cs">Tap a span, or press ▶ to replay the run step by step.</div>';
+  } else { $("#trWater").innerHTML = '<div class="empty">Book a dinner and its trace appears here.</div>'; $("#trJson").innerHTML = ""; }
+  $("#trCalls").innerHTML = calls.slice(0, 40).map((c) => `<div class="trc"><span class="src ${c.source}">${c.source === "live" ? "● live" : c.source === "recorded" ? "recorded" : "fallback"}</span><span class="mono">${esc(c.task)}</span><span class="mono">${c.ms} ms</span><span class="mono">${c.tin + c.tout} tok</span></div>`).join("") || '<div class="cs">No model calls yet this visit. Book on Home or Chat to see them.</div>';
 }
+function stopPlay() { if (trPlay) { clearInterval(trPlay); trPlay = null; } }
+$<HTMLInputElement>("#trQ").addEventListener("input", (e) => { trQ = (e.target as HTMLInputElement).value; renderTraces(); });
+$$<HTMLButtonElement>("#trOut button").forEach((b) => b.onclick = () => { trOut = b.dataset.o!; $$("#trOut button").forEach((x) => x.classList.toggle("on", x === b)); renderTraces(); });
 
 // =====================================================================
 // IDENTITY + HISTORY: who is signed in, and the dinners already on the books
 // =====================================================================
+/** People who agreed to try Thursday under their own name. Each gets their own saved history. */
+const TEAM = ["Akila Lourdes", "Akilan", "Francis", "Mamatha", "Chrisen", "Lilly Grace", "Thomas", "Irudayaraj", "Nirmala Anitha", "Sudeep", "Amul Raj", "Babu", "Joyce", "Samantha", "Patricia", "Davis"];
 function editMe() {
-  const m = el("div", "modal", `<form class="mbox" id="meForm"><div class="ph2"><i class="avbig">${esc(meIni())}</i></div><input id="meIn" class="emin" maxlength="40" value="${esc(me.name)}" placeholder="Your name"><div class="cbtns"><button class="btn pri">Sign in</button><button class="btn" type="button" id="meX">Cancel</button></div></form>`);
+  const saved = (n: string) => { const d = readSaved(n); return d ? d.stores.reduce((a, s) => a + s.snap.bookings.filter((b) => b.status === "confirmed").length, 0) : 0; };
+  const team = TEAM.map((n) => { const k = saved(n), cur = n.toLowerCase() === me.name.toLowerCase(); return `<button type="button" class="teamc ${cur ? "on" : ""}" data-n="${esc(n)}"><i>${esc(n.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase())}</i><span>${esc(n)}</span><small>${cur ? "signed in" : k ? `${k} saved booking${k === 1 ? "" : "s"}` : "new"}</small></button>`; }).join("");
+  const m = el("div", "modal", `<form class="mbox wide" id="meForm"><div class="ph2"><i class="avbig">${esc(meIni())}</i></div><div class="cs" style="text-align:center;margin:-4px 0 10px">Each person's bookings and agent runs are saved in this browser under their name.</div><div class="teamg">${team}</div><input id="meIn" class="emin" maxlength="40" value="" placeholder="Or type another name"><div class="cbtns"><button class="btn pri">Sign in</button><button class="btn" type="button" id="meX">Cancel</button></div></form>`);
   document.body.append(m); const inp = m.querySelector<HTMLInputElement>("#meIn")!; setTimeout(() => { inp.focus(); inp.select(); }, 30);
   inp.oninput = () => { m.querySelector(".avbig")!.textContent = inp.value.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?"; };
   m.querySelector("#meX")!.addEventListener("click", () => m.remove()); m.addEventListener("click", (e) => { if (e.target === m) m.remove(); });
-  m.querySelector("form")!.addEventListener("submit", (e) => { e.preventDefault(); const v = inp.value.trim().replace(/\s+/g, " "); if (!v) return; me.name = v; try { localStorage.setItem(ME_KEY, v); } catch { /* fine */ } applyMe(); m.remove(); toast(`Signed in as ${v}`, "The concierge now books for you"); });
+  const switchTo = (v: string) => {
+    v = v.trim().replace(/\s+/g, " "); if (!v) return;
+    if (v.toLowerCase() === me.name.toLowerCase()) { m.remove(); return; }
+    saveHistory(); // keep this person's visit before switching
+    try { localStorage.setItem(ME_KEY, v); } catch { /* fine */ }
+    location.reload(); // the next person starts from their own saved history, never from this one
+  };
+  m.querySelectorAll<HTMLButtonElement>(".teamc").forEach((b) => b.onclick = () => switchTo(b.dataset.n!));
+  m.querySelector("form")!.addEventListener("submit", (e) => { e.preventDefault(); switchTo(inp.value); });
 }
 $("#wsBtn").onclick = editMe; $("#meBtn").onclick = editMe;
 
+// =====================================================================
+// SAVED HISTORY: each person's bookings, approvals, payments and agent runs are kept in this browser under their name,
+// so signing in again shows everything from earlier visits, not just this one. Nothing leaves the browser.
+// =====================================================================
+const HIST = (name: string) => `tdc_hist_v1:${name.trim().toLowerCase()}`;
+interface Saved { v: 1; name: string; visits: number[]; stores: { src: string; snap: StoreSnapshot }[]; runs: RunLog[]; codes: [string, string][] }
+let histDirty = false, histLoaded = false, visits: number[] = [];
+const pastStores = new Set<MemoryStore>();
+function readSaved(name: string): Saved | null { try { const raw = localStorage.getItem(HIST(name)); const d = raw ? JSON.parse(raw) as Saved : null; return d?.v === 1 ? d : null; } catch { return null; } }
+const slimTrace = (t: TraceEvent[]) => t.slice(0, 80).map((e) => { const d = e.data && JSON.stringify(e.data).length > 1500 ? undefined : e.data; return { ...e, data: d }; });
+function saveHistory() {
+  if (!histLoaded) return;
+  try {
+    const keep = stores.filter((st) => (srcOf.get(st) ?? "Live desk") !== "Live desk" && st.allBookings().length);
+    const data: Saved = { v: 1, name: me.name, visits: visits.slice(-50), stores: keep.map((st) => ({ src: srcOf.get(st)!, snap: st.snapshot() })),
+      runs: runsLog.filter((r) => !/^desk/.test(r.id)).slice(0, 40).map((r) => ({ ...r, trace: slimTrace(r.trace), past: undefined })), codes: [...invCode] };
+    localStorage.setItem(HIST(me.name), JSON.stringify(data)); histDirty = false;
+  } catch { /* storage full or blocked: history just isn't kept */ }
+}
+setInterval(() => { if (histDirty || histLoaded) saveHistory(); }, 5000);
+addEventListener("pagehide", saveHistory);
+async function startHistory() {
+  const saved = readSaved(me.name);
+  visits = [...(saved?.visits ?? []), Date.now()];
+  if (saved && saved.stores.length + saved.runs.length) {
+    for (const s of saved.stores) { const st = new MemoryStore(); await st.init(venues); st.restore(s.snap); stores.push(st); srcOf.set(st, s.src); pastStores.add(st); }
+    runsLog.push(...saved.runs.map((r) => ({ ...r, past: true })));
+    for (const [k, v] of saved.codes ?? []) invCode.set(k, v);
+    histLoaded = true;
+    const n = saved.stores.reduce((a, s) => a + s.snap.bookings.filter((b) => b.status === "confirmed").length, 0);
+    const last = saved.visits.at(-1);
+    toast(`Welcome back, ${meFirst()}`, `${n} booking${n === 1 ? "" : "s"} and ${saved.runs.length} agent run${saved.runs.length === 1 ? "" : "s"} from earlier visits${last ? ` (last one ${ago(new Date(last).toISOString())})` : ""}`);
+    renderGrid(); if (!cmpRows.length) void cmpLoad(replayLLM);
+  } else {
+    await seedHistory();
+    histLoaded = true; saveHistory();
+  }
+  const page = location.hash.slice(1);
+  if (page === "invoice") void renderInvoice(); if (page === "bookings") void renderBookings(); if (page === "traces") renderTraces(); if (page === "calendar") void renderCal();
+}
+const isPast = (st: MemoryStore) => pastStores.has(st);
+const visitLine = () => visits.length > 1 ? `Visit ${visits.length} · first ${new Date(visits[0]).toLocaleDateString([], { month: "short", day: "numeric" })}` : "First visit";
+
 /** A few dinners booked earlier this week, through the same agent, so every planning page opens with real data. */
 async function seedHistory() {
-  const store = new MemoryStore(); await store.init(venues); stores.push(store); srcOf.set(store, "Earlier");
+  const store = new MemoryStore(); await store.init(venues); stores.push(store); srcOf.set(store, "Sample · first visit");
   const asks = ["private dinner for 14 with Initech on Nov 19", "team dinner for 8 at 7:30pm on Nov 20 in Tribeca", "dinner for 10 with the Globex team on Nov 17, private room, two vegetarians"];
   let last: { v: Venue; room: string; n: number; date: string; diet: string[]; client: string; world: VenueWorld; thread: string } | null = null;
   for (const [i, text] of asks.entries()) {
@@ -2070,7 +2197,7 @@ function renderLive() {
 }
 if (API) fetch(`${API}/health`).then((r) => r.json()).then((h: { llm: boolean; email: boolean }) => { apiHealth = h; if (h.llm) { llm.live = new LiveThenReplay(new RemoteLLM(API), replayLLM); llm.target = llm.live; } renderLive(); }).catch(() => renderLive());
 renderLive(); setInterval(() => { if (llm.live) renderLive(); }, 3000);
-void seedHistory();
+void startHistory();
 if (!new URLSearchParams(location.search).has("still")) void deskLoop();
 { const h = location.hash.slice(1), ask0 = new URLSearchParams(location.search).get("ask"); go(ask0 ? "home" : $(`#p-${h}`) ? h : "home"); if (ask0) setTimeout(() => void hRun(ask0.slice(0, 200)), 700); }
 window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if ($(`#p-${h}`) && !$(`#p-${h}.on`)) go(h); });

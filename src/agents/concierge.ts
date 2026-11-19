@@ -75,10 +75,11 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
     store: input.store, world: input.world, llm: input.llm, company: input.company ?? COMPANY, venues: input.venues,
     actor: input.actor, principal: input.principal, runId, today: input.today, smsOptedOut: input.smsOptedOut ?? new Set(), trace: [], onEvent: input.onEvent, legacy: input.legacy, requestedAt: input.world.now,
   };
-  // Hybrid passed the promotion gate on the first live run (docs/classifiers.json): held-out reply triage 80.6% vs the
-  // rules' 40.3%, 10/10 injections vs 4/10, and no worse than the rules on any set. The rules still decide everything
-  // they are sure of; the model is asked only what the rules would hand to a person. Without a model it is the rules.
-  const mode = input.judgmentMode ?? "hybrid";
+  // Promotion gate, second live run (docs/classifiers.json). The gate now also forbids acting on a wrong reading more
+  // often than the rules. The first hybrid failed that (9 wrong actions on held-out vs the rules' 6) and went back to
+  // shadow. "Hybrid strict" (the model counts only at 0.9 confidence or more) passed every set: held-out 79% vs 40%,
+  // the fresh never-seen set 92.5% vs 55%, no more wrong actions than the rules. Without a model it is the rules.
+  const mode = input.judgmentMode ?? "hybrid_strict";
   const result: RunResult = { runId, outcome: "escalated", request: null, proposals: [], bookingId: null, paymentId: null, chosenVenueId: null, messagesToBooker: [], trace: ctx.trace, parseDecidedBy: "rules" };
   const tell = async (text: string) => {
     result.messagesToBooker.push(text);
