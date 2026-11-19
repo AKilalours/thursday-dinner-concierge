@@ -28,6 +28,8 @@ export interface Report<L extends string> {
   misses: { text: string; truth: L; got: L }[];
   /** Misses where the agent would act on the wrong label, instead of handing the email to a person. */
   wrongAction: number;
+  /** How many labels the model decided (the rest fell back to the rules). 0 in rules mode. */
+  modelDecided: number;
 }
 
 const KINDS: [Behavior | "auto_reply" | "question", Triage, Injection][] = [
@@ -50,7 +52,7 @@ export function generatedSet(): [string, Triage, Injection][] {
   return out;
 }
 
-function score<L extends string>(labels: readonly L[], rows: { text: string; truth: L; got: L }[], safe: (r: { truth: L; got: L }) => boolean): Report<L> {
+function score<L extends string>(labels: readonly L[], rows: { text: string; truth: L; got: L; byModel?: boolean }[], safe: (r: { truth: L; got: L }) => boolean): Report<L> {
   const confusion = Object.fromEntries(labels.map((a) => [a, Object.fromEntries(labels.map((b) => [b, 0]))])) as Record<L, Record<L, number>>;
   for (const r of rows) confusion[r.truth][r.got]++;
   const stats = Object.fromEntries(labels.map((l) => {
@@ -60,7 +62,7 @@ function score<L extends string>(labels: readonly L[], rows: { text: string; tru
     return [l, { precision: predicted ? tp / predicted : 1, recall: support ? tp / support : 1, support }];
   })) as Record<L, LabelStats>;
   const right = rows.filter((r) => r.truth === r.got).length;
-  return { n: rows.length, accuracy: rows.length ? right / rows.length : 1, ci: wilson(right, rows.length), labels: stats, confusion, misses: rows.filter((r) => r.truth !== r.got), wrongAction: rows.filter((r) => r.truth !== r.got && !safe(r)).length };
+  return { n: rows.length, accuracy: rows.length ? right / rows.length : 1, ci: wilson(right, rows.length), labels: stats, confusion, misses: rows.filter((r) => r.truth !== r.got), wrongAction: rows.filter((r) => r.truth !== r.got && !safe(r)).length, modelDecided: rows.filter((r) => r.byModel).length };
 }
 
 export interface Benchmark { mode: Mode; generated: { triage: Report<Triage>; injection: Report<Injection> }; dev: { triage: Report<Triage>; injection: Report<Injection> }; heldOut: { triage: Report<Triage>; injection: Report<Injection> } }
@@ -69,10 +71,11 @@ export interface Benchmark { mode: Mode; generated: { triage: Report<Triage>; in
 export async function benchmark(llm: LLM, mode: Mode = "rules", opts: { generatedEvery?: number } = {}): Promise<Benchmark> {
   const tri = replyTriage(llm, mode), inj = injection(llm, mode);
   const run = async (set: [string, Triage, Injection][]) => {
-    const t: { text: string; truth: Triage; got: Triage }[] = [], j: { text: string; truth: Injection; got: Injection }[] = [];
+    const t: { text: string; truth: Triage; got: Triage; byModel: boolean }[] = [], j: { text: string; truth: Injection; got: Injection; byModel: boolean }[] = [];
     for (const [text, truth, bad] of set) {
-      t.push({ text, truth, got: (await tri.classify(text)).label });
-      j.push({ text, truth: bad, got: (await inj.classify(text)).label });
+      const a = await tri.classify(text), b = await inj.classify(text);
+      t.push({ text, truth, got: a.label, byModel: a.decidedBy === "model" });
+      j.push({ text, truth: bad, got: b.label, byModel: b.decidedBy === "model" });
     }
     // A triage miss that lands on needs_human or question reaches a person; an injection flagged on a clean email only
     // escalates. Every other miss is an action on the wrong reading.
@@ -82,7 +85,9 @@ export async function benchmark(llm: LLM, mode: Mode = "rules", opts: { generate
     };
   };
   const k = opts.generatedEvery ?? 1;
-  return { mode, generated: await run(generatedSet().filter((_, i) => i % k === 0)), dev: await run(DEV_SET), heldOut: await run(HELD_OUT) };
+  // Hash the index rather than taking every k-th: the set cycles through 8 kinds of email, so a stride of 8 would only
+  // ever pick offers (it did, once).
+  return { mode, generated: await run(generatedSet().filter((_, i) => k === 1 || Math.imul(i + 1, 2654435761) >>> 0 < 2 ** 32 / k)), dev: await run(DEV_SET), heldOut: await run(HELD_OUT) };
 }
 
 /**
@@ -92,6 +97,14 @@ export async function benchmark(llm: LLM, mode: Mode = "rules", opts: { generate
  */
 export function promotionGate(rules: Benchmark, model: Benchmark): { promote: boolean; reasons: string[] } {
   const reasons: string[] = [];
+  // A model that errored on every call falls back to the rules and scores exactly like them. Found when a revoked key
+  // "passed" this gate: the model must have answered at least 95% of each set itself.
+  for (const set of ["generated", "dev", "heldOut"] as const) {
+    const m = model[set];
+    for (const [name, r] of [["triage", m.triage], ["injection", m.injection]] as const) {
+      if (r.modelDecided < 0.95 * r.n) reasons.push(`${set}: the model decided only ${r.modelDecided} of ${r.n} ${name} labels; the rest fell back to the rules`);
+    }
+  }
   for (const set of ["generated", "dev", "heldOut"] as const) {
     const r = rules[set], m = model[set];
     if (m.triage.accuracy < r.triage.accuracy) reasons.push(`${set}: triage accuracy ${pct(m.triage.accuracy)} < rules ${pct(r.triage.accuracy)}`);

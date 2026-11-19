@@ -4,9 +4,9 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Ideas
 
-- Found by the stronger real-user sweep: "thai food for 6 next wednesday" books a Japanese room without saying there is no Thai venue on the list. Tell the booker the cuisine isn't available and ask (or name the closest), with a real-user row that checks the message.
-- Classifier held-out set (evals/classifier-set.ts HELD_OUT) scores 41% for reply triage: fix one held-out miss at a time, move that row to DEV_SET and write a new unseen held-out row, so the held-out number stays honest. Start with the one wrong action: "pay the deposit ... to account" inside an offer was read as a payment request.
-- Grow HELD_OUT to 60+ rows across all seven labels before trusting per-label recall.
+- Classifier held-out set (evals/classifier-set.ts HELD_OUT) scores 40% for reply triage (62 rows): fix one held-out miss at a time, move that row to DEV_SET and write a new unseen held-out row, so the held-out number stays honest. Start with the one wrong action: "pay the deposit ... to account" inside an offer was read as a payment request.
+- Run `ANDE_LLM_MODE=live npm run evals:classifiers` with a working key (behind a proxy add NODE_USE_ENV_PROXY=1) and commit docs/classifiers.json, so the Evals page shows the model column and the gate's verdict.
+- Metamorphic: add rewrites that change meaning on purpose (date, time, budget) and check the parse follows each one.
 - R10 ("somewhere in SoHo" booked Williamsburg) is caught by only one scenario in the bug replay; add a real-user row that would catch it too.
 - More everyday sentences in evals/user-requests.ts (now 52): "next week", "around 7ish", "dinner for 6 sometime next week".
 - Chat: understand "cancel it", "push it an hour later", "add a vegan" after a booking, each as a proposal the booker approves.
@@ -26,6 +26,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Shipped
 
+- 2026-11-19: Metamorphic parsing eval (1,066 checks; found and fixed R26 doubled spaces and R27 one-case client names), R25 a cuisine no venue serves is asked about, held-out classifier set grown to 62 with 95% intervals, promotion gate can no longer be passed by a model that never answered, and an eval-quality card on the Evals page.
 - 2026-11-19: Evals: bug replay (each fixed bug turned back on is caught again, 7/7), classifier benchmark with a held-out set and a shadow-to-live promotion gate, real-user rows graded on what the booker is told, and a Report it link in the app. The benchmark found and fixed two triage bugs; confirmations no longer promise dietary reminders when there are none.
 - 2026-11-19: An impossible model time ("25:00", "19:75", "24:00") is dropped for the time the sentence gave instead of reaching the booking; every request's time must now be a real 00:00-23:59 clock time (R24).
 - 2026-11-18: A total budget ("$300 total", "budget 2k", "$1,500 all in") is divided by the party size into a per-head cap, so a venue over it is no longer booked (R23); real-user sentences 44 → 47.

@@ -40,7 +40,7 @@ Evals only test what you thought of. So I gave the app to a real person. **Akila
 | Mamatha | "dinner for 6 under $60 a head" | Dead end: "no venue could host" (R15) | Asks, with the closest real price: "about $88 a head all-in, book that?" |
 | Mamatha | booked Dec 3, opened Calendar | The calendar showed a fixed 3 weeks, so her dinner was invisible (R16) | Calendar grows to the last booked dinner |
 
-`npm run evals:users` replays 52 requests typed the way people type, in CI, on every push: **52/52** now do what a person would expect (46 book, 2 correctly wait for a manager because they're under 24 h notice, 4 ask about budget). 7 of them are also graded on what the booker is told, not just the outcome: a booking that drops "Japanese, as asked" or the dietary confirmation fails. Found something it gets wrong? The app has a **Report it** link under every result that opens a prefilled issue ([template](.github/ISSUE_TEMPLATE/real-user.md)); each report becomes a permanent row.
+`npm run evals:users` replays 54 requests typed the way people type, in CI, on every push: **54/54** now do what a person would expect (46 book, 2 correctly wait for a manager because they're under 24 h notice, 6 ask: about budget, or about a cuisine no venue serves). 9 of them are also graded on what the booker is told, not just the outcome: a booking that drops "Japanese, as asked" or the dietary confirmation fails. Found something it gets wrong? The app has a **Report it** link under every result that opens a prefilled issue ([template](.github/ISSUE_TEMPLATE/real-user.md)); each report becomes a permanent row.
 
 ## ▶ Three more videos in 4K
 
@@ -65,27 +65,36 @@ A scheduled job (`npm run monitor`, [workflow](.github/workflows/agent-watch.yml
 |---|---|
 | A rotating slice of the eval scenarios against **live Claude** | Model drift shows up as a failed check or a fallback to rules, never silently. The whole suite is covered every few runs |
 | **500 random worlds no earlier run has seen** (seeds from the clock) | Silent venues, price hikes, injections, double bookings: new adversarial coverage every run, checked against the safety invariants |
-| The **52 real-user sentences** | The requests real people actually type keep working, and the booker is told what was asked |
+| The **54 real-user sentences** | The requests real people actually type keep working, and the booker is told what was asked |
 
 Each run appends a row to [`docs/monitor.json`](docs/monitor.json), charted on the Monitor page (pass rate, worlds tested, live p50/p95 latency, cost per day), with the full report in `evals/history/`. If anything fails, the run **opens a GitHub issue by itself** with the failing seed, which replays exactly. Live model calls are capped per run (about $0.10–0.20 a run).
 
-## ▶ Are the evals any good? Three checks on the checks
+## ▶ Are the evals any good? Four checks on the checks
 
-A green eval suite only matters if it would go red on the bugs you actually have.
+A green eval suite only matters if it would go red on the bugs you actually have. All four run in CI, and three run in your browser on the [Evals page](https://akilalours.github.io/thursday-dinner-concierge/#evals).
 
-**1. Bug replay** (`npm run evals:replay`). Every fixed bug that changed agent behavior has a switch that turns the old code back on. The replay flips each one and re-runs the 53 scenarios, the real-user sweep and the ranking eval. **7/7 fixed bugs are caught again**, and each is caught by a different layer: R7 and R8 by the real-user rows that check what the booker is told, R11 only by the ranking eval (warm hit@1 drops from 60% to 54%), R15 by 3 scenarios and 4 real-user sentences. A bug no layer catches fails the build.
+**1. Bug replay** (`npm run evals:replay`). Every fixed bug that changed agent behavior has a switch that turns the old code back on. The replay flips each one and re-runs the 53 scenarios, the real-user sweep and the ranking eval. **8/8 fixed bugs are caught again**, by different layers: R7 and R8 by real-user rows that check what the booker is told, R11 only by the ranking eval (warm hit@1 drops from 60% to 54%), R25 only by real-user rows. A bug no layer catches fails the build.
 
-**2. Classifier benchmark** (`npm run evals:classifiers`). Precision, recall and a confusion matrix for reply triage and injection detection, on three sets:
+**2. Metamorphic testing** (`npm run evals:metamorphic`). No labels needed, only relations: every real-user and scenario sentence is retyped 11 ways a person might type it (ALL CAPS, all lowercase, pasted line breaks, doubled spaces, "please", "thanks!") and must make the same booking; a changed headcount must be followed. **1,066 checks.** On its first run it failed 91 of them and found two bugs:
 
-| Set | Emails | Triage accuracy | Acted on a wrong label | Injection recall |
+| | What broke | Now |
+|---|---|---|
+| R26 | Text pasted from Slack or email with doubled spaces lost allergies, the neighborhood, "Christmas Eve" and the kind of event | Whitespace is normalized before parsing |
+| R27 | "DINNER FOR 6 WITH ACME" and "dinner with acme" lost the client; "with Acme." kept the full stop | One-case sentences read the name after "with"; a name ends at a full stop |
+
+**3. Classifier benchmark** (`npm run evals:classifiers`). Precision, recall, a confusion matrix and 95% intervals for reply triage and injection detection:
+
+| Set | Emails | Rules: triage accuracy (95% CI) | Acted on a wrong label | Injections caught |
 |---|---|---|---|---|
-| Generated: every email the venue world writes, label = the behavior that wrote it | 960 | 100% | 0 | 120/120 |
-| Dev: hand-labelled replies in real-world phrasing, used to fix the rules | 36 | 100% (tuned on it) | 0 | 6/6 |
-| **Held-out: hand-labelled, never used to change a rule** | 22 | **41%** | 1 | **2/4** |
+| Generated: every email the venue world writes, label = the behavior that wrote it | 960 | 100% (99.6–100%) | 0 | 120/120 |
+| Dev: hand-labelled, real-world phrasing, used to fix the rules | 36 | 100% (tuned on it) | 0 | 6/6 |
+| **Held-out: hand-labelled, written before being run, never used to change a rule** | 62 | **40% (29–53%)** | 6 | **4/10** |
 
-The benchmark found two bugs in emails the simulator itself writes: "we have no availability" was not read as a decline (a `we have` exception swallowed it), and "the minimum has gone up to $3,000" was not read as a counter. Both are fixed (reply triage 1.4, injection 1.2). The held-out number is the honest one, and I show it anyway: the rules are precise (every held-out miss but one goes to a person, not to a wrong action) but brittle on phrasing they haven't seen. That is exactly the case for the model path, so the same report is a **promotion gate**: a classifier moves from shadow to live only if the model beats the rules on every set, catches every injection the rules catch, and never reads a decline or a payment request as an offer more often. A model that always says "offer" is rejected by the gate in the tests.
+The benchmark found two bugs in emails the simulator itself writes ("we have no availability" wasn't a decline; "the minimum has gone up" wasn't a counter), now fixed. The held-out number is the honest one, and I show it anyway: the rules are precise (most held-out misses go to a person, not to a wrong action) but brittle on phrasing they haven't seen. That is the case for the model path, so the same report is a **promotion gate**: a classifier moves from shadow to live only if the model itself decided at least 95% of every set, beats the rules on accuracy, catches every injection they catch, and never reads a decline or a payment request as an offer more often.
 
-**3. Real users**, above: graded on outcome and on what they are told, with a one-click report from the app.
+The first live run caught a bug in the gate itself: with a revoked API key every model call failed, fell back to the rules, scored exactly like them, and the gate said "promote". The gate now requires the model to have answered, the run refuses to publish model numbers it didn't produce, and a test with a model that always errors keeps it that way. Model numbers will appear on the Evals page after a run with a working key.
+
+**4. Real users**, above: graded on outcome and on what they are told, with a one-click report from the app.
 
 ### ▶ Try a sentence (each link runs it live)
 

@@ -41,7 +41,21 @@ describe("classifier benchmark", () => {
     assert.equal(g.promote, false);
     assert.ok(g.reasons.some((r) => /decline emails read as offers/.test(r)));
     const better = clone(); better.heldOut.triage.accuracy = 0.95;
+    for (const k of ["generated", "dev", "heldOut"] as const) { better[k].triage.modelDecided = better[k].triage.n; better[k].injection.modelDecided = better[k].injection.n; }
     assert.deepEqual(promotionGate(rules, better), { promote: true, reasons: [] });
+  });
+
+  it("a model that never answers (revoked key) cannot pass the gate by scoring like the rules", async () => {
+    const dead: LLM = { mode: "live", async complete() { throw new Error("model endpoint returned HTTP 401"); } };
+    const g = promotionGate(await benchmark(offline, "rules", { generatedEvery: 8 }), await benchmark(dead, "live", { generatedEvery: 8 }));
+    assert.equal(g.promote, false);
+    assert.ok(g.reasons.some((r) => /decided only 0 of/.test(r)));
+  });
+
+  it("a sampled generated set still covers every kind of email", async () => {
+    const b = await benchmark(offline, "rules", { generatedEvery: 8 });
+    for (const l of ["offer", "decline", "counter", "question", "auto_reply"] as const) assert.ok(b.generated.triage.labels[l].support > 0, l);
+    assert.ok(b.generated.triage.n > 80 && b.generated.triage.n < 180);
   });
 
   it("a model that always says offer fails the gate end to end", async () => {
