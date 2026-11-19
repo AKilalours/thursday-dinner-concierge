@@ -63,7 +63,7 @@ A scheduled job (`npm run monitor`, [workflow](.github/workflows/agent-watch.yml
 
 | Every run | Why |
 |---|---|
-| A rotating slice of the eval scenarios against **live Claude** | Model drift shows up as a failed check or a fallback to rules, never silently. The whole suite is covered every few runs |
+| A rotating slice of the eval scenarios against **live Claude** when the `ANTHROPIC_API_KEY` secret is set (recorded model outputs until then; every run so far has used recordings, and the Monitor page shows which) | Model drift shows up as a failed check or a fallback to rules, never silently. The whole suite is covered every few runs |
 | **500 random worlds no earlier run has seen** (seeds from the clock) | Silent venues, price hikes, injections, double bookings: new adversarial coverage every run, checked against the safety invariants |
 | The **54 real-user sentences** | The requests real people actually type keep working, and the booker is told what was asked |
 
