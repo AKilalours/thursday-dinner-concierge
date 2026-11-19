@@ -18,10 +18,11 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - `npm run build:web` on a fresh clone rewrites docs/app.js with different minified names; pin esbuild exactly so builds are reproducible.
 - "dinner for 6 next week" asks which date; offer the 5 weekdays as one-tap choices instead of a free-text question.
 - A total budget with no headcount ("dinner on Friday, $500 total") is dropped; keep it and apply it once the party size is answered.
-- The model's time24h is only shape-checked ("25:00" passes); reject an impossible hour so a model slip cannot crash a booking like R21 did.
+- `npm run site:check` imports playwright but it is not in package.json; on a fresh clone it fails with ERR_MODULE_NOT_FOUND unless a global copy is linked.
 
 ## Shipped
 
+- 2026-11-19: An impossible model time ("25:00", "19:75", "24:00") is dropped for the time the sentence gave instead of reaching the booking; every request's time must now be a real 00:00-23:59 clock time (R24).
 - 2026-11-18: A total budget ("$300 total", "budget 2k", "$1,500 all in") is divided by the party size into a per-head cap, so a venue over it is no longer booked (R23); real-user sentences 44 → 47.
 - 2026-11-18: Allergies typed plainly ("no shellfish", "allergic to nuts", "nut-free", "dairy free", "celiac", "allergic to sesame") now reach the venue email and the proposal instead of being dropped (R22); real-user sentences 42 → 44.
 - 2026-11-17: "dinner for 4 on Friday at 7.30pm" no longer crashes (it read "30pm" as 42:00); "7.30" books 7:30 not 7:00, and "noon" books 12:00 not 12:30 (R21); real-user sentences 40 → 42.

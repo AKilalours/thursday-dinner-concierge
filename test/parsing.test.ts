@@ -80,6 +80,17 @@ describe("request parsing (model, checked by code)", () => {
     const r = await parseRequest(fake(out(20)), "dinner for 12 with Acme next Thursday, private", MON);
     assert.equal(r.request.partySize, 12); assert.match(r.note!, /overruled/);
   });
+  // Regression R24: the model's time was only shape-checked, so "25:00" reached the booking as an impossible start.
+  it("drops an impossible model time and keeps the sentence's own", async () => {
+    for (const bad of ["25:00", "19:75", "24:00"]) {
+      const r = await parseRequest(fake(out(6).replace('"time24h":null', `"time24h":"${bad}"`)), "dinner for 6 with Acme on Friday at 8pm", MON);
+      assert.equal(r.decidedBy, "model"); assert.equal(r.request.time, "20:00"); assert.match(r.note!, /time/);
+    }
+  });
+  it("keeps a valid model time", async () => {
+    const r = await parseRequest(fake(out(6).replace('"time24h":null', '"time24h":"18:45"')), "dinner for 6 with Acme on Friday at quarter to 7", MON);
+    assert.equal(r.request.time, "18:45"); assert.equal(r.note, null);
+  });
   it("falls back to rules when the model is off", async () => {
     assert.equal((await parseRequest(offline, "dinner for 12 with Acme next Thursday", MON)).decidedBy, "rules");
   });

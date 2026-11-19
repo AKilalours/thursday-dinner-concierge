@@ -7,6 +7,9 @@ export const Iso = z.string().datetime({ offset: true });
 export const EventKind = z.enum(["client_dinner", "team_dinner", "client_lunch", "happy_hour"]);
 export type EventKind = z.infer<typeof EventKind>;
 
+/** A real wall-clock time, 00:00-23:59. Shape alone let "25:00" through to the booking (R24). */
+export const ClockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
 /** What the concierge understands from one sentence. Every field the booker did not say is null, never guessed. */
 export const BookingRequest = z.object({
   partySize: z.number().int().min(1).max(500),
@@ -14,7 +17,7 @@ export const BookingRequest = z.object({
   partySizeStated: z.boolean(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
   dateAmbiguous: z.boolean(),
-  time: z.string().regex(/^\d{2}:\d{2}$/),
+  time: ClockTime,
   kind: EventKind,
   clientName: z.string().nullable(),
   privateRoom: z.boolean(),

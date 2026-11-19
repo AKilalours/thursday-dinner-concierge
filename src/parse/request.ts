@@ -1,7 +1,7 @@
 // One sentence -> a typed BookingRequest. The model reads the language; code owns the calendar and
 // checks the model never invents a party size that is not in the sentence.
 import { z } from "zod";
-import { BookingRequest, EventKind } from "../domain/types.ts";
+import { BookingRequest, ClockTime, EventKind } from "../domain/types.ts";
 import { structured } from "../llm/client.ts";
 import type { LLM } from "../llm/client.ts";
 import { resolveDate } from "../time.ts";
@@ -141,6 +141,7 @@ export async function parseRequest(llm: LLM, text: string, today: string): Promi
   // Code checks the model: a party size must be literally in the sentence, or we ask instead of guessing.
   const literal = partySizeFrom(text);
   const partySize = v.partySize !== null && literal !== null && v.partySize === literal ? v.partySize : literal;
+  const timeOk = v.time24h !== null && ClockTime.safeParse(v.time24h).success;
   const request = BookingRequest.parse({
     ...base,
     partySize: partySize ?? 2,
@@ -152,9 +153,14 @@ export async function parseRequest(llm: LLM, text: string, today: string): Promi
     cuisine: v.cuisine?.toLowerCase() ?? base.cuisine,
     // A cap code derived from a total wins: the model may report the total itself as the per-head figure.
     maxPerHeadCents: v.maxPerHeadDollars !== null && totalBudgetCents(text) === null ? Math.round(v.maxPerHeadDollars * 100) : base.maxPerHeadCents,
-    time: v.time24h ?? base.time,
+    // Regression R24: an impossible model time ("25:00") is dropped for the sentence's own, never booked.
+    time: timeOk ? v.time24h! : base.time,
     dietary: v.dietary,
     notes: v.notes,
   });
-  return { request, decidedBy: "model", note: v.partySize !== partySize ? `model party size ${v.partySize} overruled` : null };
+  const notes = [
+    v.partySize !== partySize ? `model party size ${v.partySize} overruled` : null,
+    v.time24h !== null && !timeOk ? `model time ${v.time24h} overruled` : null,
+  ].filter(Boolean);
+  return { request, decidedBy: "model", note: notes.length ? notes.join("; ") : null };
 }
