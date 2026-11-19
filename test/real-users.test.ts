@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -61,6 +61,18 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for me and 3 clients next Thursday", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.equal(r.request?.partySize, 4);
+  });
+  it("R29: named guests are counted, the booker included", async () => {
+    assert.equal(partySizeFrom("dinner for me, Sam and Priya on Friday"), 3);
+    assert.equal(partySizeFrom("lunch for Sam, Priya and me"), 3);
+    assert.equal(partySizeFrom("DINNER FOR ME, SAM, AND PRIYA"), 3, "casing and an Oxford comma change nothing");
+    assert.equal(partySizeFrom("drinks for me & Jo"), 2);
+    assert.equal(partySizeFrom("dinner for 4: me, Sam and Priya"), 4, "a stated total wins");
+    assert.equal(partySizeFrom("dinner for me and the team"), null, "not a person: asked, not guessed");
+    assert.equal(partySizeFrom("dinner for Sam and Priya"), null, "the booker may not be going: asked");
+    const r = await run("dinner for me, Sam and Priya on Friday", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.equal(r.request?.partySize, 3);
   });
   it("R15: a budget nothing meets gets the closest real price, not a dead end", async () => {
     const r = await run("dinner for 6 under $60 a head this Friday", "2026-11-11");

@@ -33,11 +33,26 @@ export function partySizeFrom(text: string): number | null {
   // Regression R19: "for me and 3 clients" asked how many guests, and "myself and 5 people" booked 5; the booker counts too.
   const me = t.match(/\b(?:me|myself)\s*(?:and|\+|plus|&)\s*(\d{1,3}|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b(?!\s*(?:am|pm|:\d))/);
   if (me) return (WORDS[me[1]] ?? Number(me[1])) + 1;
+  const names = namedGuests(t);
+  if (names) return names;
   const n = t.match(/\b(\d{1,3})\s*(?:people|guests|pax|of us|ppl|attendees|folks|covers)\b/);
   if (n) return Number(n[1]);
   const w = t.match(/\b(?:for|party of|group of|table for|a)\s+(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|eighteen|twenty|thirty|dozen)\b/)
     ?? t.match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|eighteen|twenty|thirty)\s+(?:people|guests|of us)\b/);
   return w ? WORDS[w[1]] : null;
+}
+
+// Regression R29: "dinner for me, Sam and Priya" asked how many guests. A list of single names that includes the
+// booker is a headcount; anything that is not clearly a person ("my boss", "the team") is still asked, not guessed.
+const NOT_A_GUEST = /^(the|my|our|a|an|some|us|them|you|everyone|team|clients?|colleagues?|friends?|family|guests?|people|kids|on|at|in|next|this|tomorrow|tonight|lunch|dinner|drinks)$/;
+
+function namedGuests(t: string): number | null {
+  const m = t.match(/\bfor ((?:[a-z][a-z'-]*\s*,\s*)*[a-z][a-z'-]*\s*,?\s*(?:and|&)\s+[a-z][a-z'-]*)\b/);
+  if (!m) return null;
+  const people = m[1].split(/\s*,\s*(?:and\s+|&\s+)?|\s+(?:and|&)\s+/).map((p) => p.trim());
+  if (!people.some((p) => p === "me" || p === "myself")) return null;
+  if (people.some((p) => NOT_A_GUEST.test(p) || /\s/.test(p))) return null;
+  return new Set(people).size === people.length && people.length <= 12 ? people.length : null;
 }
 
 export function dietaryFrom(text: string): string[] {

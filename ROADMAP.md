@@ -19,14 +19,17 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - Memory page: show which learned fact changed the ranking for the last request.
 - A second category beyond dinners (office catering) end to end: venues, policy cap, emails, evals, split over several runs.
 - Venue side: read a stated time ("that Friday at 7") into the offer, so a different time is caught as a counter.
-- "dinner for me, Sam and Priya" names guests without a number; count named people (with a confirm) instead of asking.
 - `npm run build:web` on a fresh clone rewrites docs/app.js with different minified names; pin esbuild exactly so builds are reproducible.
 - "dinner for 6 next week" asks which date; offer the 5 weekdays as one-tap choices instead of a free-text question.
 - A total budget with no headcount ("dinner on Friday, $500 total") is dropped; keep it and apply it once the party size is answered.
 - `npm run build:web` on a fresh clone rewrites docs/app.js even with no source change; once esbuild is pinned, make site:check fail when the committed docs/app.js is stale.
 
+- "next Thursday" typed on a Wednesday books the next day (Nov 12 from Nov 11); many people mean the week after. Decide, then ask when it's ambiguous.
+- "dinner for me and my boss" still asks how many; count "my boss", "my manager", "a client" as one person each.
+
 ## Shipped
 
+- 2026-11-19: "dinner for me, Sam and Priya" books 3 instead of asking how many guests; a list of names that includes the booker is counted, and "me and the team" or names without "me" are still asked (R29); real-user sentences 55 → 57.
 - 2026-11-19: `npm run site:check` works on a fresh clone: it falls back to a global Playwright (NODE_PATH or `npm root -g`) instead of failing with ERR_MODULE_NOT_FOUND, and says how to install it when there is none.
 - 2026-11-19: Hybrid reply triage passed the promotion gate on a live run (held-out 80.6% vs rules 40.3%, injections 10/10 vs 4/10, 100% on generated and dev) and is now the agent's default; R28 a stated per-head budget is explained in the booker's terms; `npm run users:import` turns Report it issues into permanent eval rows.
 - 2026-11-19: First live classifier benchmark (claude-sonnet-4-5): held-out triage 88.7% vs rules 40.3%, injections 10/10 vs 4/10; gate says stay in shadow. Found and fixed an injection timeout (3 s vs 2.7-3.2 s model latency) that discarded half the model's answers.
