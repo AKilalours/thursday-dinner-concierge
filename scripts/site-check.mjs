@@ -4,7 +4,7 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 
 const root = new URL("../docs/", import.meta.url).pathname;
 const types = { ".html": "text/html", ".js": "text/javascript", ".png": "image/png", ".gif": "image/gif", ".mp4": "video/mp4", ".css": "text/css" };
