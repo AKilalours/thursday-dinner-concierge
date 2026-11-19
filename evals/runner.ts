@@ -1,5 +1,6 @@
 // Runs one eval scenario or one random world. No file system, so the same code runs in CI and in the
 // browser playground ("Run the evals" tab).
+import type { Ctx } from "../src/tools/registry.ts";
 import { buildVenues, COMPANY, rng, user } from "../data/seed.ts";
 import type { Company } from "../src/domain/types.ts";
 import { carefulApprover, runConcierge } from "../src/agents/concierge.ts";
@@ -26,7 +27,8 @@ function approverFor(s: Scenario): Approver {
 export interface ScenarioRun { checks: Check[]; result: RunResult; emails: number; hours: number; world: VenueWorld }
 
 /** `company` lets a policy change be replayed against every scenario before it ships. */
-export async function runScenario(s: Scenario, llm: LLM, company: Company = COMPANY): Promise<ScenarioRun> {
+/** `legacy` re-enables a fixed bug, so the mutation eval can prove the suite would catch it again. */
+export async function runScenario(s: Scenario, llm: LLM, company: Company = COMPANY, legacy?: Ctx["legacy"]): Promise<ScenarioRun> {
   const today = s.today ?? "2026-11-09";
   // Behaviors are assigned by contact order, so a scenario can say "the first two venues never reply".
   const assigned = new Map<string, Behavior>();
@@ -37,7 +39,7 @@ export async function runScenario(s: Scenario, llm: LLM, company: Company = COMP
   }, `${today}T15:00:00.000Z`, 11);
   const store = new MemoryStore();
   await store.init(venues);
-  const base = { actor: priya, principal: dana, today, store, world, llm, venues, company };
+  const base = { actor: priya, principal: dana, today, store, world, llm, venues, company, legacy };
   let warmupRunId: string | null = null;
   if (s.warmup) {
     const w = await runConcierge({ ...base, text: s.warmup.text, approver: approverFor({ ...s, expect: { outcome: "booked" } }) });

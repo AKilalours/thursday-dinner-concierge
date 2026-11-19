@@ -404,6 +404,18 @@ function seating(n: number) {
   }
   return `<svg width="${W2}" height="${H2}"><rect x="44" y="34" width="${W2 - 88}" height="${H2 - 68}" rx="26" fill="#b8862b33" stroke="#b8862b"/>${seats.join("")}</svg>`;
 }
+/** A prefilled GitHub issue: the sentence, what happened and the trace. Reports become rows in evals/user-requests.ts. */
+const REPO = "https://github.com/AKilalours/thursday-dinner-concierge";
+function reportUrl(text: string, res: { outcome: string; runId: string; messagesToBooker: string[]; trace: TraceEvent[] }) {
+  const body = [
+    "**What I typed**", "```", text, "```", "", `**What happened:** ${res.outcome.replace(/_/g, " ")}`, "",
+    "**What the agent told me**", ...res.messagesToBooker.map((m) => `> ${m}`), "",
+    "**What I expected**", "<!-- e.g. booked, a question back, a different venue -->", "",
+    `<details><summary>Trace (${res.trace.length} steps, run ${res.runId})</summary>`, "", "```",
+    ...res.trace.slice(-25).map((e) => `${e.kind}: ${e.text}`.slice(0, 160)), "```", "</details>",
+  ].join("\n").slice(0, 6000);
+  return `${REPO}/issues/new?${new URLSearchParams({ template: "real-user.md", labels: "real-user", title: `Real user: "${text.slice(0, 80)}"`, body })}`;
+}
 async function book() {
   running = true; $("#go button").setAttribute("disabled", "");
   for (const id of ["#events", "#inbox", "#phone", "#short"]) $(id).innerHTML = "";
@@ -424,6 +436,7 @@ async function book() {
     setLastBooking({ venue: v, roomName: room.name, partySize: bk.partySize, date: localDate(bk.startsAt), dietary: res.request?.dietary ?? [], client: res.request?.clientName ?? "Guests", world: bookWorld, threadId: `thr_${res.runId}_${v.id}` });
     toast("Booked", `${v.name} · ${room.name} · ${bk.partySize} guests`);
   } else $("#phone").append(el("div", "ticket fail", `<div class="tt">${res.outcome.replace(/_/g, " ")}</div><div class="ts" style="color:#ffd5dc">Nothing was booked or paid.</div>`));
+  $("#phone").append(el("div", "report", `Not what you expected? <a href="${reportUrl($<HTMLInputElement>("#ask").value, res)}" target="_blank" rel="noopener">Report it</a>. Every report becomes a permanent eval case.`));
   $("#phonebox").scrollTop = $("#phonebox").scrollHeight;
   running = false; $("#go button").removeAttribute("disabled");
 }

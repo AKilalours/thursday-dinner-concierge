@@ -6,9 +6,12 @@ import type { Outcome } from "../src/domain/types.ts";
 import { offline } from "../src/llm/client.ts";
 import { VenueWorld } from "../src/sim/world.ts";
 import { MemoryStore } from "../src/store/memory.ts";
+import type { Ctx } from "../src/tools/registry.ts";
 
 export const TODAY = "2026-11-11";
-export const REAL_USER_REQUESTS: [string, Outcome][] = [
+/** [what they typed, the outcome a person expects, optionally something the booker must be told]. */
+export type UserRow = [string, Outcome, RegExp?];
+export const REAL_USER_REQUESTS: UserRow[] = [
   ["dinner for 2 next Friday, somewhere private", "booked"],
   ["lunch with a client tomorrow, 3 people", "booked"],
   ["book a table for 5 on Saturday night", "booked"],
@@ -25,12 +28,12 @@ export const REAL_USER_REQUESTS: [string, Outcome][] = [
   ["dinner for two tonight", "escalated"],
   ["dinner for 4 at 9pm on Nov 19", "booked"],
   ["steak dinner for 6 with Hooli on Dec 1, private room", "booked"],
-  ["book dinner for 7 people next Thursday, 2 vegetarians and 1 gluten free", "booked"],
+  ["book dinner for 7 people next Thursday, 2 vegetarians and 1 gluten free", "booked", /vegetarian.*gluten|gluten.*vegetarian/i],
   ["need a place for 40 people on Dec 10 for a team offsite dinner", "booked"],
   ["breakfast meeting for 4 tomorrow at 8am", "escalated"],
   ["dinner for 10 with the Stark team, somewhere in Williamsburg, Nov 24", "booked"],
   ["dinner for 5 on 12/3", "booked"],
-  ["korean bbq for 8 next Friday", "booked"],
+  ["korean bbq for 8 next Friday", "booked", /Korean, as asked/],
   ["farewell dinner for Sam, 9 people, next Wednesday", "booked"],
   ["dinner for 6 under $60 a head this Friday", "needs_clarification"],
   ["dinner for 12 on Christmas Eve", "booked"],
@@ -56,13 +59,27 @@ export const REAL_USER_REQUESTS: [string, Outcome][] = [
   ["dinner for 6 this Friday, $300 total", "needs_clarification"],
   ["team dinner for 8 on Dec 3, budget 2k", "booked"],
   ["dinner for 10 on Dec 2, $1,500 all in", "booked"],
+  // Checked for what the booker is told, not just the outcome: the cuisine and dietary needs must be confirmed back.
+  ["japanese dinner for 4 next Thursday", "booked", /Japanese, as asked/],
+  ["dinner for 6 in SoHo next Friday", "booked", /Kiso House|Nakamura Counter|Fenwick Chophouse|Hollow Oak Tavern/],
+  ["dinner for 5 on Dec 3, two of us are vegetarian", "booked", /Dietary needs sent to .*vegetarian/],
+  ["dinner for 4 next thursday, one guest has a nut allergy", "booked", /Dietary needs sent to .*nut/],
+  ["team dinner for 8 in the West Village on Dec 10", "booked", /Halden & Vine|Juniper Hall|The Velvet Ledger|Rue Margaux/],
 ];
 
-export async function runUserRequest(text: string) {
+/** Runs one row and says why it failed, or null. Shared by the sweep, the monitor, the bug replay and the tests. */
+export async function checkUserRow([text, want, mustSay]: UserRow, legacy?: Ctx["legacy"]): Promise<{ outcome: Outcome; why: string | null; last: string | undefined }> {
+  const r = await runUserRequest(text, legacy);
+  const said = r.messagesToBooker.join("\n");
+  const why = r.outcome !== want ? `${r.outcome}, expected ${want}` : mustSay && !mustSay.test(said) ? `never told the booker ${mustSay}` : null;
+  return { outcome: r.outcome, why, last: r.messagesToBooker.at(-1) };
+}
+
+export async function runUserRequest(text: string, legacy?: Ctx["legacy"]) {
   const venues = buildVenues(), store = new MemoryStore(); await store.init(venues);
   const actor = user("usr_priya");
   return runConcierge({
-    text, actor, principal: user("usr_dana"), today: TODAY, store, venues, llm: offline, company: COMPANY,
+    text, actor, principal: user("usr_dana"), today: TODAY, store, venues, llm: offline, company: COMPANY, legacy,
     world: new VenueWorld(venues, () => "accept", `${TODAY}T15:00:00.000Z`),
     approver: async (p, s) => carefulApprover(actor, { partySize: p.partySize, date: new Date(Date.parse(p.startsAt) - 5 * 3_600_000).toISOString().slice(0, 10), privateRoom: false })(p, s),
   });

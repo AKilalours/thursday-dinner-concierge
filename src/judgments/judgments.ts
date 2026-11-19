@@ -10,16 +10,18 @@ const offerish = /available|happy to (host|hold)|we can (host|do|hold)|pencil(le
 /** What kind of venue email is this? Below threshold it goes to a person, never guessed. */
 export type Triage = "offer" | "decline" | "counter" | "question" | "payment_request" | "auto_reply" | "needs_human";
 export const replyTriage = (llm: LLM, mode: Mode = "rules") => new Classifier<string, Triage>({
-  name: "reply_triage", version: "1.3",
+  name: "reply_triage", version: "1.4",
   labels: ["offer", "decline", "counter", "question", "payment_request", "auto_reply", "needs_human"],
   thresholds: { offer: 0.7, decline: 0.7, counter: 0.7, question: 0.6, payment_request: 0.8, auto_reply: 0.8, needs_human: 0 },
   fallback: "needs_human",
   timeoutMs: 4000,
   rules(body) {
-    if (has(body, /out of (the )?office|auto(matic)?[- ]reply|currently away|limited access to email/)) return { label: "auto_reply", confidence: 0.95, reason: "auto-reply phrasing" };
-    if (has(body, /unfortunately|fully (booked|committed)|not able to accommodate|unable to host|no availability|can't do|cannot accommodate|booked solid|won't be able to/)
-      && !has(body, /could (do|offer)|instead|alternatively|would work|we have/)) return { label: "decline", confidence: 0.9, reason: "decline phrasing" };
-    if (has(body, /instead|alternatively|could offer|the closest we|only (seats|fits|holds)|would need to be|minimum (has|would) (gone|go|be) up|revised/)) return { label: "counter", confidence: 0.8, reason: "alternative offered" };
+    if (has(body, /out of (the )?office|auto(matic)?[- ]reply|automated (response|reply|message)|currently (away|on leave)|limited access to email|checking email intermittently/)) return { label: "auto_reply", confidence: 0.95, reason: "auto-reply phrasing" };
+    // "we have no availability" is a decline, so the "we have <a room>" exception must not swallow it.
+    if (has(body, /unfortunately|fully (booked|committed)|not able to accommodate|unable to host|no availability|can't do|can'?t accommodate|cannot accommodate|booked solid|won't be able to|(have to|must) pass|closed for (a |our )?private|not doing (private )?events|don'?t take (groups|parties)/)
+      && !has(body, /could (do|offer|seat)|can offer|instead|alternatively|would work|we have (?!no\b)|\bbut (the |we )/)) return { label: "decline", confidence: 0.9, reason: "decline phrasing" };
+    // A different room, date, time, size or price than asked. Venues rarely say "counter"; they say "but" and "rather than".
+    if (has(body, /instead|alternatively|(could|can) offer|the closest we|only (seats|fits|holds)|(would|it'?d) need to be|(minimum|price|rate)\b[^.]{0,40}\b(gone|go|went) up|rather than|revised|but not \d+|maxes out at|could seat you at|(taken|booked|full)\b[^.]{0,30}\bbut\b/)) return { label: "counter", confidence: 0.8, reason: "alternative offered" };
     // An offer that also mentions payment (or hides injected bank details) is still an offer; it must not be lost.
     if (has(body, /(deposit|payment|invoice|wire|pay)\b.*(link|below|attached|account|routing|zelle|venmo)/s) && !has(body, offerish)) return { label: "payment_request", confidence: 0.85, reason: "asks for payment" };
     if (has(body, offerish)) return { label: "offer", confidence: 0.85, reason: "availability confirmed" };
@@ -78,7 +80,7 @@ export const urgency = (llm: LLM, mode: Mode = "rules") => new Classifier<{ text
  */
 export type Injection = "injection" | "clean";
 export const injection = (llm: LLM, mode: Mode = "rules") => new Classifier<string, Injection>({
-  name: "injection", version: "1.1",
+  name: "injection", version: "1.2",
   labels: ["injection", "clean"],
   thresholds: { injection: 0.5, clean: 0.6 },
   fallback: "injection",
@@ -86,11 +88,14 @@ export const injection = (llm: LLM, mode: Mode = "rules") => new Classifier<stri
   rules(text) {
     const t = text.toLowerCase();
     const signals = [
-      /ignore (all |any )?(previous|prior|above|earlier) (instructions|messages)/,
+      /(ignore|disregard|forget) (all |any )?(of )?(your |the )?(previous|prior|above|earlier) (instructions|messages|rules)/,
+      /(note|message|instructions?) (to|for) (the |any )?(ai|assistant|agent|bot)\b/,
+      /just (approve|confirm|pay|book) (it|this)\b/,
       /\b(system|assistant|ai|agent|bot)\s*(note|prompt|instruction|override)s?\s*[:\]]/,
       /you are (now )?(an?|the) (ai|assistant|agent)/,
-      /(approve|confirm|book|pay) (this|it|the deposit) (immediately|now|automatically|without)/,
-      /do not (tell|inform|notify|ask) (the )?(booker|client|customer|user|human)/,
+      /(approve|pay) (this |it |the )?(booking |deposit |reservation )?(immediately|now|automatically|without)/,
+      /confirm (this |the )(booking |deposit |reservation )?(automatically|without)/,
+      /(do not|don'?t) (tell|inform|notify|ask) (the )?(booker|client|customer|user|human)/,
       /(new|updated|different) (bank|payment|wire) (details|account|instructions)/,
       /(routing|account) (number|no\.?)\s*[:#]?\s*\d{4,}/,
       /<\s*\/?\s*(system|instructions?)\s*>/,

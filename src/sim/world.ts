@@ -56,6 +56,13 @@ export class VenueWorld {
   /** Resolves once every person-played venue has answered (or declined to). A no-op in every simulated world. */
   async settle() { await Promise.all(this.awaiting.splice(0)); }
   /** The email a venue with this behavior would write: the partner portal's quick replies. */
+  /** Any email this world can write, labelled by what it really is: the classifier benchmark's ground truth. */
+  sample(venueId: string, kind: Behavior | "auto_reply" | "question", meta: InquiryMeta) {
+    const v = this.venues.get(venueId)!;
+    if (kind === "auto_reply" || kind === "auto_reply_then_accept") return this.autoReply(v);
+    if (kind === "question" || kind === "question_then_accept") return this.question(v);
+    return this.draft(venueId, kind === "accept_slow" || kind === "no_reply" ? "accept" : kind, meta);
+  }
   draft(venueId: string, b: Behavior, meta: InquiryMeta) { return this.compose(this.venues.get(venueId)!, b, meta).replace(/(\$[\d,]+)\.\d+(?=[\s,.)])/g, "$1"); }
 
   private pick<T>(xs: T[]): T { return xs[Math.floor(this.r() * xs.length)]; }

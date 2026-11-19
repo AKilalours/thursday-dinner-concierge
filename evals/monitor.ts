@@ -17,7 +17,7 @@ import { llmFromEnv } from "../src/llm/client.ts";
 import { offline } from "../src/llm/client.ts";
 import { fuzzOne, runScenario } from "./runner.ts";
 import { SCENARIOS } from "./scenarios.ts";
-import { REAL_USER_REQUESTS, runUserRequest } from "./user-requests.ts";
+import { checkUserRow, REAL_USER_REQUESTS } from "./user-requests.ts";
 
 const SLICE = Number(process.env.MONITOR_SCENARIOS ?? 12);
 const WORLDS = Number(process.env.MONITOR_WORLDS ?? 500);
@@ -76,11 +76,11 @@ for (let i = 0; i < WORLDS; i++) {
   for (const c of f.checks.filter((c) => !c.pass)) { worldFails++; failures.push(`world seed ${firstSeed + i} "${f.text}": ${c.name}: ${c.why}`); }
 }
 
-// 3. The 25 real-user sentences.
+// 3. The real-user sentences.
 let asExpected = 0;
-for (const [text, want] of REAL_USER_REQUESTS) {
-  const r = await runUserRequest(text);
-  if (r.outcome === want) asExpected++; else failures.push(`real-user "${text}": ${r.outcome}, expected ${want}`);
+for (const row of REAL_USER_REQUESTS) {
+  const r = await checkUserRow(row);
+  if (!r.why) asExpected++; else failures.push(`real-user "${row[0]}": ${r.why}`);
 }
 
 const ms = [...llm.ms].sort((a, b) => a - b), q = (p: number) => (ms.length ? ms[Math.min(ms.length - 1, Math.floor(p * ms.length))] : 0);

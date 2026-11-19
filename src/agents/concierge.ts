@@ -268,7 +268,7 @@ async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, inp
   await ctx.store.remember({ companyId: ctx.company.id, scope: "company", ownerUserId: ctx.actor.id, subject: req.clientName ?? "team", fact: `hosted_at:${v.id}`, source: ctx.runId });
   result.outcome = "booked";
   await log(ctx, "concierge", "booked", `booked ${v.name}${result.paymentId ? " and paid the deposit to the payee on file" : ""}`);
-  await tell(`Confirmed: ${v.name}, ${room.name}, ${human(req.date!)} at ${clock(req.time)} for ${req.partySize}.${result.paymentId ? ` Deposit of ${usd(opt.policy.depositCents)} paid to ${v.name}'s account on file.` : ""} I'll send the calendar invite and remind the venue of dietary needs a week out.`);
+  await tell(`Confirmed: ${v.name}, ${room.name}, ${human(req.date!)} at ${clock(req.time)} for ${req.partySize}.${result.paymentId ? ` Deposit of ${usd(opt.policy.depositCents)} paid to ${v.name}'s account on file.` : ""} I'll send the calendar invite${req.dietary.length ? ` and remind the venue of the dietary needs (${req.dietary.join(", ")}) a week out` : ""}.`);
   return "done";
 }
 
