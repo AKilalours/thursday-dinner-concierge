@@ -11,7 +11,9 @@ const WORDS: Record<string, number> = {
   thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, eighteen: 18, twenty: 20, dozen: 12, thirty: 30,
 };
 export const NEIGHBORHOODS = ["flatiron", "midtown", "tribeca", "west village", "soho", "chelsea", "financial district", "williamsburg"];
-const CUISINES = ["italian", "steakhouse", "steak", "japanese", "sushi", "omakase", "new american", "french", "mediterranean", "korean", "seafood"];
+// The network's cuisines plus ones people ask for that it may not have: a cuisine we don't serve must be heard, not dropped.
+const CUISINES = ["italian", "steakhouse", "steak", "japanese", "sushi", "omakase", "new american", "french", "mediterranean", "korean", "seafood",
+  "thai", "mexican", "indian", "chinese", "vietnamese", "greek", "spanish", "tapas", "ethiopian", "lebanese", "turkish", "peruvian", "bbq"];
 // Regression R22: "no shellfish", "allergic to nuts" and "dairy free" were dropped, so the venue was never told.
 // People rarely type the label itself, so each need lists the ways it is actually written.
 const DIETARY: [string, RegExp][] = [
@@ -79,14 +81,29 @@ function timeFrom(text: string, kind: EventKind): string {
 }
 
 /** The deterministic parser: always available, and the fallback when the model times out or is off. */
-export function parseRules(text: string, today: string): BookingRequest {
+const NOT_A_NAME = /^(on|next|this|at|in|for|tomorrow|tonight|team|folks|group|execs|leadership|crew|and|to|near|from|around|somewhere|private|under|people|guests)\b/;
+
+export function parseRules(raw: string, today: string): BookingRequest {
+  // Regression R26 (found by metamorphic testing): text pasted from Slack or email with doubled spaces or line breaks
+  // lost allergies, the neighborhood, "Christmas Eve" and the kind of event. Whitespace is normalized first.
+  const text = raw.replace(/\s+/g, " ").trim();
   const t = text.toLowerCase();
+  // Regression R27 (found by metamorphic testing): a request typed in ALL CAPS or all lowercase lost the client, which
+  // is read from a capitalised name. In a one-case sentence the word after "with" is the name, unless it's "a", "my"...
+  const named = /[a-z]/.test(text) && /[A-Z]/.test(text) ? text
+    : t.replace(/\bwith (the )?([a-z][\w&.'-]*)( [a-z][\w&.'-]*)?/, (_m, the: string | undefined, w: string, w2: string | undefined) => {
+      if (/^(a|an|our|my|some|me|us|them|you|everyone|clients?|colleagues|friends|family|kids|vegetarians|vegans|dietary|\d.*)$/.test(w)) return _m;
+      const cap = (x: string) => x[0].toUpperCase() + x.slice(1);
+      const second = w2 && !/[,.]$/.test(w) && !NOT_A_NAME.test(w2.trim()) ? ` ${cap(w2.trim())}` : (w2 ?? "");
+      return `with ${the ?? ""}${cap(w)}${second}`;
+    });
   const kind: EventKind = /\blunch\b/.test(t) ? "client_lunch"
     : /happy hour|\bdrinks\b/.test(t) ? "happy_hour"
     : /\b(our|my) team\b|team dinner|offsite|team outing|celebrat/.test(t) && !/client|customer|prospect/.test(t) ? "team_dinner"
     : "client_dinner";
-  const client = text.match(/\bwith (?:the )?([A-Z][\w&.'-]*(?:\s+[A-Z][\w&.'-]*)?)(?:\s+(?:team|folks|group|execs|leadership|crew))?/);
-  const clientName = client && !/^(Our|My|The|A|An|Some)$/.test(client[1]) ? client[1] : null;
+  const client = named.match(/\bwith (?:the )?([A-Z][\w&.'-]*(?:\s+[A-Z][\w&.'-]*)?)(?:\s+(?:team|folks|group|execs|leadership|crew))?/);
+  // "with Acme. Thanks!" is Acme: a name ends at a full stop.
+  const clientName = client && !/^(Our|My|The|A|An|Some)$/.test(client[1]) ? client[1].replace(/\.(\s.*)?$/, "") || null : null;
   // Regression R20: "$60pp" and "100 per person" without "under" were ignored, so an over-budget venue got booked.
   // A per-head figure in a booking request is the booker's ceiling, so it reads as a cap with or without "under".
   const perHead = t.match(/(?:under|below|max(?:imum)?|no more than|up to)\s+\$?(\d{2,4})\s*(?:\/|a|per)?\s*(?:head|person|pp|guest)/)

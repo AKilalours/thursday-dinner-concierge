@@ -65,6 +65,8 @@ export const REAL_USER_REQUESTS: UserRow[] = [
   ["dinner for 5 on Dec 3, two of us are vegetarian", "booked", /Dietary needs sent to .*vegetarian/],
   ["dinner for 4 next thursday, one guest has a nut allergy", "booked", /Dietary needs sent to .*nut/],
   ["team dinner for 8 in the West Village on Dec 10", "booked", /Halden & Vine|Juniper Hall|The Velvet Ledger|Rue Margaux/],
+  ["thai food for 6 next wednesday", "needs_clarification", /No venue in the network serves Thai/],
+  ["mexican dinner for 10 on Dec 4", "needs_clarification", /serves Mexican/],
 ];
 
 /** Runs one row and says why it failed, or null. Shared by the sweep, the monitor, the bug replay and the tests. */

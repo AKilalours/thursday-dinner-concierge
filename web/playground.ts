@@ -13,6 +13,10 @@ import { LiveThenReplay, offline, RemoteLLM, ReplayLLM } from "../src/llm/client
 import type { LLM } from "../src/llm/client.ts";
 import { judgeMessage } from "../evals/judge.ts";
 import { runRankingSuite } from "../evals/ranking.ts";
+import { benchmark, pct as pct1 } from "../evals/classifiers.ts";
+import type { Report } from "../evals/classifiers.ts";
+import { metamorphic } from "../evals/metamorphic.ts";
+import { replayBugs } from "../evals/mutations.ts";
 import type { RankStats } from "../evals/ranking.ts";
 import { call, ToolDenied } from "../src/tools/registry.ts";
 import type { Tool } from "../src/tools/registry.ts";
@@ -562,6 +566,38 @@ function showRun(id: string) {
   $("#detail").innerHTML = `<p style="font:600 15px Fraunces,Georgia,serif;margin:0 0 6px">“${esc(s.text)}”</p>` + (r ? `<p style="color:var(--dim);margin:0 0 6px">${r.result.outcome.replace(/_/g, " ")} · ${r.emails} emails · parse by ${r.result.parseDecidedBy === "model" ? "Claude" : "rules"}</p><table>${r.checks.map((c) => `<tr><td style="color:${c.pass ? "var(--sage)" : "var(--rose)"};font-weight:800">${c.pass ? "✓" : "✗"}</td><td>${c.name}</td></tr>`).join("")}</table>` : `<p style="color:var(--dim)">Not run yet.</p>`);
 }
 let inv = 0, invFail = 0;
+// ---- Are the evals any good? Bug replay, metamorphic rewrites and the classifier benchmark, run in the browser.
+type ClassJson = { model: null | { name: string; at: string } & Record<"generated" | "dev" | "heldOut", { triage: { n: number; accuracy: number; ci: [number, number]; wrongAction: number }; injection: { labels: { injection: { recall: number; support: number } } } }>; gate: null | { promote: boolean; reasons: string[] } };
+async function loadClassJson(): Promise<ClassJson | null> {
+  for (const u of ["https://raw.githubusercontent.com/AKilalours/thursday-dinner-concierge/main/docs/classifiers.json", "./classifiers.json"]) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) return await r.json() as ClassJson; } catch { /* next */ } }
+  return null;
+}
+const ciBar = (acc: number, ci: [number, number]) => `<span class="ci" title="95% interval ${pct1(ci[0])}-${pct1(ci[1])}"><span style="left:${ci[0] * 100}%;right:${100 - ci[1] * 100}%"></span><em style="left:calc(${acc * 100}% - 1px)"></em></span>`;
+function confusion(r: Report<string>) {
+  const L = Object.keys(r.confusion), short: Record<string, string> = { offer: "offer", decline: "decl", counter: "ctr", question: "ask", payment_request: "pay", auto_reply: "auto", needs_human: "human" };
+  return `<table class="cm"><tr><th class="r">truth ↓ · read as →</th>${L.map((l) => `<th>${short[l] ?? l}</th>`).join("")}</tr>${L.filter((t) => L.some((p) => r.confusion[t][p])).map((t) => `<tr><th class="r">${short[t] ?? t}</th>${L.map((p) => { const n = r.confusion[t][p], tot = L.reduce((a, q) => a + r.confusion[t][q], 0) || 1, a = n / tot; const bg = !n ? "#faf6ef" : t === p ? `rgba(63,125,90,${0.25 + a * 0.75})` : p === "needs_human" || p === "question" ? `rgba(201,164,106,${0.3 + a * 0.7})` : `rgba(194,69,93,${0.35 + a * 0.65})`; return `<td style="background:${bg};color:${a > 0.55 ? "#fff" : "var(--ink)"}">${n || ""}</td>`; }).join("")}</tr>`).join("")}</table><div class="cs" style="margin-top:4px">Green: right. Gold: handed to a person. Red: acted on the wrong reading.</div>`;
+}
+$("#runQ").onclick = async () => {
+  const b = $<HTMLButtonElement>("#runQ"); b.disabled = true;
+  $("#qReplay").innerHTML = '<div class="empty">Turning bugs back on…</div>'; $("#qMeta").innerHTML = '<div class="empty">Retyping sentences…</div>'; $("#qClass").innerHTML = '<div class="empty">Reading ~1,000 labelled emails…</div>';
+  await sleep(30);
+  const m = metamorphic();
+  $("#qMeta").innerHTML = `<div class="qbig ${m.failures.length ? "bad" : ""}">${m.checks - m.failures.length}/${m.checks}</div><div class="cs">${m.sentences} sentences, each retyped 11 ways plus a changed headcount: every rewrite kept the right booking. Found R26 (doubled spaces lost allergies and the area) and R27 (ALL CAPS lost the client).</div>${m.failures.slice(0, 5).map((f) => `<div class="qrow"><i class="bad">✗</i><span>${esc(f.rewrite)}: “${esc(f.variant)}”</span></div>`).join("")}`;
+  const [rules, cj] = await Promise.all([benchmark(offline, "rules"), loadClassJson()]);
+  const sets = [["generated", "Generated · label = the behavior that wrote it"], ["dev", "Dev · hand-labelled, used to fix the rules"], ["heldOut", "Held-out · hand-labelled, never tuned on"]] as const;
+  $("#qClass").innerHTML = `<div class="ctwrap"><table class="ctable wrap"><thead><tr><th>Set</th><th>Emails</th><th>Rules: triage</th><th>Wrong actions</th><th>Injections caught</th><th>${cj?.model ? `Model (${esc(cj.model.name)})` : "Model"}</th></tr></thead><tbody>${sets.map(([k, name]) => {
+    const r = rules[k], md = cj?.model?.[k];
+    return `<tr><td>${name}</td><td>${r.triage.n}</td><td><b>${pct1(r.triage.accuracy)}</b>${ciBar(r.triage.accuracy, r.triage.ci)}</td><td>${r.triage.wrongAction}</td><td>${r.injection.labels.injection.recall * r.injection.labels.injection.support | 0}/${r.injection.labels.injection.support}</td><td>${md ? `<b>${pct1(md.triage.accuracy)}</b>${ciBar(md.triage.accuracy, md.triage.ci)}<div class="cs">${md.triage.wrongAction} wrong actions · ${Math.round(md.injection.labels.injection.recall * md.injection.labels.injection.support)}/${md.injection.labels.injection.support} injections${k === "generated" ? ` · ${md.triage.n} sampled` : ""}</div>` : '<span class="cs">needs a key: <code>npm run evals:classifiers</code> with ANDE_LLM_MODE=live</span>'}</td></tr>`;
+  }).join("")}</tbody></table></div>
+  ${cj?.gate ? `<div class="gstep ${cj.gate.promote ? "ok" : ""}" style="margin-top:10px"><b>Promotion gate: ${cj.gate.promote ? "the model may replace the rules" : "the model stays in shadow"}.</b> ${cj.gate.reasons.length ? esc(cj.gate.reasons.join(" · ")) : "It beats the rules on every set, catches every injection they catch, and never reads a decline or a payment request as an offer more often."}</div>` : ""}
+  <div class="qh" style="margin-top:12px;font-size:13px">Rules on the held-out set</div>${confusion(rules.heldOut.triage as Report<string>)}`;
+  await sleep(30);
+  $("#qReplay").innerHTML = "";
+  const rows = await replayBugs((r) => { $("#qReplay").insertAdjacentHTML("beforeend", `<div class="qrow"><i class="${r.caught ? "ok" : "bad"}">${r.caught ? "✓" : "✗"}</i><b>${r.flag.toUpperCase()}</b><span>${esc(r.bug)}<span class="cs">${r.caught ? `caught by ${[r.scenarios.length && `${r.scenarios.length} scenario${r.scenarios.length > 1 ? "s" : ""}`, r.users.length && `${r.users.length} real-user`, r.ranking && "the ranking eval"].filter(Boolean).join(", ")}` : "not caught"}</span></span></div>`); });
+  $("#qReplay").insertAdjacentHTML("afterbegin", `<div class="qbig ${rows.every((r) => r.caught) ? "" : "bad"}">${rows.filter((r) => r.caught).length}/${rows.length}</div>`);
+  b.disabled = false;
+};
+
 $("#runEvals").onclick = async () => {
   const b = $<HTMLButtonElement>("#runEvals"); b.disabled = true; let pass = 0; inv = 0; invFail = 0; runs.clear(); $$("#tiles .tile").forEach((t) => (t.className = "tile"));
   for (const s of SCENARIOS) {

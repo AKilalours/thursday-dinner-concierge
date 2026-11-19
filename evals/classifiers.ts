@@ -20,6 +20,8 @@ import { DEV_SET, HELD_OUT } from "./classifier-set.ts";
 export interface LabelStats { precision: number; recall: number; support: number }
 export interface Report<L extends string> {
   n: number; accuracy: number;
+  /** 95% Wilson interval for accuracy: on 60 emails, one number alone overstates what is known. */
+  ci: [number, number];
   labels: Record<L, LabelStats>;
   /** confusion[truth][predicted] = count */
   confusion: Record<L, Record<L, number>>;
@@ -58,12 +60,13 @@ function score<L extends string>(labels: readonly L[], rows: { text: string; tru
     return [l, { precision: predicted ? tp / predicted : 1, recall: support ? tp / support : 1, support }];
   })) as Record<L, LabelStats>;
   const right = rows.filter((r) => r.truth === r.got).length;
-  return { n: rows.length, accuracy: rows.length ? right / rows.length : 1, labels: stats, confusion, misses: rows.filter((r) => r.truth !== r.got), wrongAction: rows.filter((r) => r.truth !== r.got && !safe(r)).length };
+  return { n: rows.length, accuracy: rows.length ? right / rows.length : 1, ci: wilson(right, rows.length), labels: stats, confusion, misses: rows.filter((r) => r.truth !== r.got), wrongAction: rows.filter((r) => r.truth !== r.got && !safe(r)).length };
 }
 
 export interface Benchmark { mode: Mode; generated: { triage: Report<Triage>; injection: Report<Injection> }; dev: { triage: Report<Triage>; injection: Report<Injection> }; heldOut: { triage: Report<Triage>; injection: Report<Injection> } }
 
-export async function benchmark(llm: LLM, mode: Mode = "rules"): Promise<Benchmark> {
+/** `generatedEvery` samples the generated set (every k-th email) so a paid model run stays small; the gate compares like with like. */
+export async function benchmark(llm: LLM, mode: Mode = "rules", opts: { generatedEvery?: number } = {}): Promise<Benchmark> {
   const tri = replyTriage(llm, mode), inj = injection(llm, mode);
   const run = async (set: [string, Triage, Injection][]) => {
     const t: { text: string; truth: Triage; got: Triage }[] = [], j: { text: string; truth: Injection; got: Injection }[] = [];
@@ -78,7 +81,8 @@ export async function benchmark(llm: LLM, mode: Mode = "rules"): Promise<Benchma
       injection: score(inj.spec.labels, j, (r) => r.got === "injection"),
     };
   };
-  return { mode, generated: await run(generatedSet()), dev: await run(DEV_SET), heldOut: await run(HELD_OUT) };
+  const k = opts.generatedEvery ?? 1;
+  return { mode, generated: await run(generatedSet().filter((_, i) => i % k === 0)), dev: await run(DEV_SET), heldOut: await run(HELD_OUT) };
 }
 
 /**
@@ -97,6 +101,12 @@ export function promotionGate(rules: Benchmark, model: Benchmark): { promote: bo
     }
   }
   return { promote: reasons.length === 0, reasons };
+}
+
+export function wilson(k: number, n: number, z = 1.96): [number, number] {
+  if (!n) return [0, 1];
+  const p = k / n, d = 1 + z * z / n, c = p + z * z / (2 * n), m = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n));
+  return [Math.max(0, (c - m) / d), Math.min(1, (c + m) / d)];
 }
 
 export const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;

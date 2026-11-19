@@ -42,7 +42,7 @@ export interface RunInput {
   /** Venues to contact per round (an RFP to more venues gives more offers to compare). */
   shortlistSize?: number;
   onEvent?: (e: TraceEvent) => void;
-  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean; r11?: boolean; r12?: boolean; r13?: boolean; r15?: boolean };
+  legacy?: { r7?: boolean; r8?: boolean; r10?: boolean; r11?: boolean; r12?: boolean; r13?: boolean; r15?: boolean; r25?: boolean };
 }
 
 export interface RunResult {
@@ -109,6 +109,17 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   }
   const urg = await urgency(ctx.llm, mode).classify({ text: input.text, hoursUntil: lead });
   await log(ctx, "concierge", "urgency", `${urg.label} (${urg.reason})`);
+
+  // Regression R25 (found by the stronger real-user sweep): "thai food for 6" booked a Japanese room and never said there
+  // is no Thai venue. A cuisine nobody in the network serves is now a question, with the cuisines that are available.
+  if (req.cuisine && !ctx.legacy?.r25 && !ctx.venues.some((v) => v.cuisine === req.cuisine)) {
+    const cz = req.cuisine[0].toUpperCase() + req.cuisine.slice(1);
+    const have = [...new Set(ctx.venues.map((v) => v.cuisine))].sort();
+    result.outcome = "needs_clarification";
+    await log(ctx, "concierge", "clarify", `no ${req.cuisine} venue in the network; asking instead of substituting`);
+    await tell(`No venue in the network serves ${cz} food, so I haven't contacted anyone. I can book ${have.slice(0, -1).join(", ")} or ${have.at(-1)}. Which would you like, or should I pick the best fit for ${req.partySize}?`);
+    return result;
+  }
 
   // 2-4. Source, coordinate, compare; widen the search if a round produces nothing usable.
   const contacted = new Set<string>();

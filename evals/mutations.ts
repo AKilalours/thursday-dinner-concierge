@@ -20,6 +20,7 @@ export const FIXED_BUGS: [Flag, string][] = [
   ["r12", "\"dinner for 2, somewhere private\" emailed nobody"],
   ["r13", "notice measured when venues replied, not when the booker asked"],
   ["r15", "a budget nothing meets was a dead end"],
+  ["r25", "\"thai food for 6\" booked a Japanese room without saying so"],
 ];
 
 export interface Replay { flag: Flag; bug: string; scenarios: string[]; users: string[]; ranking: string | null; caught: boolean }

@@ -196,6 +196,13 @@ table.grid .vh{position:sticky;left:0;background:var(--paper);z-index:1;text-ali
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}}
 .legend2{display:flex;gap:6px;flex-wrap:wrap}
 .cform{display:flex;gap:8px;margin:10px 0 14px}.cform input{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px;background:var(--paper)}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:760px){.qgrid{grid-template-columns:1fr}}
+.qh{font:700 14px Fraunces,Georgia,serif;color:var(--wine2);margin-bottom:2px}.qbox{margin-top:8px}
+.qrow{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f1e9dc;font-size:13px}.qrow i{font-style:normal;font-weight:800;width:16px}.qrow i.ok{color:var(--sage)}.qrow i.bad{color:var(--rose)}
+.qrow b{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-width:34px}.qrow .cs{display:block}
+.qbig{font:800 34px Fraunces,Georgia,serif;color:var(--sage)}.qbig.bad{color:var(--rose)}
+.cm{border-collapse:collapse;font-size:11px;margin-top:8px}.cm td,.cm th{width:46px;height:30px;text-align:center;border:1px solid #fff}.cm th{color:var(--dim);font-weight:600;font-size:10px}.cm th.r{text-align:right;padding-right:6px;width:auto}
+.ci{display:inline-block;position:relative;width:90px;height:8px;background:#f1e9dc;border-radius:4px;vertical-align:middle;margin-left:6px}.ci span{position:absolute;top:0;bottom:0;border-radius:4px;background:#c9a46a}.ci em{position:absolute;top:-3px;width:3px;height:14px;background:var(--wine);border-radius:2px}
 .ctwrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
 table.ctable{border-collapse:collapse;width:100%;font-size:13px}table.ctable th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}table.ctable th.sortable{cursor:pointer}table.ctable th.on{color:var(--wine)}
 table.ctable td{padding:10px;border-bottom:1px solid #f1e9dc;vertical-align:top;white-space:nowrap}table.ctable tr.dim td{opacity:.5}table.ctable tr.picked td{background:#fbf6ee}table.ctable input{accent-color:var(--wine);width:16px;height:16px}
@@ -620,6 +627,17 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
   <div class="sp">
     <div class="card"><h3>Scenarios · tap one</h3><div class="tiles" id="tiles"></div><div class="egs" id="eGroups"></div></div>
     <div class="card scroll"><h3 id="dTitle">Random worlds</h3><div id="detail"></div><div class="field" id="field"></div><div class="legend" id="legend"></div></div>
+  </div>
+  <div class="card" id="evq" style="margin-top:14px">
+    <h3>Are the evals any good? Three checks on the checks</h3>
+    <p class="cs" style="margin:-4px 0 12px">A green suite only matters if it would go red on real bugs. All three run here, in your browser.</p>
+    <div class="row" style="margin-bottom:12px"><button class="btn pri" id="runQ">Run the checks ▶</button></div>
+    <div class="qgrid">
+      <div><div class="qh">1 · Bug replay</div><div class="cs">Each fixed bug turned back on. Is it caught again?</div><div id="qReplay" class="qbox"><div class="empty">Not run yet.</div></div></div>
+      <div><div class="qh">2 · Metamorphic</div><div class="cs">Every sentence retyped: caps, lowercase, pasted line breaks, "please". The booking must not change.</div><div id="qMeta" class="qbox"><div class="empty">Not run yet.</div></div></div>
+    </div>
+    <div class="qh" style="margin-top:14px">3 · Classifier benchmark: rules vs model, with 95% intervals</div>
+    <div id="qClass" class="qbox"><div class="empty">Not run yet.</div></div>
   </div>
 </section>
 

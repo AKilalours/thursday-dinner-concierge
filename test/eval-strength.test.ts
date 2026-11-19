@@ -70,3 +70,33 @@ describe("real-user rows check what the booker is told", () => {
     assert.doesNotMatch(r.last ?? "", /dietary/);
   });
 });
+
+describe("metamorphic: the way a sentence is typed never changes the booking", () => {
+  it("every real-user and scenario sentence survives caps, lowercase, line breaks, politeness and doubled spaces", async () => {
+    const { metamorphic } = await import("../evals/metamorphic.ts");
+    const r = metamorphic();
+    assert.ok(r.checks > 1000);
+    assert.deepEqual(r.failures.map((f) => `${f.rewrite}: ${f.variant}`), []);
+  });
+
+  it("R26: doubled spaces and pasted line breaks keep allergies, area and holiday dates", async () => {
+    const { parseRules } = await import("../src/parse/request.ts");
+    const r = parseRules("lunch  for 5 on  Dec 2,\none is allergic to  nuts,\nin the  West  Village", "2026-11-11");
+    assert.deepEqual([r.kind, r.neighborhood, r.dietary], ["client_lunch", "west village", ["nut-allergy"]]);
+    assert.equal(parseRules("dinner  for  12  on  Christmas  Eve", "2026-11-11").date, "2026-12-24");
+  });
+
+  it("R27: the client survives ALL CAPS, all lowercase and a full stop", async () => {
+    const { parseRules } = await import("../src/parse/request.ts");
+    assert.equal(parseRules("TABLE FOR 4 WITH PIED PIPER NEXT TUESDAY AT 8PM", "2026-11-09").clientName, "Pied Piper");
+    assert.equal(parseRules("dinner for 6 with acme on monday at 8", "2026-11-09").clientName, "Acme");
+    assert.equal(parseRules("private dinner for 12 with Acme. Thanks!", "2026-11-09").clientName, "Acme");
+    assert.equal(parseRules("lunch with a client tomorrow, 3 people", "2026-11-09").clientName, null);
+  });
+
+  it("R25: a cuisine nobody serves is asked about, never quietly swapped", async () => {
+    const r = await checkUserRow(["thai food for 6 next wednesday", "needs_clarification", /serves Thai/]);
+    assert.equal(r.why, null);
+    assert.match((await checkUserRow(["thai food for 6 next wednesday", "needs_clarification"], { r25: true })).why ?? "", /booked/);
+  });
+});
