@@ -82,17 +82,20 @@ A green eval suite only matters if it would go red on the bugs you actually have
 | R26 | Text pasted from Slack or email with doubled spaces lost allergies, the neighborhood, "Christmas Eve" and the kind of event | Whitespace is normalized before parsing |
 | R27 | "DINNER FOR 6 WITH ACME" and "dinner with acme" lost the client; "with Acme." kept the full stop | One-case sentences read the name after "with"; a name ends at a full stop |
 
-**3. Classifier benchmark** (`npm run evals:classifiers`). Precision, recall, a confusion matrix and 95% intervals for reply triage and injection detection:
+**3. Classifier benchmark, rules vs the live model** (`npm run evals:classifiers`). Precision, recall, a confusion matrix and 95% intervals for reply triage and injection detection:
 
-| Set | Emails | Rules: triage accuracy (95% CI) | Acted on a wrong label | Injections caught |
+| Set | Emails | Rules: triage (95% CI) | **Live model: triage (95% CI)** | Injections caught: rules → model |
 |---|---|---|---|---|
-| Generated: every email the venue world writes, label = the behavior that wrote it | 960 | 100% (99.6–100%) | 0 | 120/120 |
-| Dev: hand-labelled, real-world phrasing, used to fix the rules | 36 | 100% (tuned on it) | 0 | 6/6 |
-| **Held-out: hand-labelled, written before being run, never used to change a rule** | 62 | **40% (29–53%)** | 6 | **4/10** |
+| Generated: every email the venue world writes, label = the behavior that wrote it | 960 (model: 120 sampled) | 100% (99.6–100%) | 99.2% (95.4–99.9%) | 120/120 → 12/12 |
+| Dev: hand-labelled, real-world phrasing, used to fix the rules | 36 | 100% (tuned on it) | 86.1% (71.3–93.9%) | 6/6 → 6/6 |
+| **Held-out: hand-labelled, written before being run, never used to change a rule** | 62 | **40.3% (29.0–52.7%)** | **88.7% (78.5–94.4%)** | **4/10 → 10/10** |
 
-The benchmark found two bugs in emails the simulator itself writes ("we have no availability" wasn't a decline; "the minimum has gone up" wasn't a counter), now fixed. The held-out number is the honest one, and I show it anyway: the rules are precise (most held-out misses go to a person, not to a wrong action) but brittle on phrasing they haven't seen. That is the case for the model path, so the same report is a **promotion gate**: a classifier moves from shadow to live only if the model itself decided at least 95% of every set, beats the rules on accuracy, catches every injection they catch, and never reads a decline or a payment request as an offer more often.
+Live run: claude-sonnet-4-5, the model itself decided 218 of 218 emails (no fallbacks), [`docs/classifiers.json`](docs/classifiers.json). On emails nobody tuned anything on, the model more than doubles the rules' accuracy (the intervals don't overlap) and catches every injection; the rules miss 6 of 10. The rules still win on the emails they were built from, and that is exactly the trade-off the **promotion gate** exists to decide: a classifier moves from shadow to live only if the model itself decided at least 95% of every set, beats the rules on accuracy on every set, catches every injection they catch, and never reads a decline or a payment request as an offer more often. Today it says **stay in shadow** (the model loses on the generated and dev sets), so the rules decide and the model's answers are logged next to them. The obvious next step, a hybrid where the model decides only what the rules would hand to a person, is on the roadmap and will have to pass the same gate.
 
-The first live run caught a bug in the gate itself: with a revoked API key every model call failed, fell back to the rules, scored exactly like them, and the gate said "promote". The gate now requires the model to have answered, the run refuses to publish model numbers it didn't produce, and a test with a model that always errors keeps it that way. Model numbers will appear on the Evals page after a run with a working key.
+The benchmark also found two bugs in emails the simulator itself writes ("we have no availability" wasn't a decline; "the minimum has gone up" wasn't a counter), now fixed, and two bugs that only live runs could show:
+
+- **The gate passed a model that never answered.** With a key that didn't work, every model call failed, fell back to the rules, scored exactly like them, and the gate said "promote". Now the model must have answered, a run where it answered nothing publishes no model numbers, and a test with a model that always errors keeps it that way.
+- **The injection check threw away half the model's answers.** Its time limit was 3 s and the model answers in 2.7–3.2 s, so about half the time the rules decided instead, silently. Measured, then fixed (8 s; venue emails arrive over hours, so seconds don't matter). Model decisions went from 53 of 218 to 218 of 218, and injection recall on held-out from 7/10 to 10/10.
 
 **4. Real users**, above: graded on outcome and on what they are told, with a one-click report from the app.
 

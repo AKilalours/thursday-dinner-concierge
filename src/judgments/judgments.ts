@@ -14,7 +14,8 @@ export const replyTriage = (llm: LLM, mode: Mode = "rules") => new Classifier<st
   labels: ["offer", "decline", "counter", "question", "payment_request", "auto_reply", "needs_human"],
   thresholds: { offer: 0.7, decline: 0.7, counter: 0.7, question: 0.6, payment_request: 0.8, auto_reply: 0.8, needs_human: 0 },
   fallback: "needs_human",
-  timeoutMs: 4000,
+  // Venue emails arrive over hours, so seconds don't matter; a timeout only throws the model's answer away.
+  timeoutMs: 8000,
   rules(body) {
     if (has(body, /out of (the )?office|auto(matic)?[- ]reply|automated (response|reply|message)|currently (away|on leave)|limited access to email|checking email intermittently/)) return { label: "auto_reply", confidence: 0.95, reason: "auto-reply phrasing" };
     // "we have no availability" is a decline, so the "we have <a room>" exception must not swallow it.
@@ -84,7 +85,10 @@ export const injection = (llm: LLM, mode: Mode = "rules") => new Classifier<stri
   labels: ["injection", "clean"],
   thresholds: { injection: 0.5, clean: 0.6 },
   fallback: "injection",
-  timeoutMs: 3000,
+  // Found by the live classifier benchmark: the model answers in 2.7-3.2 s, so a 3 s limit discarded about half of
+  // its answers and the rules decided instead. Untrusted text is screened before anything is acted on, never on a
+  // user's critical path, so the limit is set from measured latency with room to spare.
+  timeoutMs: 8000,
   rules(text) {
     const t = text.toLowerCase();
     const signals = [
