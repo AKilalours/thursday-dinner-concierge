@@ -1,6 +1,7 @@
 // Photos for the fictional venues: real restaurant photographs from Unsplash (free to use under the Unsplash
 // License). The venues are invented, so a photo shows what a room like it looks like, not a real restaurant.
-const U = (id: string, w = 640, h = 420) => `https://images.unsplash.com/${id}?w=${w}&h=${h}&fit=crop&auto=format&q=70`;
+// They are served from this site (docs/img/v, fetched once by scripts/fetch-media.mjs): a small and a large size.
+const U = (id: string, w = 640) => `img/v/${id}-${w <= 520 ? "s" : "l"}.jpg`;
 
 /** One interior per venue, in the order of data/seed.ts NAMES (30 venues). */
 const HERO = [
@@ -20,9 +21,11 @@ const ROOMS: Record<string, string[]> = {
   "Garden Room": ["photo-1493246318656-5bfd4cfb29b8", "photo-1622758235004-51977c5863f5", "photo-1756397391675-dce7c5faf9cc", "photo-1613274554329-70f997f5789f"],
 };
 const num = (id: string) => Number(id.replace(/\D/g, "")) || 0;
-export const venuePhoto = (venueId: string, w?: number, h?: number) => U(HERO[(num(venueId) - 1 + HERO.length) % HERO.length], w, h);
-export function roomPhoto(venueId: string, roomName: string, w?: number, h?: number) {
-  const set = ROOMS[roomName]; return set ? U(set[num(venueId) % set.length], w, h) : venuePhoto(venueId, w, h);
+export const venuePhoto = (venueId: string, w?: number, _h?: number) => U(HERO[(num(venueId) - 1 + HERO.length) % HERO.length], w);
+export function roomPhoto(venueId: string, roomName: string, w?: number, _h?: number) {
+  const set = ROOMS[roomName]; return set ? U(set[num(venueId) % set.length], w) : venuePhoto(venueId, w);
 }
-export const HERO_BG = U("photo-1786209677036-1580ca1b280d", 1800, 700);
+export const HERO_BG = U("photo-1786209677036-1580ca1b280d", 1800);
+/** Every photo id, for scripts/fetch-media.mjs. */
+export const ALL_PHOTOS = [...new Set([...HERO, ...Object.values(ROOMS).flat(), "photo-1786209677036-1580ca1b280d"])];
 export const PHOTO_CREDIT = "Photos: Unsplash";

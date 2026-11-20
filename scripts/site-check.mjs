@@ -7,10 +7,12 @@ import { extname, join } from "node:path";
 import { chromium } from "./playwright.mjs";
 
 const root = new URL("../docs/", import.meta.url).pathname;
-const types = { ".html": "text/html", ".js": "text/javascript", ".png": "image/png", ".gif": "image/gif", ".mp4": "video/mp4", ".css": "text/css" };
+const types = { ".html": "text/html", ".js": "text/javascript", ".png": "image/png", ".gif": "image/gif", ".mp4": "video/mp4", ".css": "text/css", ".jpg": "image/jpeg", ".json": "application/json" };
 const server = createServer(async (req, res) => {
   const path = join(root, decodeURIComponent((req.url ?? "/").split("?")[0]).replace(/\/$/, "/index.html"));
-  try { res.writeHead(200, { "content-type": types[extname(path)] ?? "application/octet-stream" }); res.end(await readFile(path)); } catch { res.writeHead(404); res.end(); }
+  // Read first, then answer: a missing file is a 404, never a crash from writing headers twice.
+  let body; try { body = await readFile(path); } catch { res.writeHead(404); res.end(); return; }
+  res.writeHead(200, { "content-type": types[extname(path)] ?? "application/octet-stream" }); res.end(body);
 }).listen(0);
 const url = `http://localhost:${server.address().port}/`;
 const failures = [];

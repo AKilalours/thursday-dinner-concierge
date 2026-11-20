@@ -102,7 +102,12 @@ const srcOf = new Map<MemoryStore, string>();
 function bump(id: string, v: string) { const k = $(`#${id}`); if (k.textContent !== v) { k.textContent = v; k.parentElement!.classList.remove("bump"); void k.offsetWidth; k.parentElement!.classList.add("bump"); } }
 interface RunLog { id: string; label: string; outcome: string; trace: TraceEvent[]; emails: number; at: number; past?: boolean; text?: string }
 const runsLog: RunLog[] = [];
+// ONE REQUEST ACROSS PAGES: what the person last asked on Home or Chat follows them to Explore, Availability, Compare,
+// Orders, Calendar, Seating and Traces, so every page works on that request instead of its own sample.
+interface Active { text: string; req: BookingRequest; runId: string; outcome: string; venueId: string | null; bookingId: string | null }
+let active: Active | null = null, cmpFor = "";
 function record(res: RunResult, world: VenueWorld, label?: string) {
+  if (label && /\s/.test(label) && label !== "Venue side" && res.request?.partySize && res.request.date) { active = { text: label, req: res.request, runId: res.runId, outcome: res.outcome, venueId: res.chosenVenueId, bookingId: res.bookingId }; try { localStorage.setItem(`tdc_active:${me.name.toLowerCase()}`, JSON.stringify(active)); } catch { /* fine */ } }
   if (res.bookingId && label && /\s/.test(label) && label !== "Venue side") bkAsk.set(res.bookingId, label);
   const r0 = res.request; runsLog.unshift({ id: res.runId, label: label ?? (r0 ? `${r0.partySize} guests${r0.clientName ? ` · ${r0.clientName}` : ""}${r0.date ? ` · ${r0.date.slice(5)}` : ""}` : "request"), outcome: res.outcome, trace: [...res.trace], emails: world.sent().length + world.received().length, at: Date.now() });
   histDirty = true;
@@ -123,7 +128,21 @@ function record(res: RunResult, world: VenueWorld, label?: string) {
 }
 
 // ---------- navigation ----------
+const ACT_PAGES: [string, string][] = [["explore", "Map"], ["avail", "Availability"], ["compare", "Offers"], ["bookings", "Orders"], ["calendar", "Calendar"], ["seating", "Seating"], ["traces", "Trace"]];
+function applyActive(page: string) {
+  const bar = $("#actBar"), a = active;
+  if (!a || !ACT_PAGES.some(([p]) => p === page)) { bar.classList.remove("on"); return; }
+  const v = a.venueId ? venues.find((x) => x.id === a.venueId) : null, r = a.req;
+  bar.innerHTML = `<span>📌</span><div><b>${esc(a.text)}</b><br><small>${r.partySize} guests · ${md(r.date!)}${r.privateRoom ? " · private" : ""}${v ? ` · ✓ ${esc(v.name)}` : ` · ${esc(a.outcome.replace(/_/g, " "))}`}</small></div><div class="ab">${ACT_PAGES.map(([p, l]) => `<button data-go="${p}" class="${p === page ? "here" : ""}">${l}</button>`).join("")}</div>`;
+  bar.classList.add("on"); $$<HTMLButtonElement>("#actBar [data-go]").forEach((b) => b.onclick = () => go(b.dataset.go!));
+  if (page === "explore") { xF.n = r.partySize!; xF.priv = !!r.privateRoom; if (NIGHTS.includes(r.date!)) xF.date = r.date!; if (r.cuisine) xF.cuisines = new Set([r.cuisine]); const d = $<HTMLSelectElement>("#xDate"); if (d && NIGHTS.includes(r.date!)) d.value = r.date!; }
+  if (page === "avail") { gParty = r.partySize!; gPrivate = !!r.privateRoom; const gp = $<HTMLInputElement>("#gParty"); if (gp) gp.value = String(gParty); renderGrid(); }
+  if (page === "compare" && cmpFor !== a.text) { cmpFor = a.text; $<HTMLInputElement>("#cmpAsk").value = a.text; autoRan.add("compare"); void cmpLoad(llm); }
+  if (page === "traces") { const i = runsLog.findIndex((x) => x.id === a.runId); if (i >= 0) { trSel = i; trEv = -1; } }
+  if (page === "bookings" && a.bookingId) bkPick = a.bookingId;
+}
 function go(page: string) {
+  applyActive(page);
   $$<HTMLButtonElement>("#tabs button[data-p]").forEach((b) => b.classList.toggle("on", b.dataset.p === page));
   $$(".page").forEach((p) => p.classList.toggle("on", p.id === `p-${page}`));
   if (location.hash.slice(1) !== page) history.replaceState(null, "", `#${page}`);
@@ -1204,7 +1223,9 @@ function vcard(v: Venue, extra = "", badge = "") {
 let popF = "near";
 async function renderHomeRails() {
   const h = new Date().getHours(); $("#hGreet").textContent = `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, ${meFirst()}`;
-  $("#hHero").style.backgroundImage = `url('${HERO_BG}')`;
+  $("#hHero").style.backgroundImage = `url('${HERO_BG}')`; $("#hHero").classList.add("kb");
+  if (!monRows) monRows = await loadMonitor().catch(() => []);
+  { const last = monRows.at(-1); if (last) $("#hStat").innerHTML = `<span class="pulse ${last.ok ? "" : "bad"}"></span>Agent Watch: ${last.ok ? "all checks green" : "a check failed"} · ${ago(last.at)} · ${monRows.reduce((a, r) => a + r.worlds.checks, 0).toLocaleString()} safety checks`; }
   $("#hOcc").innerHTML = OCC.map(([i, t, ask]) => `<button type="button" data-ask="${esc(ask)}"><i>${i}</i>${t}</button>`).join("");
   $$<HTMLButtonElement>("#hOcc button").forEach((b) => b.onclick = () => { $$("#hOcc button").forEach((x) => x.classList.toggle("on", x === b)); const inp = $<HTMLInputElement>("#hIn"); inp.value = b.dataset.ask!; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); });
   const near = [OFFICE_HOOD, ...(ADJ[OFFICE_HOOD] ?? [])];
@@ -1521,7 +1542,7 @@ async function chatRequest(text: string) {
   };
   const res = await runConcierge({ text, actor: priya, principal: dana, today: TODAY, store: chatStore, world, llm, venues, company, approver, onEvent, shortlistSize: 3 });
   await chain; work.querySelector("details")!.removeAttribute("open"); work.querySelector("summary")!.innerHTML = `✓ ${steps} steps · ${res.trace.filter((e) => e.kind === "offer").length} offers read · ${world.sent().length} emails sent`;
-  record(res, world);
+  record(res, world, text);
   if (res.outcome === "booked" && res.bookingId) {
     const v = venues.find((x) => x.id === res.chosenVenueId)!, bk = (await chatStore.getBooking(res.bookingId))!, room = v.rooms.find((r) => r.id === bk.roomId)!;
     chatCur = { runId: res.runId, world, bookingId: res.bookingId, v, room, n: bk.partySize, date: localDate(bk.startsAt), client: res.request?.clientName ?? "Guests", dietary: res.request?.dietary ?? [] };
@@ -1853,15 +1874,25 @@ function hLayout() {
 const vByName = (t: string) => venues.filter((v) => t.startsWith(v.name) || t.includes(` ${v.name}`) || t.includes(`${v.name},`) || t.includes(`${v.name}'s`)).sort((a, b) => b.name.length - a.name.length)[0];
 let hBusy = false, hDone = false, hQuiet = "", hRuns = 0, hWorld: VenueWorld | null = null;
 const SVGNS = "http://www.w3.org/2000/svg";
+const CUIS_COL: Record<string, string> = { italian: "#c0583f", steakhouse: "#7b1e3a", japanese: "#d23c5a", "new american": "#3a6ea5", french: "#5b4b8a", mediterranean: "#2f8f83", korean: "#e07a1f", seafood: "#1f7fa8" };
 function hMap() {
   if (!hm.size()[0]) return; // hidden page: lay out when it is shown
   hLayout(); const k = 340 / Math.max(1, hm.size()[0]);
   let s = `<defs><radialGradient id="hglow"><stop offset="0" stop-color="#c98a12" stop-opacity=".55"/><stop offset="1" stop-color="#c98a12" stop-opacity="0"/></radialGradient></defs>`;
     // The street map already names the neighborhoods; extra labels only collide with the pins.
   s += `<g id="hLines"></g>`;
-  for (const v of venues) { const [x, y] = hPos.get(v.id)!; s += `<g class="hp" id="hp_${v.id}" transform="translate(${x} ${y})"><circle class="halo" r="11" fill="url(#hglow)"/><circle class="dot" r="3.6"/><g class="tag"></g></g>`; }
-  s += `<g class="hq" transform="translate(${HQ[0]} ${HQ[1]})"><circle class="pulse" r="6"/><rect x="-5" y="-5" width="10" height="10" rx="2.5"/><text y="13">HQ</text></g><g id="hFly"></g>`;
+  for (const v of venues) { const [x, y] = hPos.get(v.id)!; s += `<g class="hp" id="hp_${v.id}" data-v="${v.id}" style="--cc:${CUIS_COL[v.cuisine] ?? "#b9ad9f"}" transform="translate(${x} ${y})"><circle class="halo" r="11" fill="url(#hglow)"/><circle class="dot" r="4"/><g class="tag"></g></g>`; }
+  // The office is a real map pin, labelled with the company, not a black square.
+  const co = company.name.split(" ")[0];
+  s += `<g class="hq" transform="translate(${HQ[0]} ${HQ[1]})"><circle class="pulse" r="7"/><path class="pin" d="M0 0C-3 -5 -6.5 -8 -6.5 -12.5A6.5 6.5 0 1 1 6.5 -12.5C6.5 -8 3 -5 0 0Z"/><circle class="pinc" cy="-12.5" r="2.4"/><rect class="lbl" x="${-co.length * 1.9 - 8}" y="3" width="${co.length * 3.8 + 16}" height="9" rx="4.5"/><text y="9.6">${esc(co)} HQ</text></g><g id="hFly"></g>`;
   $("#hMap").setAttribute("viewBox", `0 0 340 ${hVH}`); $("#hMap").innerHTML = s;
+  // Pins are live: hover shows the place, tap opens its sheet (room, guests, night, real price, similar places).
+  $$<SVGGElement>("#hMap .hp").forEach((g) => {
+    const v = venues.find((x) => x.id === g.dataset.v)!, tip = $("#hTip");
+    g.onmouseenter = () => { if (hBusy) return; const r = g.getBoundingClientRect(), st = $("#hLive .hstage").getBoundingClientRect(); tip.style.left = `${r.left + r.width / 2 - st.left}px`; tip.style.top = `${r.top - st.top}px`; tip.innerHTML = `<div style="background-image:url('${venuePhoto(v.id, 420, 200)}')"></div><p><b>${esc(v.name)}</b>${esc(v.cuisine)} · ${esc(v.neighborhood)} · from ${usd(fromPerHead(v))}/head</p>`; tip.style.display = "block"; };
+    g.onmouseleave = () => { tip.style.display = "none"; };
+    g.onclick = () => { if (!hBusy && !g.classList.contains("mailed") && !g.classList.contains("offer") && !g.classList.contains("win") && !g.classList.contains("no") && !g.classList.contains("inj")) { tip.style.display = "none"; openVenue(v); } };
+  });
 }
 const hp = (id: string) => $(`#hp_${id}`) as unknown as SVGGElement;
 function hTag(id: string, text: string, cls: string) {
@@ -2345,7 +2376,8 @@ async function startHistory() {
     await seedHistory();
     histLoaded = true; saveHistory();
   }
-  const page = location.hash.slice(1); void hIdle(); void renderHomeRails(); void reorderPrompt();
+  try { const a = JSON.parse(localStorage.getItem(`tdc_active:${me.name.toLowerCase()}`) ?? "null") as Active | null; if (a?.req?.date && !active) active = a; } catch { /* fine */ }
+  const page = location.hash.slice(1); void hIdle(); void renderHomeRails(); void reorderPrompt(); applyActive(page);
   if (page === "invoice") void renderInvoice(); if (page === "bookings") void renderBookings(); if (page === "traces") renderTraces(); if (page === "calendar") void renderCal();
 }
 const isPast = (st: MemoryStore) => pastStores.has(st);

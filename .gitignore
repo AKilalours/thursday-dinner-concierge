@@ -3,3 +3,4 @@ node_modules/
 evals/results/
 *.log
 tdc-video-assets.json
+.video-cache/
