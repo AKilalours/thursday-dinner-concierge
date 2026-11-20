@@ -55,6 +55,16 @@ describe("request parsing (rules)", () => {
     assert.equal(time("dinner for 6 on Dec 2, around 20 a head"), "19:00");
     assert.equal(parseRules("dinner for around 8 people on Friday", MON).partySize, 8);
   });
+  it("regression R32: \"half past 7\" and \"quarter to 8\" are clock times, not the default 7 pm", () => {
+    const time = (s: string) => parseRules(s, MON).time;
+    assert.equal(time("dinner for 6 next Fri at half past 7"), "19:30");
+    assert.equal(time("dinner for 6 on Friday, half past 8"), "20:30");
+    assert.equal(time("dinner for 4 on Friday at quarter past 7"), "19:15");
+    assert.equal(time("dinner for 4 on Friday at a quarter to 8"), "19:45");
+    assert.equal(time("lunch for 4 on Dec 2 at half past 12"), "12:30");
+    assert.equal(time("breakfast for 4 on Dec 2 at half past 8am"), "08:30");
+    assert.equal(parseRules("dinner for 6 next Fri at half past 7", MON).partySize, 6);
+  });
   it("regression R22: allergies typed plainly reach the venue", () => {
     const diet = (s: string) => parseRules(s, MON).dietary;
     assert.deepEqual(diet("dinner for 4 on Friday, no shellfish"), ["shellfish-allergy"]);

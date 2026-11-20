@@ -85,7 +85,13 @@ export function totalBudgetCents(text: string): number | null {
 }
 
 function timeFrom(text: string, kind: EventKind): string {
-  const t = text.toLowerCase();
+  // Regression R32: "at half past 7" fell through to the default 7 pm, and "half past 8" booked 7 pm too.
+  // Spoken quarters and halves become clock times before the patterns below read them.
+  const t = text.toLowerCase()
+    .replace(/\bhalf past (\d{1,2})(?!\d|[:.]\d)/g, "at $1:30")
+    .replace(/\b(?:a )?quarter past (\d{1,2})(?!\d|[:.]\d)/g, "at $1:15")
+    .replace(/\b(?:a )?quarter (?:to|of) (\d{1,2})(?!\d|[:.]\d)/g, (_, h) => `at ${Number(h) === 1 ? 12 : Number(h) - 1}:45`)
+    .replace(/\bat at\b/g, "at");
   // Regression R21: "at 7.30pm" read "30pm" as the hour (42:00) and crashed the booking; "7.30" booked 7:00 and
   // "noon" booked 12:30. A dot separates minutes too, and an impossible time falls back to the default, never a crash.
   if (/\b(?:noon|midday)\b/.test(t)) return "12:00";

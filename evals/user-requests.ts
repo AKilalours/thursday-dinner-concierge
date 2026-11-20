@@ -60,6 +60,8 @@ const TYPED: UserRow[] = [
   ["drinks for 8 on Friday around 6", "booked", /at 6 pm/],
   ["dinner for 4 on Friday, 8ish", "booked", /at 8 pm/],
   ["dinner for 4 on Dec 3 about 7:30ish", "booked", /at 7:30 pm/],
+  ["dinner for 6 next Fri at half past 7", "booked", /at 7:30 pm/],
+  ["dinner for 4 on Friday at quarter to 8", "booked", /at 7:45 pm/],
   ["dinner for 6 this Friday, $300 total", "needs_clarification"],
   ["team dinner for 8 on Dec 3, budget 2k", "booked"],
   ["dinner for 10 on Dec 2, $1,500 all in", "booked"],
