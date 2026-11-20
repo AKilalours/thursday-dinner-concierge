@@ -31,6 +31,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Shipped
 
+- 2026-11-20: Home redesign: greeting, occasions, Book again photo cards, a "Book X again?" prompt for returning people, and a venue sheet with the real all-in price, policy check and similar places at about the same price; the concierge books a venue picked by name (`preferVenueId`, 2 tests). Real photos (Unsplash License) on Home, Explore, Availability, Compare, Orders, Calendar and Seating. Inbox lab is an inbox; Traces shows span durations; Monitor opens with a status card.
 - 2026-11-20: Orders page (upcoming, completed, cancelled, receipt, Book again) and "Book again" on Home for returning people; history follows a person across devices with name + 4-digit PIN (server/worker.js, needs the HISTORY KV binding); booking pages use today's real date instead of a fixed Nov 9, and the calendar starts on this week's Monday.
 - 2026-11-20: "dinner for me and my boss" books 2 instead of asking how many; a singular role ("my boss", "a client", "my manager") counts as one guest, while plurals and groups ("my clients", "my team") are still asked (R30); real-user sentences 57 → 59.
 - 2026-11-19: "dinner for me, Sam and Priya" books 3 instead of asking how many guests; a list of names that includes the booker is counted, and "me and the team" or names without "me" are still asked (R29); real-user sentences 55 → 57.

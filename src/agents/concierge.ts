@@ -41,6 +41,8 @@ export interface RunInput {
   maxRounds?: number;
   /** Venues to contact per round (an RFP to more venues gives more offers to compare). */
   shortlistSize?: number;
+  /** "Book again": a venue the booker picked by name. It goes first when it fits this request; otherwise the agent says why and sources as usual. */
+  preferVenueId?: string;
   onEvent?: (e: TraceEvent) => void;
   legacy?: { r7?: boolean; r8?: boolean; r10?: boolean; r11?: boolean; r12?: boolean; r13?: boolean; r15?: boolean; r25?: boolean };
 }
@@ -132,7 +134,13 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   const rounds = input.maxRounds ?? 2;
   let relaxedNote = "";
   for (let round = 1; round <= rounds && options.length === 0; round++) {
-    let candidates = (await source(ctx, req, contacted)).slice(0, input.shortlistSize ?? (urg.label === "urgent" ? 4 : 3));
+    const found = await source(ctx, req, contacted);
+    if (input.preferVenueId && round === 1) {
+      const at = found.findIndex((c) => c.venue.id === input.preferVenueId), name = input.venues.find((v) => v.id === input.preferVenueId)?.name ?? input.preferVenueId;
+      if (at > 0) found.unshift(...found.splice(at, 1));
+      await log(ctx, "concierge", "prefer", at >= 0 ? `booker picked ${name}: it goes first` : `booker picked ${name}, but it can't host this request (closed, too small or over the limit); sourcing the closest match instead`, { venueId: input.preferVenueId, fits: at >= 0 });
+    }
+    let candidates = found.slice(0, input.shortlistSize ?? (urg.label === "urgent" ? 4 : 3));
     // Regression R12 (found by the first real user, "dinner for 2 next Friday, somewhere private"): every private
     // room's minimum spend split over 2 guests broke the per-head cap, so the agent emailed nobody and escalated.
     // Now it shortlists quiet dining-room tables and tells the booker why, with the real number. The booker still

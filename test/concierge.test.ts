@@ -70,3 +70,25 @@ describe("policy", () => {
     assert.ok(!checkPolicy(COMPANY, req, venues[19], { minSpendCents: 100_000, perHeadCents: null, depositPct: 20, capacity: null }, 72).onPolicy);
   });
 });
+
+describe("book again: a venue picked by name", () => {
+  const go = async (preferVenueId: string, text = TEXT) => {
+    const [, make] = storeFactories()[0]; const store = await make();
+    const world = new VenueWorld(venues, () => "accept", "2026-11-09T15:00:00.000Z");
+    return runConcierge({ text, actor: priya, principal: user("usr_dana"), today: "2026-11-09", store, world, llm: offline, venues, company: COMPANY, preferVenueId, shortlistSize: 1,
+      approver: async (p, st) => { for (const role of p.requiredRoles) await st.decide(p.id, role === "booker" ? priya.id : "usr_marcus", role, "approve"); return "approved"; } });
+  };
+  it("emails and books the picked venue when it fits, even if it would not have ranked first", async () => {
+    const first = await go("none", "team dinner for 6 next Wednesday");
+    const third = (first.trace.find((e) => e.kind === "sourced")!.data as { top: { venueId: string }[] }).top[2].venueId;
+    const res = await go(third, "team dinner for 6 next Wednesday");
+    assert.equal(res.chosenVenueId, third);
+    assert.ok(res.trace.some((e) => e.kind === "prefer" && /goes first/.test(e.text)));
+  });
+  it("says so when the picked venue can't host this request, and books the closest match instead", async () => {
+    const tiny = venues.find((v) => v.rooms.filter((r) => r.private).every((r) => r.listedCapacity < 30))!;
+    const res = await go(tiny.id, "dinner for 30 next Wednesday, somewhere private");
+    assert.notEqual(res.chosenVenueId, tiny.id);
+    assert.ok(res.trace.some((e) => e.kind === "prefer" && /can't host/.test(e.text)));
+  });
+});

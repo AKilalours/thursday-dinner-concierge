@@ -25,12 +25,14 @@ import { ZodError } from "zod";
 import { knowledge } from "../src/memory/supply.ts";
 import { extractRules } from "../src/parse/offer.ts";
 import { checkPolicy, estimate, perHeadFor } from "../src/policy/policy.ts";
+import { ADJACENT } from "../src/agents/sourcing.ts";
 import type { PolicyResult } from "../src/policy/policy.ts";
 import { addDays, weekday } from "../src/time.ts";
 import { extractOffer } from "../src/parse/offer.ts";
 import { VenueWorld } from "../src/sim/world.ts";
 import { HOODS, OFFICE, RealMap, venueLatLng } from "./realmap.ts";
 import type { LatLng } from "./realmap.ts";
+import { HERO_BG, PHOTO_CREDIT, roomPhoto, venuePhoto } from "./photos.ts";
 import type { Behavior, Message } from "../src/sim/world.ts";
 import { MemoryStore } from "../src/store/memory.ts";
 import type { StoreSnapshot } from "../src/store/memory.ts";
@@ -107,7 +109,7 @@ function record(res: RunResult, world: VenueWorld, label?: string) {
   if (runsLog.length > 60) runsLog.length = 60;
   if ($("#p-traces.on")) renderTraces();
   // Pages that list bookings stay live while you look at them.
-  setTimeout(() => { if ($("#p-calendar.on")) void renderCal(); if ($("#p-bookings.on")) void renderBookings(); if ($("#p-invoice.on")) void renderInvoice(); }, 0);
+  setTimeout(() => { if ($("#p-home.on")) void renderHomeRails(); if ($("#p-calendar.on")) void renderCal(); if ($("#p-bookings.on")) void renderBookings(); if ($("#p-invoice.on")) void renderInvoice(); }, 0);
   S.req++; S.mail += world.sent().length + world.received().length;
   S.inj += res.trace.filter((e) => e.kind === "injection_flagged").length;
   S.ai += res.trace.filter(isAI).length;
@@ -483,6 +485,9 @@ async function analyze() {
   $("#fields").innerHTML = f.map(([k, l, v]) => `<div class="fld ${v ? "" : "empty"}" data-k="${k}"><div class="k"><i style="background:${FIELD_COLOR[k]}"></i>${l}</div><b>${esc(v ?? "-")}</b></div>`).join("");
   $$<HTMLElement>("#fields .fld").forEach((d) => { d.onmouseenter = () => $$(`#hlv [data-f="${d.dataset.k}"]`).forEach((s) => s.classList.add("hot")); d.onmouseleave = () => $$("#hlv .hot").forEach((s) => s.classList.remove("hot")); });
   const set = (cls: string, t: string) => { const v = $("#verdict"); v.className = `verdict ${cls}`; v.textContent = t; };
+  const NEXT: Record<string, [string, string]> = { offer: ["⚖️", "Check it against policy"], counter: ["💬", "Ask the booker about the new terms"], decline: ["➡️", "Email the next venue"], auto_reply: ["⏳", "Wait, then follow up"], question: ["✉️", "Reply with headcount and dietary needs"], needs_human: ["🙋", "Hand it to a person"] };
+  const nx = inj.label === "injection" ? ["🛡️", "Ignore the instructions, flag it, keep the payee on file"] : NEXT[tri.label] ?? ["•", tri.label];
+  $("#nextmv").innerHTML = `<i>${nx[0]}</i><div><small>Agent's next move</small>${esc(nx[1])}</div>`;
   if (inj.label === "injection") return set("bad", "Read as data. Bank details ignored. Booker warned. A clean venue wins.");
   if (tri.label === "decline") return set("warn", "Logged the no. On to the next venue.");
   if (tri.label === "auto_reply") return set("warn", "Ignored. Waits, then follows up.");
@@ -498,7 +503,11 @@ async function analyze() {
 let tmr = 0;
 $("#mail").addEventListener("input", () => { clearTimeout(tmr); tmr = window.setTimeout(() => void analyze(), 90); });
 $("#mail").addEventListener("scroll", () => { $("#hlv").scrollTop = $("#mail").scrollTop; });
-$$<HTMLButtonElement>("#tmpl .chip").forEach((b) => b.onclick = () => { $$("#tmpl .chip").forEach((x) => x.classList.remove("on")); b.classList.add("on"); $<HTMLTextAreaElement>("#mail").value = template(b.dataset.t!); void analyze(); });
+const labHead = (b: HTMLElement) => { const who = b.querySelector("b")!.textContent!, subj = b.querySelector("small")!.textContent!, t = b.querySelector("em")!.textContent!;
+  $("#mailHead").innerHTML = `<i style="background-image:url('${venuePhoto(labVenue.id, 120, 120)}')"></i><div><b>${esc(subj)}</b><span>${esc(who)} · ${esc(labVenue.name)} → concierge@ · you can edit this email</span></div><em>${esc(t)}</em>`; };
+$$<HTMLElement>("#tmpl .mav").forEach((i) => i.style.backgroundImage = `url('${venuePhoto(labVenue.id, 120, 120)}')`);
+$$<HTMLButtonElement>("#tmpl .chip").forEach((b) => b.onclick = () => { $$("#tmpl .chip").forEach((x) => x.classList.remove("on")); b.classList.add("on"); labHead(b); $<HTMLTextAreaElement>("#mail").value = template(b.dataset.t!); void analyze(); });
+labHead($<HTMLElement>("#tmpl .chip.on"));
 $<HTMLTextAreaElement>("#mail").value = template("accept"); void analyze();
 
 // =====================================================================
@@ -990,7 +999,7 @@ function renderGrid() {
 function gDetail() {
   if (!gPick) return; const { v, date } = gPick, c = cell(v, date); if (!("pol" in c) || !c.pol) return;
   const p = c.pol, DAYS3 = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  $("#gSide").innerHTML = `<div class="vt">${esc(v.name)}</div><div class="vs">${DAYS3[weekday(date)]}, ${md(date)} · 7 pm · ${gParty} guests</div>
+  $("#gSide").innerHTML = `<div class="cph" style="background-image:url('${venuePhoto(v.id, 640, 300)}')"></div><div class="vt">${esc(v.name)}</div><div class="vs">${DAYS3[weekday(date)]}, ${md(date)} · 7 pm · ${gParty} guests</div>
     <div>${c.kind === "taken" ? '<span class="pill r">Already booked</span>' : p.onPolicy ? '<span class="pill g">In-Policy</span>' : `<span class="pill r">${esc(p.violations[0])}</span>`}${v.preferredRatePct ? `<span class="pill y">Preferred −${v.preferredRatePct}%</span>` : ""}${v.contractRequired ? '<span class="pill">Contract</span>' : ""}</div>
     <dl class="kv"><dt>Room</dt><dd>${esc(c.room.name)} · ${c.room.listedCapacity} seats</dd><dt>Minimum</dt><dd>${usd(c.min)}</dd><dt>All-in</dt><dd>${usd(p.estimate.allInCents)} · ${usd(p.estimate.perHeadAllInCents)}/head</dd><dt>Deposit</dt><dd>${p.depositCents ? usd(p.depositCents) : "none"}</dd><dt>Cancellation</dt><dd>free until ${v.cancellationHours} h before</dd><dt>Approval</dt><dd>${p.requiredRoles.join(" + ")}</dd></dl>
     ${c.kind === "taken" ? "" : p.onPolicy ? `<button class="btn pri" id="gReq" style="width:100%;margin-top:10px">Request this table</button>` : ""}<div id="gFlow"></div>`;
@@ -1052,14 +1061,14 @@ function cmpRender() {
   const th = (k: string, l: string) => `<th class="sortable ${cmpSortKey === k ? "on" : ""}" data-k="${k}">${l}${cmpSortKey === k ? " ↑" : ""}</th>`;
   $("#cmpTable").innerHTML = rows.length ? `<table class="ctable"><thead><tr><th></th><th>Venue</th><th>Room</th>${th("seats", "Seats")}${th("min", "Minimum")}${th("perHead", "Per head")}<th>All-in</th>${th("deposit", "Deposit")}${th("cancel", "Free cancel")}<th>Policy</th></tr></thead><tbody>${rows.map((r) =>
     `<tr class="${r.why ? "dim" : ""} ${cmpSel.has(r.v.id) ? "picked" : ""}"><td><input type="checkbox" data-v="${r.v.id}" ${cmpSel.has(r.v.id) ? "checked" : ""} ${r.why ? "disabled" : ""}></td>
-    <td><b>${esc(r.v.name)}</b>${r.agentPick ? ' <span class="pill b">agent’s pick</span>' : ""}${r.injected ? ' <span class="pill r">injection ignored</span>' : ""}${r.ai ? '<span class="ai"></span>' : ""}<div class="cs">${esc(r.v.neighborhood)} · ${esc(r.v.cuisine)}</div></td>
+    <td><span class="thumb" style="background-image:url('${venuePhoto(r.v.id, 120, 90)}')"></span><b>${esc(r.v.name)}</b>${r.agentPick ? ' <span class="pill b">agent’s pick</span>' : ""}${r.injected ? ' <span class="pill r">injection ignored</span>' : ""}${r.ai ? '<span class="ai"></span>' : ""}<div class="cs">${esc(r.v.neighborhood)} · ${esc(r.v.cuisine)}</div></td>
     <td>${esc(r.roomName)}</td><td>${r.seats ?? "—"}</td><td>${usd(r.min)}</td><td><b>${usd(r.pol.estimate.perHeadAllInCents)}</b></td><td>${usd(r.pol.estimate.allInCents)}</td><td>${r.pol.depositCents ? usd(r.pol.depositCents) : "none"}</td><td>${r.v.cancellationHours} h</td>
     <td>${r.why ? `<span class="st bad">${esc(r.why.length > 40 ? r.why.slice(0, 38) + "…" : r.why)}</span>` : `<span class="st ok">${r.pol.requiredRoles.join(" + ")}</span>`}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No offers came back.</div>`;
   $$<HTMLElement>("#cmpTable th.sortable").forEach((t) => t.onclick = () => { cmpSortKey = t.dataset.k!; cmpRender(); });
   $$<HTMLInputElement>("#cmpTable input[type=checkbox]").forEach((c) => c.onchange = () => { if (c.checked) { if (cmpSel.size >= 4) { c.checked = false; return; } cmpSel.add(c.dataset.v!); } else cmpSel.delete(c.dataset.v!); cmpRender(); });
   const pick = rows.filter((r) => cmpSel.has(r.v.id));
   const best = (f: (r: Cmp) => number) => Math.min(...pick.map(f));
-  $("#cmpCards").innerHTML = pick.map((r) => `<div class="ccard ${r.agentPick ? "agent" : ""}"><div class="vt">${esc(r.v.name)}</div><div class="vs">${esc(r.roomName)} · ${r.seats ?? "?"} seats</div>
+  $("#cmpCards").innerHTML = pick.map((r) => `<div class="ccard ${r.agentPick ? "agent" : ""}"><div class="cph" style="background-image:url('${roomPhoto(r.v.id, r.roomName, 600, 300)}')"></div><div class="vt">${esc(r.v.name)}</div><div class="vs">${esc(r.roomName)} · ${r.seats ?? "?"} seats</div>
     <div class="cline ${r.pol.estimate.perHeadAllInCents === best((x) => x.pol.estimate.perHeadAllInCents) ? "best" : ""}"><span>Per head</span><b>${usd(r.pol.estimate.perHeadAllInCents)}</b></div>
     <div class="cline ${r.pol.estimate.allInCents === best((x) => x.pol.estimate.allInCents) ? "best" : ""}"><span>All-in</span><b>${usd(r.pol.estimate.allInCents)}</b></div>
     <div class="cline ${r.pol.depositCents === best((x) => x.pol.depositCents) ? "best" : ""}"><span>Deposit</span><b>${r.pol.depositCents ? usd(r.pol.depositCents) : "none"}</b></div>
@@ -1107,7 +1116,7 @@ function seatRender() {
   $("#seatEmpty").style.display = lastBk ? "none" : ""; $("#seatWrap").style.display = lastBk ? "" : "none";
   if (!lastBk) return;
   const b = lastBk, n = seats.length;
-  $("#seatHead").innerHTML = `<div class="vt">${esc(b.venue.name)} · ${esc(b.roomName)}</div><div class="vs">${b.date} · 7 pm · ${b.partySize} guests${b.partySize > 20 ? " (first 20 shown)" : ""}</div>`;
+  $("#seatHead").innerHTML = `<div class="cph" style="height:110px;background-image:url('${roomPhoto(b.venue.id, b.roomName, 900, 260)}')"></div><div class="vt">${esc(b.venue.name)} · ${esc(b.roomName)}</div><div class="vs">${b.date} · 7 pm · ${b.partySize} guests${b.partySize > 20 ? " (first 20 shown)" : ""}</div>`;
   const placed = new Set(seats.filter((x) => x !== null));
   $("#seatTable").innerHTML = `<div class="tbl"></div>` + seats.map((g, i) => { const [x, y] = seatPos(i, n), gg = g !== null ? guests[g] : null;
     return `<div class="seat ${gg ? (gg.org === "Northwind" ? "ours" : "theirs") : ""} ${gg?.diet ? "diet" : ""}" data-s="${i}" style="left:${x}%;top:${y}%">${gg ? `<b>${esc(gg.name.split(" ").map((p) => p[0]).join(""))}</b>${gg.diet ? `<i>${gg.diet === "vegetarian" ? "V" : gg.diet[0].toUpperCase()}</i>` : ""}` : `<span>${i + 1}</span>`}</div>`; }).join("");
@@ -1181,6 +1190,88 @@ const tintOf = (name: string) => TINTS[[...name].reduce((a, c) => a + c.charCode
 type OrdState = "up" | "done" | "cx" | "chg";
 const ordState = (r: BkRow): OrdState => r.status === "cancelled" ? (changedTo.has(r.id) ? "chg" : "cx") : Date.parse(r.startsAt) < Date.now() ? "done" : "up";
 const ORD_LBL: Record<OrdState, string> = { up: "Upcoming", done: "Completed", cx: "Cancelled", chg: "Replaced" };
+// =====================================================================
+// HOME: greeting, occasions, Book again, places near the office, and a venue sheet with similar places at the same price
+// =====================================================================
+const OCC: [string, string, string][] = [["🤝", "Client dinner", "client dinner for 6 next Thursday, somewhere private"], ["🍱", "Team lunch", "team lunch for 8 tomorrow"], ["🎉", "Celebration", "celebration dinner for 12 on Friday, private room"], ["👋", "Farewell", "farewell dinner for 10 next week, somewhere lively"], ["🥂", "Happy hour", "happy hour for 20 next Wednesday"], ["🍣", "Omakase", "japanese dinner for 4 with a client next Tuesday"]];
+const OFFICE_HOOD = COMPANY.officeNeighborhood.toLowerCase(), ADJ = ADJACENT;
+const fromPerHead = (v: Venue) => estimate(10, perHeadFor(v, "client_dinner"), 0, v.preferredRatePct).perHeadAllInCents;
+const bigRoom = (v: Venue) => Math.max(...v.rooms.filter((r) => r.private).map((r) => r.listedCapacity), 0);
+function vcard(v: Venue, extra = "", badge = "") {
+  const deal = v.preferredRatePct ? `<span class="vbadge">−${v.preferredRatePct}% preferred</span>` : "";
+  return `<button class="vcard" data-v="${v.id}"><div class="vph" style="background-image:url('${venuePhoto(v.id, 520, 300)}')">${badge || deal}${extra}</div><div class="vb"><b>${esc(v.name)}</b><div class="vm">${esc(v.cuisine[0].toUpperCase() + v.cuisine.slice(1))} · ${esc(v.neighborhood)}</div><div class="vp"><span>from <em>${usd(fromPerHead(v))}</em>/head</span><span>${bigRoom(v) ? `private · ${bigRoom(v)}` : "dining room"}</span></div></div></button>`;
+}
+let popF = "near";
+async function renderHomeRails() {
+  const h = new Date().getHours(); $("#hGreet").textContent = `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, ${meFirst()}`;
+  $("#hHero").style.backgroundImage = `url('${HERO_BG}')`;
+  $("#hOcc").innerHTML = OCC.map(([i, t, ask]) => `<button type="button" data-ask="${esc(ask)}"><i>${i}</i>${t}</button>`).join("");
+  $$<HTMLButtonElement>("#hOcc button").forEach((b) => b.onclick = () => { $$("#hOcc button").forEach((x) => x.classList.toggle("on", x === b)); const inp = $<HTMLInputElement>("#hIn"); inp.value = b.dataset.ask!; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); });
+  const near = [OFFICE_HOOD, ...(ADJ[OFFICE_HOOD] ?? [])];
+  const pop = popF === "near" ? venues.filter((v) => near.includes(v.neighborhood.toLowerCase())) : popF === "deal" ? venues.filter((v) => v.preferredRatePct).sort((a, b) => b.preferredRatePct - a.preferredRatePct) : [...venues].sort((a, b) => bigRoom(b) - bigRoom(a));
+  $("#hPop").innerHTML = pop.slice(0, 10).map((v) => vcard(v)).join("");
+  const rows = (await bkRows()).filter((r) => r.src !== "Live desk" && !r.src.startsWith("Sample") && r.status === "confirmed").sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+  const seen = new Set<string>(), again = rows.filter((r) => !seen.has(r.v.id) && seen.add(r.v.id));
+  ($("#hAgainWrap") as HTMLElement).hidden = !again.length;
+  $("#hAgain").innerHTML = again.slice(0, 8).map((r) => `<button class="vcard" data-again="${r.id}"><div class="vph" style="background-image:url('${roomPhoto(r.v.id, r.room.name, 520, 300)}')"><span class="vbadge" style="color:var(--wine)">${ordState(r) === "done" ? "Completed" : "Upcoming"} · ${md(localDate(r.startsAt))}</span><span class="vagain">↻ Book again</span></div><div class="vb"><b>${esc(r.v.name)}</b><div class="vm">${esc(r.room.name)} · ${r.partySize} guests</div><div class="vp"><span>last time <em>${usd(r.approved)}</em></span><span>${usd(Math.round(r.approved / r.partySize))}/head</span></div></div></button>`).join("");
+  $$<HTMLElement>("#hAgain [data-again]").forEach((c) => c.onclick = () => { const r = again.find((x) => x.id === c.dataset.again); if (r) openVenue(r.v, { n: r.partySize, room: r.room.id, again: r }); });
+  $$<HTMLElement>("#hPop [data-v]").forEach((c) => c.onclick = () => openVenue(venues.find((v) => v.id === c.dataset.v)!));
+}
+$$<HTMLButtonElement>("#hPopF button").forEach((b) => b.onclick = () => { popF = b.dataset.f!; $$("#hPopF button").forEach((x) => x.classList.toggle("on", x === b)); void renderHomeRails(); });
+
+/** A place's own sheet: pick a room, guests and night, see the real all-in price against policy, book it, or jump to similar places at about the same price. */
+function openVenue(v: Venue, o: { n?: number; room?: string; date?: string; again?: BkRow } = {}) {
+  document.querySelector(".modal.vsm")?.remove();
+  const polFor = (x: Venue, r: Venue["rooms"][number], k: number, d: string) => checkPolicy(company, reqFor(k, d, r.private), x, { minSpendCents: r.private ? r.minSpendCents[weekday(d)] : 0, perHeadCents: null, depositPct: null, capacity: null }, leadHours(NOW, d, "19:00"));
+  let n = o.n ?? 8, date = o.date ?? NIGHTS.slice(1).find((d) => !v.closedDays.includes(weekday(d)))!;
+  // Default to the best room that is on policy: a private room when its minimum fits the cap, otherwise the dining room.
+  const fitting = (k: number) => v.rooms.filter((r) => r.listedCapacity >= k).sort((a, b) => Number(b.private) - Number(a.private) || a.listedCapacity - b.listedCapacity);
+  let roomId = o.room ?? (fitting(n).find((r) => polFor(v, r, n, date).onPolicy) ?? fitting(n)[0] ?? v.rooms[0]).id;
+  const m = el("div", "modal vsm", ""); document.body.append(m);
+  const close = () => m.remove(); m.onclick = (e) => { if (e.target === m) close(); };
+  const draw = () => {
+    const room = v.rooms.find((r) => r.id === roomId)!, day = weekday(date), min = room.private ? room.minSpendCents[day] : 0;
+    const pol = polFor(v, room, n, date);
+    const per = pol.estimate.perHeadAllInCents, fits = n <= room.listedCapacity;
+    const sim = venues.filter((x) => x.id !== v.id && !x.closedDays.includes(day)).map((x) => {
+      const r = x.rooms.filter((rr) => rr.private === room.private && rr.listedCapacity >= n).sort((a, b) => a.listedCapacity - b.listedCapacity)[0]; if (!r) return null;
+      const pp = polFor(x, r, n, date); return { x, r, e: pp.estimate.perHeadAllInCents, ok: pp.onPolicy };
+    }).filter((z): z is { x: Venue; r: Venue["rooms"][number]; e: number; ok: boolean } => !!z && (z.ok || !pol.onPolicy) && Math.abs(z.e - per) <= per * 0.3).sort((a, b) => Math.abs(a.e - per) - Math.abs(b.e - per)).slice(0, 6);
+    m.innerHTML = `<div class="vsheet"><div class="vshero" style="background-image:url('${roomPhoto(v.id, room.name, 1200, 520)}')"><button class="vsx" aria-label="Close">✕</button><div><h2>${esc(v.name)}</h2><span>${esc(v.cuisine)} · ${esc(v.neighborhood)}${v.preferredRatePct ? ` · −${v.preferredRatePct}% preferred rate` : ""}</span></div></div>
+      <div class="vsb">${o.again ? `<div class="gstep">Last time: ${o.again.partySize} guests in ${esc(o.again.room.name)}, ${md(localDate(o.again.startsAt))}, <b>${usd(o.again.approved)}</b>. Same again?</div>` : ""}
+      <div><div class="vsl">Room</div><div class="rooms">${v.rooms.map((r) => `<button class="roomc ${r.id === roomId ? "on" : ""} ${r.listedCapacity < n ? "no" : ""}" data-r="${r.id}"><div style="background-image:url('${roomPhoto(v.id, r.name, 360, 200)}')"></div><span><b>${esc(r.name)}</b>${r.private ? "private" : "dining room"} · up to ${r.listedCapacity}</span></button>`).join("")}</div></div>
+      <div class="vsrow"><div><div class="vsl">Guests</div><div class="step"><button data-d="-1">−</button><b>${n}</b><button data-d="1">+</button></div></div>
+        <div style="flex:1;min-width:0"><div class="vsl">Night · 7 pm</div><div class="nights">${NIGHTS.slice(0, 12).map((d) => `<button data-n="${d}" class="${d === date ? "on" : ""}" ${v.closedDays.includes(weekday(d)) ? "disabled title=\"Closed\"" : ""}>${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][weekday(d)]}<small>${md(d)}</small></button>`).join("")}</div></div></div>
+      <div class="vsprice"><div><b>${usd(per)}</b> <span class="cs">a head all-in · ${usd(pol.estimate.allInCents)} total${min ? ` · ${usd(min)} room minimum` : ""}</span><div class="${fits && pol.onPolicy ? "ok" : "bad"}">${!fits ? `${esc(room.name)} seats ${room.listedCapacity}` : pol.onPolicy ? `✓ On policy · ${pol.requiredRoles.map((x) => x === "booker" ? "you" : "a manager").join(" + ")} approve` : `✕ ${esc(pol.violations[0])}${room.private ? " · try the dining room or fewer nights out" : ""}`}</div></div>
+        <button class="btn pri" id="vsGo" ${fits && pol.onPolicy ? "" : "disabled"}>${o.again ? "↻ Book again" : "Book this"}</button></div>
+      ${sim.length ? `<div><div class="vsl">Similar, about ${usd(per)} a head that night</div><div class="hcar">${sim.map((z) => `<button class="vcard" data-sim="${z.x.id}" data-room="${z.r.id}"><div class="vph" style="height:110px;background-image:url('${roomPhoto(z.x.id, z.r.name, 480, 260)}')"><span class="vbadge" style="color:${z.e <= per ? "var(--sage)" : "var(--wine)"}">${z.e <= per ? "−" : "+"}${usd(Math.abs(z.e - per))}/head</span></div><div class="vb"><b>${esc(z.x.name)}</b><div class="vm">${esc(z.r.name)} · ${esc(z.x.neighborhood)}</div><div class="vp"><span><em>${usd(z.e)}</em>/head</span><span>${esc(z.x.cuisine)}</span></div></div></button>`).join("")}</div></div>` : ""}
+      <div class="pcredit">${PHOTO_CREDIT} · fictional venues, illustrative photos</div></div></div>`;
+    m.querySelector(".vsx")!.addEventListener("click", close);
+    m.querySelectorAll<HTMLButtonElement>(".roomc").forEach((b) => b.onclick = () => { if (!b.classList.contains("no")) { roomId = b.dataset.r!; draw(); } });
+    m.querySelectorAll<HTMLButtonElement>(".step button").forEach((b) => b.onclick = () => { n = Math.max(2, Math.min(60, n + Number(b.dataset.d))); if (n > v.rooms.find((r) => r.id === roomId)!.listedCapacity) { const r = v.rooms.filter((x) => x.listedCapacity >= n).sort((a, b2) => a.listedCapacity - b2.listedCapacity)[0]; if (r) roomId = r.id; } draw(); });
+    m.querySelectorAll<HTMLButtonElement>(".nights button").forEach((b) => b.onclick = () => { date = b.dataset.n!; draw(); });
+    m.querySelectorAll<HTMLElement>("[data-sim]").forEach((c) => c.onclick = () => openVenue(venues.find((x) => x.id === c.dataset.sim)!, { n, date, room: c.dataset.room }));
+    m.querySelector<HTMLButtonElement>("#vsGo")!.onclick = () => {
+      close(); const r = v.rooms.find((x) => x.id === roomId)!;
+      const text = o.again && bkAsk.get(o.again.id) && n === o.again.partySize ? bkAsk.get(o.again.id)! : `dinner for ${n} on ${md(date)}${r.private ? ", private room" : ""}`;
+      go("home"); setTimeout(() => { $("#hLive").scrollIntoView({ behavior: "smooth", block: "center" }); void hRun(text, { preferVenueId: v.id }); }, 300);
+    };
+  };
+  draw();
+}
+
+/** Like a delivery app on sign-in: a returning person is asked whether to book their last dinner again. */
+let roShown = false;
+async function reorderPrompt() {
+  if (roShown || visits.length < 2) return;
+  const last = (await bkRows()).filter((r) => r.src !== "Live desk" && !r.src.startsWith("Sample") && r.status === "confirmed" && isPast(r.store)).sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0];
+  if (!last) return; roShown = true;
+  const s = el("div", "rosheet", `<div class="roh"><div style="background-image:url('${roomPhoto(last.v.id, last.room.name, 320, 240)}')"></div><div><div class="vsl">Welcome back, ${esc(meFirst())}</div><h3>Book ${esc(last.v.name)} again?</h3><div class="cs">${last.partySize} guests · ${esc(last.room.name)} · ${usd(last.approved)} last time</div></div></div><div class="robtn"><button class="btn pri" data-a="again">↻ Book again</button><button class="btn" data-a="sim">Similar places</button><button class="btn" data-a="no">Not now</button></div>`);
+  document.body.append(s);
+  s.querySelectorAll<HTMLButtonElement>("[data-a]").forEach((b) => b.onclick = () => { s.remove(); if (b.dataset.a === "again") bookAgain(last); if (b.dataset.a === "sim") openVenue(last.v, { n: last.partySize, room: last.room.id, again: last }); });
+  setTimeout(() => s.remove(), 20000);
+}
+
 /** Home's phone, before anything is typed: a returning person sees their last dinners with one-tap Book again. */
 async function hIdle() {
   if (hBusy || hDone || !$("#hPhone")) return;
@@ -1191,7 +1282,7 @@ async function hIdle() {
 }
 function bookAgain(r: BkRow) {
   const t = bkAsk.get(r.id) ?? `dinner for ${r.partySize} in ${r.v.neighborhood}`;
-  go("home"); setTimeout(() => void hRun(t), 350);
+  go("home"); setTimeout(() => { $("#hLive")?.scrollIntoView({ behavior: "smooth", block: "center" }); void hRun(t, { preferVenueId: r.v.id }); }, 350);
 }
 async function renderBookings() {
   const rows = (await bkRows()).filter((r) => r.src !== "Live desk" && !r.src.startsWith("Sample")), conf = rows.filter((r) => r.status === "confirmed");
@@ -1210,7 +1301,7 @@ async function renderBookings() {
     const s = ordState(r), g = isPast(r.store) ? "From earlier visits" : "This visit", head = g !== grp ? `<div class="ordgrp">${g}</div>` : ""; grp = g;
     const d = new Date(r.startsAt), day = d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
     return `${head}<div class="ord ${bkPick === r.id ? "picked" : ""} ${s === "cx" || s === "chg" ? "dim" : ""}" data-id="${r.id}">
-      <div class="ordimg" style="background:linear-gradient(135deg,${tintOf(r.v.name)},#2b1d17)">${esc(r.v.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2))}<small>${esc(r.v.cuisine.length > 9 ? r.v.cuisine.slice(0, 8) + "." : r.v.cuisine)}</small></div>
+      <div class="ordimg" style="background:linear-gradient(0deg,#0008,#0000 60%),url('${roomPhoto(r.v.id, r.room.name, 160, 160)}') center/cover,${tintOf(r.v.name)}"><small>${esc(r.v.cuisine.length > 9 ? r.v.cuisine.slice(0, 8) + "." : r.v.cuisine)}</small></div>
       <div><div class="on1">${esc(r.v.name)}</div><div class="on2">${day} · ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · ${r.partySize} guests · ${esc(r.v.neighborhood)}</div>
         <div class="on3"><span class="ost ${s}">${ORD_LBL[s]}</span><button class="ordb pri" data-again="${r.id}">↻ Book again</button>${s === "up" ? `<button class="ordb" data-open="${r.id}">Change</button>` : `<button class="ordb" data-open="${r.id}">Receipt</button>`}</div></div>
       <div class="oamt"><b>${usd(r.approved)}</b><span class="cs">${r.paid ? `${usd(r.paid)} deposit` : "no deposit"}</span></div></div>`;
@@ -1220,7 +1311,7 @@ async function renderBookings() {
   $$<HTMLButtonElement>("#bkTable [data-again]").forEach((b) => b.onclick = (e) => { e.stopPropagation(); const r = rows.find((x) => x.id === b.dataset.again); if (r) bookAgain(r); });
   const r = rows.find((x) => x.id === bkPick); if (!r) { $("#bkSide").innerHTML = `<div class="empty">Your dinners show up here.</div>`; return; }
   const rc = receipt(r), st = ordState(r), hrs = Math.round((Date.parse(r.startsAt) - Date.parse(NOW)) / 3_600_000), free = hrs >= r.v.cancellationHours;
-  $("#bkSide").innerHTML = `<div class="ordimg" style="width:100%;height:84px;border-radius:14px;margin-bottom:10px;background:linear-gradient(135deg,${tintOf(r.v.name)},#2b1d17)">${esc(r.v.name)}<small>${esc(r.room.name)} · ${esc(r.v.neighborhood)}</small></div>
+  $("#bkSide").innerHTML = `<div class="ordimg" style="width:100%;height:150px;border-radius:14px;margin-bottom:10px;background:linear-gradient(0deg,#000a,#0000 70%),url('${roomPhoto(r.v.id, r.room.name, 700, 320)}') center/cover,${tintOf(r.v.name)}">${esc(r.v.name)}<small>${esc(r.room.name)} · ${esc(r.v.neighborhood)}</small></div>
     <div class="vs"><span class="ost ${st}">${ORD_LBL[st]}</span> ${when(r.startsAt)}, ${md(localDate(r.startsAt))} · ${r.partySize} guests${bkAsk.get(r.id) ? `<div class="cs" style="margin-top:6px">“${esc(bkAsk.get(r.id)!)}”</div>` : ""}</div>
     <div class="rcpt"><div><span>${rc.min > rc.per * r.partySize ? `Food &amp; beverage minimum` : `Menu, ${r.partySize} × ${usd(rc.per)}`}</span><b>${usd(rc.list)}</b></div>${rc.disc ? `<div class="g"><span>Preferred rate −${r.v.preferredRatePct}%</span><b>−${usd(rc.disc)}</b></div>` : ""}<div><span>NYC sales tax 8.875%</span><b>${usd(rc.tax)}</b></div><div><span>Service 20%</span><b>${usd(rc.svc)}</b></div><div class="t"><span>Total</span><b>${usd(rc.total)}</b></div><div><span>Deposit paid${carried.has(r.id) ? " (carried over)" : ""}</span><b>${r.paid ? `−${usd(r.paid)}` : "—"}</b></div></div>
     <button class="btn pri" id="bkAgain" style="width:100%;margin:10px 0">↻ Book again</button>
@@ -1533,7 +1624,7 @@ async function renderCal() {
   const html = MON.map((d) => `<div class="calh">${d}</div>`).join("") + calDays(last).map((d) => {
     const inRange = NIGHTS.includes(d), today = d === TODAY, list = rows.filter((r) => localDate(r.startsAt) === d);
     return `<div class="cald ${inRange ? "" : "off"} ${today ? "today" : ""}" data-d="${d}"><div class="caln">${Number(d.slice(8)) === 1 ? md(d) : Number(d.slice(8))}${today ? " · today" : ""}</div>${list.map((r) =>
-      `<div class="calb ${calPick === r.id ? "pick" : ""}" draggable="true" data-id="${r.id}" style="--c:${["#7b1e3a", "#3f7d5a", "#5b6b8c", "#8a6212", "#a8502f"][venues.indexOf(r.v) % 5]}"><b>${esc(r.v.name)}</b><span>${r.partySize} · ${usd(r.approved)}</span></div>`).join("")}${inRange && !list.length ? `<button class="caladd" data-d="${d}">+ dinner</button>` : ""}</div>`;
+      `<div class="calb ${calPick === r.id ? "pick" : ""}" draggable="true" data-id="${r.id}" style="background-image:linear-gradient(90deg,#fffdf8 55%,#fffdf8cc),url('${venuePhoto(r.v.id, 200, 120)}');--c:${["#7b1e3a", "#3f7d5a", "#5b6b8c", "#8a6212", "#a8502f"][venues.indexOf(r.v) % 5]}"><b>${esc(r.v.name)}</b><span>${r.partySize} · ${usd(r.approved)}</span></div>`).join("")}${inRange && !list.length ? `<button class="caladd" data-d="${d}">+ dinner</button>` : ""}</div>`;
   }).join("");
   // Re-render only when something changed, so a tap is never lost to a refresh.
   if (html === calLast && $("#calGrid").childElementCount) { $("#calHint").textContent = calPick ? "Now tap the night to move it to." : rows.length ? "Drag a dinner to another night (or tap it, then tap a night)." : "No dinners yet. Tap + on any night to book one."; $$(".calb").forEach((b) => b.classList.toggle("pick", (b as HTMLElement).dataset.id === calPick)); return; }
@@ -1633,7 +1724,7 @@ function renderExplore() {
   const fit = shown.filter((x) => x.f.k === "ok" || x.f.k === "mgr").length;
   $("#xCount").innerHTML = `<b>${fit}</b> of ${shown.length} venues fit · ${xF.n} guests · ${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][weekday(xF.date)]} ${md(xF.date)}`;
   $("#xList").innerHTML = ord.map(({ v, f }) => { const ok = f.k === "ok" || f.k === "mgr";
-    return `<div class="xr ${ok ? "" : "no"} ${xHover === v.id ? "hot" : ""} ${xOpen === v.id ? "open" : ""}" data-v="${v.id}"><i style="background:${XCOL[f.k]}"></i><div><b>${esc(v.name)}</b><span>${esc(v.neighborhood)} · ${esc(v.cuisine)}${v.preferredRatePct ? ` · <em>−${v.preferredRatePct}%</em>` : ""}</span></div>
+    return `<div class="xr ${ok ? "" : "no"} ${xHover === v.id ? "hot" : ""} ${xOpen === v.id ? "open" : ""}" data-v="${v.id}"><i style="background:${XCOL[f.k]}"></i><span class="thumb" style="background-image:url('${venuePhoto(v.id, 120, 90)}')"></span><div><b>${esc(v.name)}</b><span>${esc(v.neighborhood)} · ${esc(v.cuisine)}${v.preferredRatePct ? ` · <em>−${v.preferredRatePct}%</em>` : ""}</span></div>
       <div class="xp">${ok ? `<b>${usd(f.ph!)}</b><span>per head</span>` : `<span>${esc(f.why)}</span>`}</div><button class="heart ${xShort.has(v.id) ? "on" : ""}" data-h="${v.id}" ${ok ? "" : "disabled"} title="Shortlist">♥</button></div>`; }).join("");
   // shortlist tray
   $("#xTray").innerHTML = xShort.size ? `<div class="xchips">${[...xShort].map((id) => `<span class="pill">${esc(venues.find((v) => v.id === id)!.name)} <a data-x="${id}">×</a></span>`).join("")}</div><button class="btn pri" id="xRfp">Send RFP to ${xShort.size} venue${xShort.size > 1 ? "s" : ""} →</button>` : `<span class="cs">♥ up to 6 venues → one request to all</span>`;
@@ -1801,7 +1892,7 @@ function hFly(path: SVGPathElement, back: boolean, cls: string, ms = 700) {
 }
 function hStage(k: string) { const order = ["parse", "source", "email", "compare", "approve", "book"], i = order.indexOf(k); $$<HTMLElement>("#hSteps > div").forEach((d, j) => { d.classList.toggle("done", j < i); d.classList.toggle("on", j === i); }); }
 function hCount(id: string, n: number) { const e = $(`#${id}`); e.textContent = String(n); e.classList.remove("tick"); void e.offsetWidth; e.classList.add("tick"); }
-async function hRun(text: string) {
+async function hRun(text: string, opt: { preferVenueId?: string } = {}) {
   if (hBusy || !text.trim()) return; hBusy = true; hDone = false; hQuiet = ""; hRuns++;
   const btn = $<HTMLButtonElement>("#hGo"); btn.disabled = true; $<HTMLInputElement>("#hIn").value = text;
   hMap(); $("#hPhone").innerHTML = `<div class="ph-s">Concierge is on it…</div>`; $("#hRes").innerHTML = ""; $("#hMap").classList.add("running"); $("#hMap").classList.remove("done");
@@ -1853,7 +1944,7 @@ async function hRun(text: string) {
     }
     return "approved";
   };
-  const res = await runConcierge({ text, actor: priya, principal: dana, today: TODAY, store, world, llm, venues, company, approver, onEvent, shortlistSize: 4 });
+  const res = await runConcierge({ text, actor: priya, principal: dana, today: TODAY, store, world, llm, venues, company, approver, onEvent, shortlistSize: opt.preferVenueId ? 1 : 4, preferVenueId: opt.preferVenueId });
   await chain; record(res, world, text);
   const ph = $("#hPhone");
   if (res.outcome === "booked" && res.chosenVenueId) {
@@ -2084,8 +2175,13 @@ async function renderMonitor() {
   const worlds = allRows.reduce((a, r) => a + r.worlds.ran, 0), checks = allRows.reduce((a, r) => a + r.worlds.checks, 0), fails = allRows.filter((r) => !r.ok).length;
   const dec = live.reduce((a, r) => a + r.modelDecisions.parse + r.modelDecisions.offers, 0), fb = live.reduce((a, r) => a + r.modelDecisions.fellBack, 0);
   const days = live.length ? Math.max(1, (Date.parse(live.at(-1)!.at) - Date.parse(live[0].at)) / 86_400_000) : 1;
+  { const ok = allRows.length - fails, pctOk = allRows.length ? ok / allRows.length : 1, C = 2 * Math.PI * 40, last = allRows.at(-1);
+    $("#moHero").innerHTML = `<svg class="ring" viewBox="0 0 96 96"><circle cx="48" cy="48" r="40" fill="none" stroke="#ffffff22" stroke-width="10"/><circle cx="48" cy="48" r="40" fill="none" stroke="${fails ? "#ff6b81" : "#5fd38d"}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pctOk)}" transform="rotate(-90 48 48)"/><text x="48" y="54" text-anchor="middle" fill="#fff" font-size="20" font-weight="700" font-family="Fraunces,Georgia,serif">${Math.round(pctOk * 100)}%</text></svg>
+      <div><h2><span class="pulse ${last && !last.ok ? "bad" : ""}"></span>${last && !last.ok ? "Last run failed" : "All checks green"}</h2><p>${allRows.length} scheduled runs · last ${last ? ago(last.at) : "pending"} · next in ${nextRun()} · ${live.length ? "live Claude" : "recorded Claude until the key is seen"}</p></div>
+      <div class="mstat"><div><b>${worlds.toLocaleString()}</b><span>worlds</span></div><div><b>${checks.toLocaleString()}</b><span>safety checks</span></div><div><b>${fails}</b><span>failures</span></div></div>`; }
   $("#moKpis").innerHTML = [["Runs", allRows.length], ["Last run", allRows.length ? ago(allRows.at(-1)!.at) : "pending"], ["Next run", `in ${nextRun()}`], ["Failed runs", fails], ["Worlds tested", worlds.toLocaleString()],
     ["Safety checks", checks.toLocaleString()], ["Live runs", `${live.length} of ${allRows.length}`], ["Model decided", dec + fb ? `${Math.round((dec / (dec + fb)) * 100)}%` : "–"], ["p50 live", live.length ? `${live.at(-1)!.p50ms} ms` : "–"], ["Cost / day", live.length ? `$${(live.reduce((a, r) => a + r.costUsd, 0) / days).toFixed(2)}` : "$0.00"]]
+    .filter(([k]) => !["Runs", "Last run", "Next run", "Failed runs", "Worlds tested", "Safety checks"].includes(String(k))) // the status card above shows these
     .map(([k, v]) => `<div class="tk"><span>${k}</span><b>${v}</b></div>`).join("");
   $("#moStrip").innerHTML = allRows.map((r) => `<button class="${r.ok ? "" : "bad"} ${r.mode === "live" || r.mode === "record" ? "live" : ""} ${moSel === r.at ? "on" : ""}" data-at="${r.at}" title="${new Date(r.at).toLocaleString()} · ${r.ok ? "passed" : "failed"} · ${r.mode === "replay" ? "recorded" : "live"}"></button>`).join("") || '<span class="cs">The first scheduled run will appear here.</span>';
   const labels = rows.map((r) => r.at);
@@ -2129,8 +2225,8 @@ function renderTracesInner() {
   if (r) {
     const t0 = Date.parse(r.trace[0]?.at ?? r.trace.at(-1)?.at ?? ""), t1 = Date.parse(r.trace.at(-1)?.at ?? "") || t0 + 1, span = Math.max(1, t1 - t0);
     $("#trWater").innerHTML = `<div class="trh"><b>${esc(r.label)}</b><span class="mono">${r.id}</span></div><div class="row" style="gap:8px;margin:6px 0 8px"><button class="btn" id="trPlay">${trPlay ? "■ Stop" : "▶ Replay this run"}</button><span class="cs">${r.trace.length} spans over ${Math.max(1, Math.round(span / 60000))} simulated minutes · ${r.outcome.replace(/_/g, " ")}</span></div>` + r.trace.map((e, i) => {
-      const x = ((Date.parse(e.at) - t0) / span) * 100, ai = isAI(e);
-      return `<div class="tre ${i === trEv ? "on" : ""} ${e.kind === "injection_flagged" ? "bad" : ""} ${trHide.has(e.agent) ? "hid" : ""}" data-i="${i}"><span class="tlane ${AGENT[e.agent] ?? "c"}">${e.agent}</span><span class="tk2">${esc(e.kind.replace(/_/g, " "))}${ai ? '<span class="ai"></span>' : ""}</span><span class="bar3"><i style="left:${Math.min(97, x)}%" class="${AGENT[e.agent] ?? "c"}"></i></span><span class="mono tt">+${Math.round((Date.parse(e.at) - t0) / 60000)}m</span></div>`;
+      const x = ((Date.parse(e.at) - t0) / span) * 100, ai = isAI(e), nx = r.trace[i + 1] ? ((Date.parse(r.trace[i + 1].at) - t0) / span) * 100 : x, w = Math.max(1.6, nx - x);
+      return `<div class="tre ${i === trEv ? "on" : ""} ${e.kind === "injection_flagged" ? "bad" : ""} ${trHide.has(e.agent) ? "hid" : ""}" data-i="${i}"><span class="tlane ${AGENT[e.agent] ?? "c"}">${e.agent}</span><span class="tk2">${esc(e.kind.replace(/_/g, " "))}${ai ? '<span class="ai"></span>' : ""}</span><span class="bar3" title="${esc(e.text)}"><i style="left:${Math.min(98.4, x)}%;width:${Math.min(w, 100 - Math.min(98.4, x))}%" class="${AGENT[e.agent] ?? "c"}${i <= trEv || trEv < 0 ? "" : " fut"}"></i></span><span class="mono tt">+${Math.round((Date.parse(e.at) - t0) / 60000)}m</span></div>`;
     }).join("");
     $$<HTMLElement>("#trWater .tre").forEach((d) => d.onclick = () => { stopPlay(); trEv = Number(d.dataset.i); renderTraces(); });
     $("#trPlay").onclick = () => {
@@ -2249,7 +2345,7 @@ async function startHistory() {
     await seedHistory();
     histLoaded = true; saveHistory();
   }
-  const page = location.hash.slice(1); void hIdle();
+  const page = location.hash.slice(1); void hIdle(); void renderHomeRails(); void reorderPrompt();
   if (page === "invoice") void renderInvoice(); if (page === "bookings") void renderBookings(); if (page === "traces") renderTraces(); if (page === "calendar") void renderCal();
 }
 const isPast = (st: MemoryStore) => pastStores.has(st);
