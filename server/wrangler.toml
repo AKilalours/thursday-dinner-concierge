@@ -8,8 +8,7 @@ MODEL = "claude-sonnet-4-5"
 # ALLOWED_ORIGINS = "https://akilalours.github.io,https://ande-thursday-dinner-concierge.streamlit.app,null"
 
 # Saved history across devices (name + 4-digit PIN). Turn it on once:
-#   npx wrangler kv namespace create HISTORY      -> copy the id it prints into the line below, uncomment both lines
-#   npm run server:deploy
-# [[kv_namespaces]]
-# binding = "HISTORY"
-# id = "paste-the-id-here"
+#   npx wrangler kv namespace create HISTORY, then npm run server:deploy (done 2026-11-20)
+[[kv_namespaces]]
+binding = "HISTORY"
+id = "423240df94ae458cb28ffce8d5c01f72"
