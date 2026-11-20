@@ -17,7 +17,7 @@ const booking = { venue: "Casa Verbena", room: "Wine Cellar", neighborhood: "Tri
 describe("server: live model and real email", () => {
   it("reports which features are configured", async () => {
     const r = await worker.fetch(new Request("https://w.test/health"), { ANTHROPIC_API_KEY: "k" });
-    assert.deepEqual(await r.json(), { llm: true, email: false, model: "claude-sonnet-4-5" });
+    assert.deepEqual(await r.json(), { llm: true, email: false, sync: false, model: "claude-sonnet-4-5" });
   });
   it("only forwards the agent's own tasks, and caps tokens", async () => {
     assert.equal((await post("/llm", { task: "write_me_a_poem", system: "s", user: "u" })).status, 400);
@@ -63,5 +63,33 @@ describe("browser model client", () => {
     const ctl = new AbortController(); ctl.abort();
     const l = new LiveThenReplay({ mode: "live", complete: async () => { throw new Error("aborted"); } }, replay);
     await assert.rejects(l.complete("t", "s", "u", { signal: ctl.signal }));
+  });
+});
+
+describe("server: saved history across devices", () => {
+  const kv = new Map<string, string>();
+  const HISTORY = { get: async (k: string) => kv.get(k) ?? null, put: async (k: string, v: string) => { kv.set(k, v); } };
+  const hp = (path: string, body: unknown, ip: string) => worker.fetch(new Request(`https://w.test${path}`, { method: "POST", body: JSON.stringify(body), headers: { origin: "https://akilalours.github.io", "cf-connecting-ip": ip } }), { HISTORY });
+  it("is off until the KV store is bound, and says so in /health", async () => {
+    assert.equal((await worker.fetch(new Request("https://w.test/history/load", { method: "POST", body: JSON.stringify({ name: "Sudeep", pin: "1234" }) }), {})).status, 503);
+    assert.equal((await (await worker.fetch(new Request("https://w.test/health"), { HISTORY })).json()).sync, true);
+  });
+  it("a name + PIN saves on one device and loads on another; the PIN itself is never stored", async () => {
+    assert.deepEqual(await (await hp("/history/load", { name: "Lilly Grace", pin: "4821" }, "9.0.0.2")).json(), { data: null, isNew: true });
+    assert.equal((await hp("/history/save", { name: "Lilly Grace", pin: "4821", data: { v: 1, stores: [1, 2] } }, "9.0.0.2")).status, 200);
+    const other = await (await hp("/history/load", { name: "  lilly   grace ", pin: "4821" }, "9.0.0.3")).json();
+    assert.deepEqual(other.data, { v: 1, stores: [1, 2] });
+    assert.ok(![...kv.keys(), ...kv.values()].some((x) => x.includes("4821")), "no raw PIN in storage");
+  });
+  it("a wrong PIN can't read or overwrite someone's dinners, and guessing is cut off", async () => {
+    await hp("/history/save", { name: "Davis", pin: "1111", data: { v: 1, mine: true } }, "9.0.0.4");
+    assert.equal((await hp("/history/load", { name: "Davis", pin: "2222" }, "9.0.0.5")).status, 403);
+    assert.equal((await hp("/history/save", { name: "Davis", pin: "2222", data: { v: 1, mine: false } }, "9.0.0.5")).status, 403);
+    for (let i = 0; i < 12; i++) await hp("/history/load", { name: "Davis", pin: String(3000 + i) }, "9.0.0.6");
+    assert.equal((await hp("/history/load", { name: "Davis", pin: "1111" }, "9.0.0.6")).status, 429, "locked out after 10 wrong PINs, even with the right one");
+    assert.deepEqual((await (await hp("/history/load", { name: "Davis", pin: "1111" }, "9.0.0.7")).json()).data, { v: 1, mine: true });
+  });
+  it("rejects a malformed PIN", async () => {
+    assert.equal((await hp("/history/load", { name: "Babu", pin: "12" }, "9.0.0.8")).status, 400);
   });
 });

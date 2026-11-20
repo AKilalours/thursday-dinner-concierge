@@ -97,7 +97,8 @@ await page.waitForSelector(".modal [data-k=y]", { timeout: 5000 }).then(() => pa
 await page.waitForFunction(() => /Moved|Can't move/.test(document.querySelector("#toasts").textContent), null, { timeout: 8000 }).catch(() => fail(1440, "calendar: moving a dinner gave no result"));
 
 await page.evaluate(() => window.go("bookings")); await page.waitForTimeout(400);
-const rows = await page.$$eval("#bkTable tbody tr", (r) => r.length);
+let rows = 0; // orders are cards, split into upcoming and past by the real date
+for (const f of ["upcoming", "past"]) { await page.click(`#bkFilter [data-f="${f}"]`); await page.waitForTimeout(300); rows += await page.$$eval("#bkTable .ord", (r) => r.length); }
 if (rows < 2) fail(1440, `bookings: expected the chat and availability bookings, saw ${rows}`);
 
 await page.evaluate(() => window.go("explore")); await page.waitForTimeout(300);

@@ -165,6 +165,7 @@ flowchart LR
 | | |
 |---|---|
 | **Agents** | Concierge + sourcing, comparison, venue-coordination subagents. Follow up on silence, widen the search, re-plan, fall through after a double booking. |
+| **Orders and history** | Each person signs in by name and sees their own dinners like a delivery app's order history: upcoming, completed, cancelled, with the receipt and one-tap **Book again**. Add a 4-digit PIN and the same history follows them to any phone or laptop (kept on the server under a hash of name + PIN; 10 wrong PINs lock guessing out for an hour). Booking pages run on today's real date, so "tomorrow" means tomorrow. |
 | **Changes after booking** | Amendments and cancellations are proposals too; an amendment swaps the booking atomically and rolls back if the new slot is taken. |
 | **Spend control** | Policy as code: per-head caps, manager thresholds, notice; preferred corporate rates (12-15%) applied and reported. |
 | **Typed tools** | zod in and out, run as the EA *for* the executive, idempotent, audited. `book`, `pay_deposit`, `amend_booking` and `cancel_booking` need an approved proposal. |

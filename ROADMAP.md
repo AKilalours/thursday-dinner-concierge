@@ -31,6 +31,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Shipped
 
+- 2026-11-20: Orders page (upcoming, completed, cancelled, receipt, Book again) and "Book again" on Home for returning people; history follows a person across devices with name + 4-digit PIN (server/worker.js, needs the HISTORY KV binding); booking pages use today's real date instead of a fixed Nov 9, and the calendar starts on this week's Monday.
 - 2026-11-20: "dinner for me and my boss" books 2 instead of asking how many; a singular role ("my boss", "a client", "my manager") counts as one guest, while plurals and groups ("my clients", "my team") are still asked (R30); real-user sentences 57 → 59.
 - 2026-11-19: "dinner for me, Sam and Priya" books 3 instead of asking how many guests; a list of names that includes the booker is counted, and "me and the team" or names without "me" are still asked (R29); real-user sentences 55 → 57.
 - 2026-11-19: `npm run site:check` works on a fresh clone: it falls back to a global Playwright (NODE_PATH or `npm root -g`) instead of failing with ERR_MODULE_NOT_FOUND, and says how to install it when there is none.

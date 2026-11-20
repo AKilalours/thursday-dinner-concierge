@@ -1,13 +1,15 @@
 // Thursday Dinner Concierge: the small server behind the live site.
 //   POST /llm    one model call for the agent (Claude), key kept server-side
 //   POST /email  a real booking confirmation with a calendar invite, sent through Resend
+//   POST /history/load, /history/save  a person's saved dinners, kept by name + 4-digit PIN so they follow them to any device
 //   GET  /health which features are configured
 // Secrets (never in the repo): ANTHROPIC_API_KEY, RESEND_API_KEY. Optional vars: MODEL, MAIL_FROM, ALLOWED_ORIGINS.
+// Optional KV binding HISTORY turns on saved history across devices (see wrangler.toml).
 // It is deliberately narrow: only the agent's own tasks, capped tokens, capped emails, booking fields only (no free-form HTML),
 // so it can't be used as a general model proxy or a spam relay.
 
 const TASKS = /^(parse_request|extract_offer|classify_[a-z_]+|judge_proposal_message)$/;
-const LIMITS = { llm: [60, 3600], email: [3, 3600] };      // per IP: count per window (seconds)
+const LIMITS = { llm: [60, 3600], email: [3, 3600], hist: [240, 3600], badpin: [10, 3600] };      // per IP: count per window (seconds)
 const DAILY_EMAILS = 100;                                   // whole worker, per isolate day
 const hits = new Map();
 let day = "", emailsToday = 0;
@@ -21,6 +23,7 @@ function cors(origin, env) {
   const allowed = (env.ALLOWED_ORIGINS ?? "https://akilalours.github.io,https://ande-thursday-dinner-concierge.streamlit.app,null").split(",").map((s) => s.trim());
   return { "access-control-allow-origin": allowed.includes(origin) ? origin : allowed[0], "access-control-allow-methods": "GET,POST,OPTIONS", "access-control-allow-headers": "content-type", vary: "origin" };
 }
+async function sha(s) { const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
 const json = (body, status, h) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...h } });
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const clean = (s, n) => String(s ?? "").replace(/[\r\n]+/g, " ").slice(0, n);
@@ -46,7 +49,7 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url), origin = req.headers.get("origin") ?? "", h = cors(origin, env), ip = req.headers.get("cf-connecting-ip") ?? "?";
     if (req.method === "OPTIONS") return new Response(null, { headers: h });
-    if (url.pathname === "/health") return json({ llm: !!env.ANTHROPIC_API_KEY, email: !!env.RESEND_API_KEY, model: env.MODEL ?? "claude-sonnet-4-5" }, 200, h);
+    if (url.pathname === "/health") return json({ llm: !!env.ANTHROPIC_API_KEY, email: !!env.RESEND_API_KEY, sync: !!env.HISTORY, model: env.MODEL ?? "claude-sonnet-4-5" }, 200, h);
     if (req.method !== "POST") return json({ error: "not found" }, 404, h);
     let b; try { b = await req.json(); } catch { return json({ error: "bad json" }, 400, h); }
 
@@ -76,6 +79,26 @@ export default {
       if (!r.ok) return json({ error: d.message ?? `mail HTTP ${r.status}` }, 502, h);
       emailsToday++;
       return json({ id: d.id }, 200, h);
+    }
+    if (url.pathname === "/history/load" || url.pathname === "/history/save") {
+      if (!env.HISTORY) return json({ error: "sync not configured" }, 503, h);
+      const name = clean(b.name, 40).trim().replace(/\s+/g, " ").toLowerCase(), pin = String(b.pin ?? "");
+      if (!name || !/^\d{4}$/.test(pin)) return json({ error: "name and a 4-digit PIN needed" }, 400, h);
+      if (limited("hist", ip)) return json({ error: "slow down" }, 429, h);
+      // The PIN is never stored: only a hash of name + PIN, which also names where the history lives.
+      const who = await sha(`name:${name}`), key = await sha(`tdc:v1:${name}:${pin}`), owner = await env.HISTORY.get(`owner:${who}`);
+      const bad = hits.get(`badpin:${ip}`);
+      if (bad && Date.now() < bad.reset && bad.n >= LIMITS.badpin[0]) return json({ error: "too many wrong PINs, try again in an hour" }, 429, h);
+      if (owner && owner !== key) { limited("badpin", ip); return json({ error: "wrong PIN for this name" }, 403, h); }
+      if (url.pathname === "/history/load") {
+        const raw = owner ? await env.HISTORY.get(`hist:${key}`) : null;
+        return json({ data: raw ? JSON.parse(raw) : null, isNew: !owner }, 200, h);
+      }
+      const body = JSON.stringify(b.data ?? null);
+      if (!b.data || typeof b.data !== "object" || body.length > 900_000) return json({ error: "history too large or missing" }, 413, h);
+      if (!owner) await env.HISTORY.put(`owner:${who}`, key);
+      await env.HISTORY.put(`hist:${key}`, body);
+      return json({ ok: true, savedAt: Date.now() }, 200, h);
     }
     return json({ error: "not found" }, 404, h);
   },
