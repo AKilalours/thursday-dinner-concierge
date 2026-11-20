@@ -46,12 +46,17 @@ export function partySizeFrom(text: string): number | null {
 // booker is a headcount; anything that is not clearly a person ("my boss", "the team") is still asked, not guessed.
 const NOT_A_GUEST = /^(the|my|our|a|an|some|us|them|you|everyone|team|clients?|colleagues?|friends?|family|guests?|people|kids|on|at|in|next|this|tomorrow|tonight|lunch|dinner|drinks)$/;
 
+// Regression R30: "for me and my boss" asked how many. A singular role ("my boss", "a client") is one person;
+// a plural or a group ("my clients", "the team") is still asked.
+const ONE_PERSON = /^(?:my|our|a|an|the) (?:boss|manager|ceo|cfo|cto|founder|director|vp|client|customer|colleague|coworker|co-worker|partner|wife|husband|spouse|assistant|investor|mentor|friend|guest|intern|candidate)$/;
+
 function namedGuests(t: string): number | null {
-  const m = t.match(/\bfor ((?:[a-z][a-z'-]*\s*,\s*)*[a-z][a-z'-]*\s*,?\s*(?:and|&)\s+[a-z][a-z'-]*)\b/);
+  const item = String.raw`(?:(?:my|our|an?|the)\s+)?[a-z][a-z'-]*`;
+  const m = t.match(new RegExp(String.raw`\bfor ((?:${item}\s*,\s*)*${item}\s*,?\s*(?:and|&)\s+${item})\b`));
   if (!m) return null;
-  const people = m[1].split(/\s*,\s*(?:and\s+|&\s+)?|\s+(?:and|&)\s+/).map((p) => p.trim());
+  const people = m[1].split(/\s*,\s*(?:and\s+|&\s+)?|\s+(?:and|&)\s+/).map((p) => p.trim().replace(/\s+/g, " "));
   if (!people.some((p) => p === "me" || p === "myself")) return null;
-  if (people.some((p) => NOT_A_GUEST.test(p) || /\s/.test(p))) return null;
+  if (people.some((p) => (/\s/.test(p) ? !ONE_PERSON.test(p) : NOT_A_GUEST.test(p)))) return null;
   return new Set(people).size === people.length && people.length <= 12 ? people.length : null;
 }
 

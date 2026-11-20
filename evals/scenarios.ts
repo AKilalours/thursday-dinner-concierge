@@ -135,5 +135,7 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg16", group: "regression", text: "dinner for 6 with Globex on Dec 2, $300 total", expect: { outcome: "needs_clarification" } },
   // R29 (found testing as a real user): "dinner for me, Sam and Priya" named three people and still asked how many guests.
   { id: "reg17", group: "regression", text: "dinner for me, Sam and Priya with Globex on Dec 2", expect: { outcome: "booked", partySize: 3, date: "2026-12-02" } },
+  // R30 (found testing as a real user): "dinner for me and my boss" asked how many guests.
+  { id: "reg18", group: "regression", text: "dinner for me and my boss with Globex on Dec 2", expect: { outcome: "booked", partySize: 2, date: "2026-12-02" } },
   { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];

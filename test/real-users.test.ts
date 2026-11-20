@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -57,7 +57,7 @@ describe("found by testing as real users", () => {
     assert.equal(partySizeFrom("lunch for myself and 5 people on Dec 2"), 6, "\"5 people\" alone booked 5");
     assert.equal(partySizeFrom("lunch for me + 2 colleagues"), 3);
     assert.equal(partySizeFrom("dinner for 4: me and 3 clients"), 4, "a stated total wins");
-    assert.equal(partySizeFrom("dinner for me and my boss"), null, "no number is asked, not guessed");
+    assert.equal(partySizeFrom("dinner for me and my team"), null, "no number is asked, not guessed");
     const r = await run("dinner for me and 3 clients next Thursday", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.equal(r.request?.partySize, 4);
@@ -73,6 +73,17 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for me, Sam and Priya on Friday", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.equal(r.request?.partySize, 3);
+  });
+  it("R30: a singular role (\"my boss\", \"a client\") is one guest; a group is still asked", async () => {
+    assert.equal(partySizeFrom("dinner for me and my boss"), 2);
+    assert.equal(partySizeFrom("lunch for me and a client on Friday"), 2);
+    assert.equal(partySizeFrom("dinner for me, my manager and Sam"), 3);
+    assert.equal(partySizeFrom("dinner for me and my clients"), null, "plural: asked, not guessed");
+    assert.equal(partySizeFrom("dinner for me and a few clients"), null);
+    assert.equal(partySizeFrom("dinner for my boss and Sam"), null, "the booker may not be going: asked");
+    const r = await run("dinner for me and my boss on Friday", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.equal(r.request?.partySize, 2);
   });
   it("R15: a budget nothing meets gets the closest real price, not a dead end", async () => {
     const r = await run("dinner for 6 under $60 a head this Friday", "2026-11-11");
