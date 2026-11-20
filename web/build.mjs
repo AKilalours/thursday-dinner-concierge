@@ -1,7 +1,8 @@
 // Bundles the real agent code (not a mock) for the browser playground in docs/, together with every
 // recorded model output in evals/recordings, so the playground replays real Claude answers.
 import { build } from "esbuild";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 const root = new URL("..", import.meta.url).pathname;
 const shim = join(root, "web/shims/");
@@ -22,4 +23,8 @@ await build({
     b.onLoad({ filter: /.*/, namespace: "rec" }, () => ({ contents: JSON.stringify(recordings), loader: "json" }));
   } }],
 });
+// Version the script tag so a returning visitor never runs a cached app.js against a newer index.html.
+const v = createHash("sha256").update(readFileSync(join(root, "docs/app.js"))).digest("hex").slice(0, 10);
+const idx = join(root, "docs/index.html"), page = readFileSync(idx, "utf8"), next = page.replace(/\.\/app\.js(\?v=[0-9a-f]+)?"/, `./app.js?v=${v}"`);
+if (next !== page) writeFileSync(idx, next);
 console.log(`built docs/app.js with ${Object.keys(recordings).length} recorded model outputs`);
