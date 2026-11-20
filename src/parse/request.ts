@@ -89,7 +89,11 @@ function timeFrom(text: string, kind: EventKind): string {
   // Regression R21: "at 7.30pm" read "30pm" as the hour (42:00) and crashed the booking; "7.30" booked 7:00 and
   // "noon" booked 12:30. A dot separates minutes too, and an impossible time falls back to the default, never a crash.
   if (/\b(?:noon|midday)\b/.test(t)) return "12:00";
-  const m = t.match(/\b(?:at\s+)?(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)\b/) ?? t.match(/\bat\s+(\d{1,2})(?:[:.](\d{2}))?\b/);
+  // Regression R31: "around 6", "8ish" and "around 8ish pm" were dropped, so drinks "around 6" booked 5:30 pm and
+  // dinner "8ish" booked 7 pm. "around/about/by" and a trailing "ish" mark a time, but never a headcount.
+  const m = t.match(/\b(?:at\s+)?(\d{1,2})(?:[:.](\d{2}))?\s*(?:ish\s*)?(am|pm)\b/)
+    ?? t.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*ish\b/)
+    ?? t.match(/\b(?:at|around|about|by)\s+(\d{1,2})(?:[:.](\d{2}))?\b(?!\s*(?:people|persons|guests|ppl|pax|folks|of\b|a head|each|pp|per\b|k\b|dollars|bucks|\/|%|[,.:]?\d))/);
   if (m) {
     let h = Number(m[1]);
     if (m[3] === "pm" && h < 12) h += 12;

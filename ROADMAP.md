@@ -11,7 +11,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - Retry a model call once on HTTP 429/529 with backoff; the benchmark now counts why calls fail, so measure first.
 - Metamorphic: add rewrites that change meaning on purpose (date, time, budget) and check the parse follows each one.
 - R10 ("somewhere in SoHo" booked Williamsburg) is caught by only one scenario in the bug replay; add a real-user row that would catch it too.
-- More everyday sentences in evals/user-requests.ts (now 52): "next week", "around 7ish", "dinner for 6 sometime next week".
+- More everyday sentences in evals/user-requests.ts (now 62): "next week", "dinner for 6 sometime next week".
 - Chat: understand "cancel it", "push it an hour later", "add a vegan" after a booking, each as a proposal the booker approves.
 - Approvals inbox: a manager view of proposals waiting for sign-off, with the reason and a cheaper alternative.
 - Invoice: month picker and a per-cost-center subtotal row in the CSV.
@@ -28,9 +28,11 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 - "next Thursday" typed on a Wednesday books the next day (Nov 12 from Nov 11); many people mean the week after. Decide, then ask when it's ambiguous.
 - "dinner with my boss on Friday" (no "for", booker implied) still asks how many; decide whether "with <one person>" means a party of 2.
+- Scenarios in evals/scenarios.ts grade party size and date but not the booked time; add an optional `time` expectation so a dropped time fails a scenario too.
 
 ## Shipped
 
+- 2026-11-20: "drinks for 8 on Friday around 6" booked 5:30 pm and "dinner ... 8ish" booked 7 pm; "around/about/by N" and "Nish" are now read as the time, never as a headcount ("around 8 people") or a budget ("around 20 a head") (R31); real-user sentences 59 → 62.
 - 2026-11-20: Home redesign: greeting, occasions, Book again photo cards, a "Book X again?" prompt for returning people, and a venue sheet with the real all-in price, policy check and similar places at about the same price; the concierge books a venue picked by name (`preferVenueId`, 2 tests). Real photos (Unsplash License) on Home, Explore, Availability, Compare, Orders, Calendar and Seating. Inbox lab is an inbox; Traces shows span durations; Monitor opens with a status card.
 - 2026-11-20: Orders page (upcoming, completed, cancelled, receipt, Book again) and "Book again" on Home for returning people; history follows a person across devices with name + 4-digit PIN (server/worker.js, needs the HISTORY KV binding); booking pages use today's real date instead of a fixed Nov 9, and the calendar starts on this week's Monday.
 - 2026-11-20: "dinner for me and my boss" books 2 instead of asking how many; a singular role ("my boss", "a client", "my manager") counts as one guest, while plurals and groups ("my clients", "my team") are still asked (R30); real-user sentences 57 → 59.

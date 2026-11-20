@@ -44,6 +44,17 @@ describe("request parsing (rules)", () => {
     assert.equal(time("breakfast for 4 at 12am"), "00:00");
     assert.equal(time("dinner for 4 at 30 on Friday"), "19:00");
   });
+  it("regression R31: \"around 6\" and \"8ish\" are the times people meant, and never a headcount or a budget", () => {
+    const time = (s: string) => parseRules(s, MON).time;
+    assert.equal(time("drinks for 8 on Friday around 6"), "18:00");
+    assert.equal(time("dinner for 4 on Friday, 8ish"), "20:00");
+    assert.equal(time("dinner for 4 on Friday around 8ish pm"), "20:00");
+    assert.equal(time("dinner for 4 on Friday about 7:30ish"), "19:30");
+    assert.equal(time("lunch for 4 on Dec 2 around 1"), "13:00");
+    assert.equal(time("dinner for around 8 people on Friday"), "19:00");
+    assert.equal(time("dinner for 6 on Dec 2, around 20 a head"), "19:00");
+    assert.equal(parseRules("dinner for around 8 people on Friday", MON).partySize, 8);
+  });
   it("regression R22: allergies typed plainly reach the venue", () => {
     const diet = (s: string) => parseRules(s, MON).dietary;
     assert.deepEqual(diet("dinner for 4 on Friday, no shellfish"), ["shellfish-allergy"]);
