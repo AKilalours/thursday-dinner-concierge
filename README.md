@@ -2,31 +2,73 @@
 
 <p align="center"><b>One sentence in. A booked, paid, on-policy dinner out. Nothing happens until you approve.</b><br><sub>Built for the Ande AI Engineer role · independent project · fictional venues and people</sub></p>
 
+
 <p align="center">
   <a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="https://img.shields.io/badge/▶_Open_the_live_app-7b1e3a?style=for-the-badge" alt="Open the live app"></a>
+  <a href="docs/img/thursday-home-4k.mp4"><img src="https://img.shields.io/badge/▶_57s_video_·_4K-2b1d24?style=for-the-badge" alt="4K video"></a>
   <a href="https://ande-thursday-dinner-concierge.streamlit.app"><img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit"></a>
-  <a href="docs/img/demo.mp4"><img src="https://img.shields.io/badge/▶_35s_video-2b1d24?style=for-the-badge" alt="Video"></a>
-  <a href="#-real-people-real-bugs"><img src="https://img.shields.io/badge/▶_Real_users_video_(HD)-3f7d5a?style=for-the-badge" alt="Real users video"></a>
 </p>
 <p align="center">
   <a href="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/ci.yml"><img src="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
   <a href="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/pages.yml"><img src="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/pages.yml/badge.svg" alt="deploy"></a>
   <a href="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/agent-watch.yml"><img src="https://github.com/AKilalours/thursday-dinner-concierge/actions/workflows/agent-watch.yml/badge.svg" alt="agent watch"></a>
-  <img src="https://img.shields.io/badge/TypeScript-Node%2022-3178c6" alt="TypeScript"> <img src="https://img.shields.io/badge/Postgres-16-336791" alt="Postgres 16"> <img src="https://img.shields.io/badge/Claude-recorded_%26_replayed-d97757" alt="Claude">
 </p>
 
-<p align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/"><img src="docs/img/demo.gif" width="900" alt="Recorded on the live site with live Claude: one sentence, four venue emails, an injection ignored, slide to book, then Traces, Explore, Compare, the Fix lab, typed tools and 48/48 evals"></a><br><sub>Recorded on the live site, live Claude, real OpenStreetMap streets · <a href="docs/img/demo.mp4">MP4</a></sub></p>
+<p align="center"><a href="docs/img/thursday-home-4k.mp4"><img src="docs/img/home-tour.gif" width="900" alt="Welcome back and book again, a colour street map with live pins, a venue sheet with the real price and similar places, the agent emailing venues and ignoring a scam, slide to book, every page on one request, the inbox, Agent Watch"></a><br><sub>Filmed on the app itself, frame by frame · <a href="docs/img/thursday-home-4k.mp4"><b>Watch in 4K</b></a></sub></p>
 
 <table align="center"><tr>
-<td align="center"><h3>53/53</h3>eval scenarios</td>
-<td align="center"><h3>0 / 2,030</h3>safety checks failed<br>in 300 random worlds</td>
-<td align="center"><h3>114</h3>tests, incl.<br>real Postgres</td>
-<td align="center"><h3>35/35</h3>real-user<br>sentences</td>
-<td align="center"><h3>55% → 72%</h3>first pick confirms,<br>no memory → memory</td>
-<td align="center"><h3>16</h3>bugs caught →<br>permanent cases</td>
+<td align="center"><h3>60/60</h3>eval<br>scenarios</td>
+<td align="center"><h3>0 / 2,035</h3>safety checks failed<br>in 300 random worlds</td>
+<td align="center"><h3>146</h3>tests</td>
+<td align="center"><h3>59/59</h3>real-user<br>sentences</td>
+<td align="center"><h3>92.5%</h3>unseen venue emails<br>read right · 7/7 scams</td>
+<td align="center"><h3>R1–R30</h3>bugs found →<br>permanent tests</td>
 </tr></table>
 
-## ▶ Real people, real bugs
+## See it
+
+<table>
+<tr>
+<td width="33%" align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/#home"><img src="docs/img/v3-reorder.jpg" alt="Welcome back: book your last dinner again"></a><br><b>Welcome back</b> · book it again</td>
+<td width="33%" align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/#home"><img src="docs/img/v3-map.jpg" alt="Live map: hover a pin to see the place"></a><br><b>Tap any place</b> on a real map</td>
+<td width="33%" align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/#home"><img src="docs/img/v3-sheet.jpg" alt="Venue sheet with rooms, price and similar places"></a><br><b>Real price</b> · policy · similar places</td>
+</tr>
+<tr>
+<td align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/#home"><img src="docs/img/v3-booked.jpg" alt="Booked after the person slides to approve"></a><br><b>Slide to book</b> · nothing books before</td>
+<td align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/#bookings"><img src="docs/img/v3-orders.jpg" alt="Orders: past and upcoming dinners"></a><br><b>Your orders</b> · on every device</td>
+<td align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/#lab"><img src="docs/img/v3-inbox.jpg" alt="Inbox lab: a scam email is read as data"></a><br><b>Scam email</b> · read as data</td>
+</tr>
+</table>
+
+## What's real
+
+| Real | Simulated, and labelled so |
+|---|---|
+| The agent: concierge + sourcing, comparison and coordination subagents, typed tools, policy, memory | **The restaurants** are invented (names, rooms, prices), so no real business is quoted |
+| Claude: live through the project's server, every answer recorded and replayed in CI | **Their email replies** come from a simulator with 7 behaviours, including scams |
+| Approvals, payee and double-booking rules enforced by **Postgres** (tested on real Postgres) | |
+| Each person's **sign-in, orders and history**, kept across devices (name + PIN) | |
+| **Today's date**, **OpenStreetMap streets**, **photographs** (Unsplash License) | |
+| **Confirmation emails** with a calendar invite, sent to an address you type | |
+| **Agent Watch**: the whole suite re-run 3 times a day by GitHub Actions | |
+
+## More videos
+
+<table><tr>
+<td width="25%"><a href="docs/img/real-users.mp4"><img src="docs/img/real-users.gif" alt="Real users"></a><br><b>Real people, real bugs</b></td>
+<td width="25%"><a href="docs/img/can-you-trick-it.mp4"><img src="docs/img/can-you-trick-it.gif" alt="Can you trick it"></a><br><b>Can you trick it?</b> · 4K</td>
+<td width="25%"><a href="docs/img/the-finance-view.mp4"><img src="docs/img/the-finance-view.gif" alt="Finance view"></a><br><b>The finance view</b> · 4K</td>
+<td width="25%"><a href="docs/img/both-sides.mp4"><img src="docs/img/both-sides.gif" alt="Both sides"></a><br><b>Both sides of the table</b> · 4K</td>
+</tr><tr>
+<td><a href="docs/img/thursday-checks-on-the-checks.mp4"><img src="docs/img/checks-on-the-checks.jpg" alt="Checks on the checks"></a><br><b>I tested my tests</b></td>
+<td><a href="docs/img/thursday-12-bookings.mp4"><img src="docs/img/twelve-bookings.jpg" alt="12 bookings"></a><br><b>12 bookings, 12 reasons</b></td>
+<td><a href="docs/img/demo.mp4"><img src="docs/img/demo.gif" alt="First demo"></a><br><b>The first demo</b></td>
+<td></td>
+</tr></table>
+
+## The details
+
+<details><summary><b>Real people, real bugs</b></summary>
 
 <p align="center"><a href="docs/img/real-users.mp4"><img src="docs/img/real-users.gif" width="900" alt="Akilan and Mamatha Challa each sign in and book a dinner in one sentence"></a><br><sub><a href="docs/img/real-users.mp4">Watch in HD (1440p)</a></sub></p>
 
@@ -42,20 +84,9 @@ Evals only test what you thought of. So I gave the app to a real person. **Akila
 
 `npm run evals:users` replays 55 requests typed the way people type, in CI, on every push: **55/55** now do what a person would expect (47 book, 2 correctly wait for a manager because they're under 24 h notice, 6 ask: about budget, or about a cuisine no venue serves). 10 of them are also graded on what the booker is told, not just the outcome: a booking that drops "Japanese, as asked" or the dietary confirmation fails. Found something it gets wrong? The app has a **Report it** link under every result that opens a prefilled issue ([template](.github/ISSUE_TEMPLATE/real-user.md)); each report becomes a permanent row: `npm run users:import` reads every issue labelled real-user and appends it to [`evals/reported.ts`](evals/reported.ts) with the outcome the reporter ticked.
 
-## ▶ Three more videos in 4K
+</details>
 
-<table>
-<tr>
-<td width="50%" valign="top"><a href="docs/img/can-you-trick-it.mp4"><img src="docs/img/can-you-trick-it.gif" alt="Five attacks on the agent, each one blocked"></a><br><b>Can you trick it?</b> Five attacks on an agent that can book and pay: a scam hidden in a venue's email, booking without approval, a double send, six direct attacks on the database, and 300 random worlds. 309 attempts, none got through. <a href="docs/img/can-you-trick-it.mp4">Watch in 4K ↗</a> · <a href="https://akilalours.github.io/thursday-dinner-concierge/#controls">try it ↗</a></td>
-<td width="50%" valign="top"><a href="docs/img/the-finance-view.mp4"><img src="docs/img/the-finance-view.gif" alt="The live desk, offer comparison, policy replay and spend"></a><br><b>The other half of the job.</b> What finance and ops see: a live desk of requests, every offer side by side, a policy change replayed against every past request before it ships, and where the money goes. <a href="docs/img/the-finance-view.mp4">Watch in 4K ↗</a> · <a href="https://akilalours.github.io/thursday-dinner-concierge/#policy">try it ↗</a></td>
-</tr>
-<tr>
-<td width="50%" valign="top"><a href="docs/img/both-sides.mp4"><img src="docs/img/both-sides.gif" alt="Play the restaurant, then see the invoice"></a><br><b>Both sides of the table.</b> Play the restaurant for three rounds: say yes and win, hide a scam and get caught, then type a reply your own way. Then the invoice finance receives: drag a dinner onto a budget and watch the purchase order go over. <a href="docs/img/both-sides.mp4">Watch in 4K ↗</a> · <a href="https://akilalours.github.io/thursday-dinner-concierge/#partner">try it ↗</a></td>
-<td width="50%" valign="top"></td>
-</tr>
-</table>
-
-## ▶ Agent Watch: the agent is tested 3 times a day, not just when I push
+<details><summary><b>Agent Watch: the agent is tested 3 times a day, not just when I push</b></summary>
 
 <a href="https://akilalours.github.io/thursday-dinner-concierge/#monitor">Open the live Monitor page ↗</a>
 
@@ -69,7 +100,9 @@ A scheduled job (`npm run monitor`, [workflow](.github/workflows/agent-watch.yml
 
 Each run appends a row to [`docs/monitor.json`](docs/monitor.json), charted on the Monitor page (pass rate, worlds tested, live p50/p95 latency, cost per day), with the full report in `evals/history/`. If anything fails, the run **opens a GitHub issue by itself** with the failing seed, which replays exactly. Live model calls are capped per run (about $0.10–0.20 a run).
 
-## ▶ Sign in as yourself, come back to your own history
+</details>
+
+<details><summary><b>Sign in as yourself, come back to your own history</b></summary>
 
 Sign in from the top-left and pick your name (or type one). Everything you do as that person is kept in your browser under your name: bookings, approvals, deposits, cost-center codes and every agent run. Sign in again tomorrow and it's all still there, marked **earlier visit**, and still live: you can change or cancel an earlier booking, and the change goes through the same approval rules. Switching people reloads the app from the next person's own history, so nobody sees anyone else's. Nothing leaves the browser.
 
@@ -79,16 +112,9 @@ Sign in from the top-left and pick your name (or type one). Everything you do as
 
 Restoring is a store snapshot (`MemoryStore.snapshot()` / `restore()`), tested so a restored booking can't be booked twice.
 
-## ▶ Two new videos
+</details>
 
-<table>
-<tr>
-<td width="50%" valign="top"><a href="docs/img/thursday-checks-on-the-checks.mp4"><img src="docs/img/checks-on-the-checks.jpg" alt="Rules vs the live model vs a hybrid"></a><br><b>I tested my tests.</b> Bug replay, metamorphic testing, the first live model benchmark, two bugs in my own promotion gate, and how a tightened gate demoted my first hybrid and promoted a stricter one. 3 min. <a href="docs/img/thursday-checks-on-the-checks.mp4">Watch ↗</a></td>
-<td width="50%" valign="top"><a href="docs/img/thursday-12-bookings.mp4"><img src="docs/img/twelve-bookings.jpg" alt="12 bookings, 12 different reasons"></a><br><b>12 bookings, 12 different reasons.</b> A client pitch, a new-hire lunch, a holiday party for 40 with a manager's sign-off, an executive dinner with allergies, and two cases where the right answer was a question. Live runs; venues are simulated. Found R28 while filming. 4 min. <a href="docs/img/thursday-12-bookings.mp4">Watch ↗</a></td>
-</tr>
-</table>
-
-## ▶ Are the evals any good? Four checks on the checks
+<details><summary><b>Are the evals any good? Four checks on the checks</b></summary>
 
 A green eval suite only matters if it would go red on the bugs you actually have. All four run in CI, and three run in your browser on the [Evals page](https://akilalours.github.io/thursday-dinner-concierge/#evals).
 
@@ -126,14 +152,18 @@ The benchmark also found two bugs in emails the simulator itself writes ("we hav
 
 **4. Real users**, above: graded on outcome and on what they are told, with a one-click report from the app.
 
-### ▶ Try a sentence (each link runs it live)
+</details>
+
+<details><summary><b>Try a sentence (each link runs it live)</b></summary>
 
 - [“dinner for 12 with the Acme team next Thursday, somewhere private”](https://akilalours.github.io/thursday-dinner-concierge/?ask=dinner%20for%2012%20with%20the%20Acme%20team%20next%20Thursday%2C%20somewhere%20private#home)
-- [“private dinner for 20 with Globex on Nov 19”](https://akilalours.github.io/thursday-dinner-concierge/?ask=private%20dinner%20for%2020%20with%20Globex%20on%20Nov%2019#home)
-- [“japanese dinner for 8 with Wayne Enterprises on Nov 24, private”](https://akilalours.github.io/thursday-dinner-concierge/?ask=japanese%20dinner%20for%208%20with%20Wayne%20Enterprises%20on%20Nov%2024%2C%20private#home)
+- [“private dinner for 20 with Globex next Friday”](https://akilalours.github.io/thursday-dinner-concierge/?ask=private%20dinner%20for%2020%20with%20Globex%20next%20Friday#home)
+- [“japanese dinner for 8 with Wayne Enterprises next Tuesday, private”](https://akilalours.github.io/thursday-dinner-concierge/?ask=japanese%20dinner%20for%208%20with%20Wayne%20Enterprises%20next%20Tuesday%2C%20private#home)
 - [“team dinner for 8 this Friday under $100 a head”](https://akilalours.github.io/thursday-dinner-concierge/?ask=team%20dinner%20for%208%20this%20Friday%20under%20%24100%20a%20head#home)
 
-### Click any screen to open it
+</details>
+
+<details><summary><b>Click any screen to open it</b></summary>
 
 <table>
 <tr><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#partner"><img src="docs/img/partner.png" alt="Venue side"></a><br><b>Venue side</b> · you're the restaurant: answer the agent, win or lose the booking <a href="https://akilalours.github.io/thursday-dinner-concierge/#partner">open ↗</a></td><td width="50%" valign="top"><a href="https://akilalours.github.io/thursday-dinner-concierge/#invoice"><img src="docs/img/invoice.png" alt="Invoice"></a><br><b>Invoice</b> · one statement, pre-coded; drag a dinner onto a budget <a href="https://akilalours.github.io/thursday-dinner-concierge/#invoice">open ↗</a></td></tr>
@@ -147,6 +177,8 @@ The benchmark also found two bugs in emails the simulator itself writes ("we hav
 npm install && npm run demo        # or: npm test · npm run evals · npm run site:check
 ```
 
+
+</details>
 <details>
 <summary><b>How it works</b></summary>
 
@@ -256,7 +288,7 @@ The server only accepts the agent's own tasks, caps tokens, rate-limits per visi
 <summary><b>Commands</b></summary>
 
 ```bash
-npm run demo -- --ask "private dinner for 20 with Globex on Nov 19"   # you approve
+npm run demo -- --ask "private dinner for 20 with Globex next Friday"   # you approve
 npm test                                       # unit + contract + end to end
 ANDE_PSQL="-h localhost -U postgres" npm test  # also on real Postgres
 npm run evals && npm run fuzz

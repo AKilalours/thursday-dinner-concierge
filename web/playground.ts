@@ -1283,6 +1283,8 @@ function openVenue(v: Venue, o: { n?: number; room?: string; date?: string; agai
 
 /** Like a delivery app on sign-in: a returning person is asked whether to book their last dinner again. */
 let roShown = false;
+// For the README video: show the "Book again?" sheet on cue.
+Object.assign(window, { reorderPromptForVideo: () => { roShown = false; void reorderPrompt(); } });
 async function reorderPrompt() {
   if (roShown || visits.length < 2) return;
   const last = (await bkRows()).filter((r) => r.src !== "Live desk" && !r.src.startsWith("Sample") && r.status === "confirmed" && isPast(r.store)).sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0];
