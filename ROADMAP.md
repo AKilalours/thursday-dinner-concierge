@@ -29,10 +29,11 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "next Thursday" typed on a Wednesday books the next day (Nov 12 from Nov 11); many people mean the week after. Decide, then ask when it's ambiguous.
 - "dinner with my boss on Friday" (no "for", booker implied) still asks how many; decide whether "with <one person>" means a party of 2.
 - Scenarios in evals/scenarios.ts grade party size and date but not the booked time; add an optional `time` expectation so a dropped time fails a scenario too.
-- "Sep 31" (month first) still resolves to a date that doesn't exist; ask, as "31 Sept" now does.
+- "Feb 29" in a year that has none is now asked about; when the booker clearly means a leap year ("Feb 29, 2028"), check the year they typed is honoured.
 
 ## Shipped
 
+- 2026-11-21: "dinner for 4 on Sept 31 at 7" confirmed "Fri Sep 31" and paid a deposit (and "Feb 30", "2/30" did the same); a day the calendar doesn't have is now asked about, in every date format (R34); real-user sentences 66 → 68.
 - 2026-11-21: "dinner for 4 on 3 Dec" asked "Which date?" and "the 3rd of Jan" booked Dec 3; day-first dates ("3 Dec", "3rd December", "the 10th of December") now resolve, "for 4 Dec 3" stays a headcount, and "31 Sept" is asked about (R33); real-user sentences 64 → 66.
 - 2026-11-20: "dinner for 6 next Fri at half past 7" booked 7 pm (and "half past 8" would too); "half past", "quarter past" and "quarter to/of" are now read as clock times (R32); real-user sentences 62 → 64.
 - 2026-11-20: "drinks for 8 on Friday around 6" booked 5:30 pm and "dinner ... 8ish" booked 7 pm; "around/about/by N" and "Nish" are now read as the time, never as a headcount ("around 8 people") or a budget ("around 20 a head") (R31); real-user sentences 59 → 62.

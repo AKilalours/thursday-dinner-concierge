@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -48,6 +48,17 @@ describe("found by testing as real users", () => {
     assert.equal(r.outcome, "booked");
     assert.equal(r.request?.date, "2026-12-03");
     assert.equal(r.request?.partySize, 4);
+  });
+  it("R34: a day the calendar doesn't have (\"Sept 31\", \"Feb 30\", \"2/30\") is asked about, not booked", async () => {
+    const d = (text: string) => resolveDate(text, "2026-11-11");
+    assert.deepEqual(d("dinner on Sept 31"), { date: null, ambiguous: true, reason: "no such day" }, "was 2027-09-31");
+    assert.equal(d("dinner on Feb 30").date, null);
+    assert.equal(d("dinner on 2/30").date, null);
+    assert.equal(d("dinner on 2027-02-30").date, null);
+    assert.equal(d("dinner on Dec 31").date, "2026-12-31");
+    assert.equal(d("dinner on 12/31").date, "2026-12-31");
+    const r = await run("dinner for 4 on Sept 31 at 7", "2026-11-11");
+    assert.equal(r.outcome, "needs_clarification", "the old path booked Sep 31 and paid a deposit");
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");

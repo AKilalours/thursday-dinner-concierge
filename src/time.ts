@@ -23,6 +23,15 @@ export interface ResolvedDate {
   reason: string;
 }
 
+// Regression R34 (found by testing as a real user): "dinner for 4 on Sept 31", "Feb 30" and "2/30" booked dates
+// that don't exist (2027-09-31). A day the calendar doesn't have is asked about, never booked.
+const NO_SUCH_DAY: ResolvedDate = { date: null, ambiguous: true, reason: "no such day" };
+
+function realDay(date: string): boolean {
+  const d = new Date(`${date}T12:00:00Z`);
+  return !Number.isNaN(d.getTime()) && ymd(d) === date;
+}
+
 /**
  * "next Thursday" said on a Monday-Wednesday is genuinely ambiguous in US usage (this week's or next week's).
  * We pick the earliest reading that is at least 2 days out, but flag ambiguity so the concierge confirms
@@ -31,7 +40,7 @@ export interface ResolvedDate {
 export function resolveDate(text: string, today: string): ResolvedDate {
   const t = text.toLowerCase();
   const iso = t.match(/\b(\d{4}-\d{2}-\d{2})\b/);
-  if (iso) return { date: iso[1], ambiguous: false, reason: "explicit date" };
+  if (iso) return realDay(iso[1]) ? { date: iso[1], ambiguous: false, reason: "explicit date" } : NO_SUCH_DAY;
 
   // Regression R33 (found by testing as a real user): "dinner for 4 on 3 Dec" asked which date, and "the 3rd of Jan"
   // booked the next 3rd (Dec 3). Checked before "Dec 3" so "3 Dec 7 pm" isn't read as Dec 7; "for 4 Dec 3" and
@@ -42,8 +51,7 @@ export function resolveDate(text: string, today: string): ResolvedDate {
     const year = Number(today.slice(0, 4));
     const candidate = `${year}-${String(month + 1).padStart(2, "0")}-${dm[1].padStart(2, "0")}`;
     const date = candidate < today ? `${year + 1}${candidate.slice(4)}` : candidate;
-    // "31 Sept" is not a day: ask rather than book a date that doesn't exist.
-    if (ymd(new Date(`${date}T12:00:00Z`)) !== date) return { date: null, ambiguous: true, reason: "no such day" };
+    if (!realDay(date)) return NO_SUCH_DAY;
     return { date, ambiguous: false, reason: "day and month" };
   }
   const md = t.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/);
@@ -52,7 +60,7 @@ export function resolveDate(text: string, today: string): ResolvedDate {
     let year = Number(today.slice(0, 4));
     let candidate = `${year}-${String(month + 1).padStart(2, "0")}-${md[2].padStart(2, "0")}`;
     if (candidate < today) candidate = `${year + 1}${candidate.slice(4)}`;
-    return { date: candidate, ambiguous: false, reason: "month and day" };
+    return realDay(candidate) ? { date: candidate, ambiguous: false, reason: "month and day" } : NO_SUCH_DAY;
   }
   // Regression R14 (found by testing as a real user): "dinner for 5 on 12/3" and "dinner for 12 on Christmas Eve" asked which date.
   // US month/day (an office in New York), and the two holiday evenings people book dinners for.
@@ -61,7 +69,7 @@ export function resolveDate(text: string, today: string): ResolvedDate {
     const year = us[3] ? (us[3].length === 2 ? 2000 + Number(us[3]) : Number(us[3])) : Number(today.slice(0, 4));
     let candidate = `${year}-${us[1].padStart(2, "0")}-${us[2].padStart(2, "0")}`;
     if (!us[3] && candidate < today) candidate = `${year + 1}${candidate.slice(4)}`;
-    return { date: candidate, ambiguous: false, reason: "month/day" };
+    return realDay(candidate) ? { date: candidate, ambiguous: false, reason: "month/day" } : NO_SUCH_DAY;
   }
   const holiday = /christmas eve/.test(t) ? "12-24" : /new year'?s eve/.test(t) ? "12-31" : null;
   if (holiday) {
