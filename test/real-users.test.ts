@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -35,6 +35,19 @@ describe("found by testing as real users", () => {
     assert.equal(resolveDate("dinner for 12 on Christmas Eve", "2026-11-11").date, "2026-12-24");
     assert.equal(resolveDate("support 24/7", "2026-11-11").date, null);
     assert.equal(resolveDate("under $90/head on Dec 3", "2026-11-11").date, "2026-12-03");
+  });
+  it("R33: day-first dates (\"3 Dec\", \"the 3rd of Jan\") resolve; a headcount before a month is not a day", async () => {
+    const d = (text: string) => resolveDate(text, "2026-11-11").date;
+    assert.equal(d("dinner for 4 on 3 Dec"), "2026-12-03");
+    assert.equal(d("dinner on 3rd December at 7"), "2026-12-03");
+    assert.equal(d("lunch on the 3rd of Jan"), "2027-01-03", "was the next 3rd (Dec 3)");
+    assert.equal(d("dinner for 4 on 3 Dec 7 pm"), "2026-12-03", "not Dec 7");
+    assert.equal(d("dinner for 4 Dec 3"), "2026-12-03", "4 is the headcount");
+    assert.equal(d("dinner on 31 Sept"), null, "no such day: asked");
+    const r = await run("dinner for 4 on 3 Dec", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.equal(r.request?.date, "2026-12-03");
+    assert.equal(r.request?.partySize, 4);
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");

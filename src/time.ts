@@ -33,6 +33,19 @@ export function resolveDate(text: string, today: string): ResolvedDate {
   const iso = t.match(/\b(\d{4}-\d{2}-\d{2})\b/);
   if (iso) return { date: iso[1], ambiguous: false, reason: "explicit date" };
 
+  // Regression R33 (found by testing as a real user): "dinner for 4 on 3 Dec" asked which date, and "the 3rd of Jan"
+  // booked the next 3rd (Dec 3). Checked before "Dec 3" so "3 Dec 7 pm" isn't read as Dec 7; "for 4 Dec 3" and
+  // "party of 6 Dec 3" are headcounts, not days.
+  const dm = t.match(/(?<![\d$.:/]|for |of )\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/);
+  if (dm && Number(dm[1]) >= 1 && Number(dm[1]) <= 31) {
+    const month = "janfebmaraprmayjunjulaugsepoctnovdec".indexOf(dm[2].slice(0, 3)) / 3;
+    const year = Number(today.slice(0, 4));
+    const candidate = `${year}-${String(month + 1).padStart(2, "0")}-${dm[1].padStart(2, "0")}`;
+    const date = candidate < today ? `${year + 1}${candidate.slice(4)}` : candidate;
+    // "31 Sept" is not a day: ask rather than book a date that doesn't exist.
+    if (ymd(new Date(`${date}T12:00:00Z`)) !== date) return { date: null, ambiguous: true, reason: "no such day" };
+    return { date, ambiguous: false, reason: "day and month" };
+  }
   const md = t.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/);
   if (md) {
     const month = "janfebmaraprmayjunjulaugsepoctnovdec".indexOf(md[1]) / 3;
