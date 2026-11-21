@@ -141,5 +141,7 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg19", group: "regression", text: "dinner for 6 with Globex on 2 Dec", expect: { outcome: "booked", partySize: 6, date: "2026-12-02" } },
   // R34 (found testing as a real user): "on Sept 31" booked and paid a deposit for a date that doesn't exist.
   { id: "reg20", group: "regression", text: "dinner for 6 with Globex on Sept 31", expect: { outcome: "needs_clarification" } },
+  // R35 (found testing as a real user): "the day after tomorrow" booked tomorrow.
+  { id: "reg21", group: "regression", text: "dinner for 6 with Globex the day after tomorrow", expect: { outcome: "booked", partySize: 6, date: "2026-11-11" } },
   { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];

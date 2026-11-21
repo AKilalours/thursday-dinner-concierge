@@ -73,6 +73,8 @@ const TYPED: UserRow[] = [
   ["dinner for 4 on Sept 31 at 7", "needs_clarification", /Which date/],
   ["lunch for 6 on 2/30", "needs_clarification", /Which date/],
   ["team lunch for 8 on the 10th of December", "booked", /Dec 10/],
+  ["dinner for 6 the day after tomorrow", "booked", /Fri Nov 13 at 7 pm, 6 guests/],
+  ["lunch for 3 day after tmrw at noon", "booked", /Fri Nov 13 at 12 pm, 3 guests/],
   // Checked for what the booker is told, not just the outcome: the cuisine and dietary needs must be confirmed back.
   ["japanese dinner for 4 next Thursday", "booked", /Japanese, as asked/],
   ["dinner for 6 in SoHo next Friday", "booked", /Kiso House|Nakamura Counter|Fenwick Chophouse|Hollow Oak Tavern/],

@@ -111,7 +111,7 @@ function timeFrom(text: string, kind: EventKind): string {
 }
 
 /** The deterministic parser: always available, and the fallback when the model times out or is off. */
-const NOT_A_NAME = /^(on|next|this|at|in|for|tomorrow|tonight|team|folks|group|execs|leadership|crew|and|to|near|from|around|somewhere|private|under|people|guests)\b/;
+const NOT_A_NAME = /^(on|next|this|the|at|in|for|tomorrow|tonight|team|folks|group|execs|leadership|crew|and|to|near|from|around|somewhere|private|under|people|guests)\b/;
 
 export function parseRules(raw: string, today: string): BookingRequest {
   // Regression R26 (found by metamorphic testing): text pasted from Slack or email with doubled spaces or line breaks

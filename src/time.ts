@@ -79,6 +79,8 @@ export function resolveDate(text: string, today: string): ResolvedDate {
   }
   if (/\btonight\b|\btoday\b/.test(t)) return { date: today, ambiguous: false, reason: "today" };
   // Regression R18 (found by testing as a real user): "dinner for 4 tmrw at 7" and "lunch for 6 on Wed" asked which date.
+  // Regression R35 (found by testing as a real user): "dinner for 6 the day after tomorrow" booked tomorrow.
+  if (/\bday after (tomorrow|tmrw|tmr|tomorow|2morrow)\b/.test(t)) return { date: addDays(today, 2), ambiguous: false, reason: "day after tomorrow" };
   if (/\b(tomorrow|tmrw|tmr|tomorow|2morrow)\b/.test(t)) return { date: addDays(today, 1), ambiguous: false, reason: "tomorrow" };
 
   // Regression R18: "team dinner for 9 on Thursday the 19th" booked this Thursday (the 12th). The day of month wins;

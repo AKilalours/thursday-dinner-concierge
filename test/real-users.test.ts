@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -6,7 +6,7 @@ import { carefulApprover, runConcierge } from "../src/agents/concierge.ts";
 import { offline } from "../src/llm/client.ts";
 import { VenueWorld } from "../src/sim/world.ts";
 import { MemoryStore } from "../src/store/memory.ts";
-import { partySizeFrom } from "../src/parse/request.ts";
+import { parseRules, partySizeFrom } from "../src/parse/request.ts";
 import { resolveDate } from "../src/time.ts";
 
 async function run(text: string, today: string, legacy?: { r13?: boolean; r15?: boolean }) {
@@ -59,6 +59,16 @@ describe("found by testing as real users", () => {
     assert.equal(d("dinner on 12/31").date, "2026-12-31");
     const r = await run("dinner for 4 on Sept 31 at 7", "2026-11-11");
     assert.equal(r.outcome, "needs_clarification", "the old path booked Sep 31 and paid a deposit");
+  });
+  it("R35: \"the day after tomorrow\" books two days out, not tomorrow", async () => {
+    const d = (text: string) => resolveDate(text, "2026-11-11");
+    assert.deepEqual(d("dinner for 6 the day after tomorrow"), { date: "2026-11-13", ambiguous: false, reason: "day after tomorrow" }, "was 2026-11-12");
+    assert.equal(d("lunch for 3 day after tmrw at noon").date, "2026-11-13");
+    assert.equal(d("dinner for 4 tomorrow").date, "2026-11-12");
+    assert.equal(parseRules("dinner for 6 with globex the day after tomorrow", "2026-11-11").clientName, "Globex", "lowercase read \"globex the\"");
+    const r = await run("dinner for 6 the day after tomorrow", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.equal(r.request?.date, "2026-11-13", "the old path booked Thu Nov 12");
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");
