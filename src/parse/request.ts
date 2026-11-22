@@ -94,6 +94,18 @@ export function totalBudgetCents(text: string): number | null {
   return Math.round((k ? n * 1000 : n) * 100);
 }
 
+// Regression R38: "Friday 7-9pm" booked 9 pm, because only the end of the range carried "pm". A range books its
+// start, which borrows the end's am/pm unless it wraps ("11-1pm" is 11 am). A bare "4-6" with no "from", "between",
+// "at" or am/pm is left alone: after "for" it is a headcount (R37), and elsewhere it may be a date.
+const TIME_RANGE = /(?<![$\d\/-])(?<!\bfor )\b(from |between |at )?(\d{1,2})((?:[:.]\d{2})?)\s*(am|pm)?\s*(-|–|to|and|until|till)\s*(\d{1,2})(?:[:.]\d{2})?\s*(am|pm)?\b/g;
+
+function rangeStart(all: string, pre: string | undefined, h: string, mm: string, ap: string | undefined, sep: string, h2: string, ap2: string | undefined): string {
+  if ((!pre && !ap2) || (sep === "and" && pre !== "between ")) return all;
+  const wraps = Number(h) > Number(h2) && Number(h) !== 12;
+  const meridiem = ap ?? (ap2 && wraps ? (ap2 === "pm" ? "am" : "pm") : ap2 ?? "");
+  return `at ${h}${mm}${meridiem}`;
+}
+
 function timeFrom(text: string, kind: EventKind): string {
   // Regression R32: "at half past 7" fell through to the default 7 pm, and "half past 8" booked 7 pm too.
   // Spoken quarters and halves become clock times before the patterns below read them.
@@ -101,6 +113,7 @@ function timeFrom(text: string, kind: EventKind): string {
     .replace(/\bhalf past (\d{1,2})(?!\d|[:.]\d)/g, "at $1:30")
     .replace(/\b(?:a )?quarter past (\d{1,2})(?!\d|[:.]\d)/g, "at $1:15")
     .replace(/\b(?:a )?quarter (?:to|of) (\d{1,2})(?!\d|[:.]\d)/g, (_, h) => `at ${Number(h) === 1 ? 12 : Number(h) - 1}:45`)
+    .replace(TIME_RANGE, rangeStart)
     .replace(/\bat at\b/g, "at");
   // Regression R21: "at 7.30pm" read "30pm" as the hour (42:00) and crashed the booking; "7.30" booked 7:00 and
   // "noon" booked 12:30. A dot separates minutes too, and an impossible time falls back to the default, never a crash.

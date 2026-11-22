@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -97,6 +97,19 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for 4-6 people on Friday", "2026-11-11");
     assert.equal(r.outcome, "needs_clarification", "the old path booked 4 and paid a deposit");
     assert.match(r.messagesToBooker.at(-1)!, /How many guests/);
+  });
+  it("R38: a time range (\"7-9pm\", \"from 7 to 9pm\") books its start, not its end", async () => {
+    const time = (s: string) => parseRules(s, "2026-11-11").time;
+    assert.equal(time("dinner for 4 on Friday 7-9pm"), "19:00", "was 21:00");
+    assert.equal(time("dinner for 4 on Friday from 7 to 9pm"), "19:00");
+    assert.equal(time("drinks for 8 between 6 and 8pm on Friday"), "18:00");
+    assert.equal(time("dinner for 4 on Friday 7:30-9:30pm"), "19:30");
+    assert.equal(time("lunch for 6 on Friday 11-1pm"), "11:00", "a range that wraps noon starts in the morning");
+    assert.equal(time("lunch for 4 on Friday 12-2pm"), "12:00");
+    assert.equal(partySizeFrom("dinner for 4-6 people on Friday"), null, "a headcount range is still not a time");
+    const r = await run("dinner for 4 on Friday 7-9pm", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.join("\n"), /at 7 pm/);
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");
