@@ -1,6 +1,6 @@
 <h1 align="center">Thursday Dinner Concierge</h1>
 
-<p align="center"><b>One sentence in. A booked, paid, on-policy dinner out. Nothing happens until you approve.</b><br><sub>Built for the Ande AI Engineer role · independent project · fictional venues and people</sub></p>
+<p align="center"><b>One sentence in. A booked, paid, on-policy dinner or catered lunch out. Nothing happens until you approve.</b><br><sub>Team dinners and office catering · independent project · fictional venues and people</sub></p>
 
 
 <p align="center">
