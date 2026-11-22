@@ -39,6 +39,8 @@ function realDay(date: string): boolean {
  */
 export function resolveDate(text: string, today: string): ResolvedDate {
   const t = text.toLowerCase();
+  const offset = relativeDate(t, today);
+  if (offset) return offset;
   const iso = t.match(/\b(\d{4}-\d{2}-\d{2})\b/);
   if (iso) return realDay(iso[1]) ? { date: iso[1], ambiguous: false, reason: "explicit date" } : NO_SUCH_DAY;
 
@@ -105,6 +107,24 @@ export function resolveDate(text: string, today: string): ResolvedDate {
   }
   if (delta === 0) delta = m[1] === "this" ? 0 : 7;
   return { date: addDays(today, delta), ambiguous: false, reason: m[1] ?? "bare weekday" };
+}
+
+const COUNTS: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+const COUNT = `(${Object.keys(COUNTS).join("|")}|\\d{1,2})`;
+
+// Regression R36 (found by testing as a real user): "dinner for 4 a week from today" was read as today and escalated,
+// and "lunch for 3 in 3 days" asked which date. An offset counts from its anchor ("today", "Friday", "Dec 3"),
+// and inherits the anchor's ambiguity so a shaky "next Thursday" still gets confirmed.
+function relativeDate(t: string, today: string): ResolvedDate | null {
+  const days = (n: string, unit: string) => (COUNTS[n] ?? Number(n)) * (unit === "week" ? 7 : 1);
+  const from = t.match(new RegExp(`\\b${COUNT}\\s+(day|week)s?\\s+from\\s+(.+)$`));
+  if (from) {
+    const anchor = /^(today|tonight|now)\b/.test(from[3]) ? { date: today, ambiguous: false } : resolveDate(from[3], today);
+    if (!anchor.date) return { date: null, ambiguous: true, reason: "offset from an unclear date" };
+    return { date: addDays(anchor.date, days(from[1], from[2])), ambiguous: anchor.ambiguous, reason: "offset from a date" };
+  }
+  const inN = t.match(new RegExp(`\\bin\\s+${COUNT}\\s+(day|week)s?\\b`));
+  return inN ? { date: addDays(today, days(inN[1], inN[2])), ambiguous: false, reason: "in N days" } : null;
 }
 
 /** The next date on or after today that falls on this day of the month (skipping months too short for it). */

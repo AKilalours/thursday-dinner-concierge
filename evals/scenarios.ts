@@ -143,5 +143,7 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg20", group: "regression", text: "dinner for 6 with Globex on Sept 31", expect: { outcome: "needs_clarification" } },
   // R35 (found testing as a real user): "the day after tomorrow" booked tomorrow.
   { id: "reg21", group: "regression", text: "dinner for 6 with Globex the day after tomorrow", expect: { outcome: "booked", partySize: 6, date: "2026-11-11" } },
+  // R36 (found testing as a real user): "a week from today" was read as today and escalated for lead time.
+  { id: "reg22", group: "regression", text: "dinner for 6 with Globex a week from today", expect: { outcome: "booked", partySize: 6, date: "2026-11-16" } },
   { id: "reg06", group: "regression", text: "dinner for a dozen with Umbrella next Wednesday in the West Village, private room, two vegetarians", expect: { outcome: "booked", partySize: 12 } },
 ];

@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -69,6 +69,22 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for 6 the day after tomorrow", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.equal(r.request?.date, "2026-11-13", "the old path booked Thu Nov 12");
+  });
+  it("R36: \"a week from today\" and \"in 3 days\" count from their anchor, not today", async () => {
+    const d = (text: string) => resolveDate(text, "2026-11-11");
+    assert.deepEqual(d("dinner for 4 a week from today"), { date: "2026-11-18", ambiguous: false, reason: "offset from a date" }, "was today, 2026-11-11");
+    assert.equal(d("lunch for 3 in 3 days").date, "2026-11-14", "asked which date");
+    assert.equal(d("dinner in two weeks").date, "2026-11-25");
+    assert.equal(d("drinks a week from Friday at 6").date, "2026-11-20");
+    assert.equal(d("dinner two weeks from tomorrow").date, "2026-11-26");
+    assert.equal(d("a week from Dec 3").date, "2026-12-10");
+    assert.equal(d("a week from next Thursday").ambiguous, true, "an unclear anchor stays flagged");
+    assert.equal(d("a week from whenever").date, null);
+    assert.equal(parseRules("lunch in 3 days for 4", "2026-11-11").partySize, 4);
+    assert.equal(parseRules("dinner for 6 with globex a week from today", "2026-11-11").clientName, "Globex", "lowercase read \"globex a\"");
+    const r = await run("dinner for 4 a week from today", "2026-11-11");
+    assert.equal(r.outcome, "booked", "the old path escalated it as same-day");
+    assert.equal(r.request?.date, "2026-11-18");
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");
