@@ -26,6 +26,9 @@ const DIETARY: [string, RegExp][] = [
 
 export function partySizeFrom(text: string): number | null {
   const t = text.toLowerCase();
+  // Regression R37: "dinner for 4-6 people" booked a table for 4, so two guests had no seat. A range is not a
+  // headcount: it is asked, never rounded down (or up, which would pay a deposit for empty chairs).
+  if (headcountRange(t)) return null;
   // Regression R4: a bare "<number> at" also matched dates ("Nov 18 at 7:30pm" became 18 guests), so a
   // headcount needs "for N", "party of N" or "N people/guests"; anything else is asked, not guessed.
   const forN = t.match(/\b(?:for|party of|group of|table for)\s+(\d{1,3})\b(?!\s*(?:am|pm|:\d))/);
@@ -40,6 +43,13 @@ export function partySizeFrom(text: string): number | null {
   const w = t.match(/\b(?:for|party of|group of|table for|a)\s+(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|eighteen|twenty|thirty|dozen)\b/)
     ?? t.match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|eighteen|twenty|thirty)\s+(?:people|guests|of us)\b/);
   return w ? WORDS[w[1]] : null;
+}
+
+function headcountRange(t: string): boolean {
+  const range = String.raw`(\d{1,3})\s*(?:-|–|to|or)\s*(\d{1,3})`;
+  const m = t.match(new RegExp(String.raw`\b(?:for|party of|group of|table for)\s+${range}\b(?!\s*(?:am|pm|:\d))`))
+    ?? t.match(new RegExp(String.raw`\b${range}\s*(?:people|guests|pax|of us|ppl|attendees|folks|covers)\b`));
+  return !!m && Number(m[2]) > Number(m[1]);
 }
 
 // Regression R29: "dinner for me, Sam and Priya" asked how many guests. A list of single names that includes the

@@ -147,6 +147,8 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg21", group: "regression", text: "dinner for 6 with Globex the day after tomorrow", expect: { outcome: "booked", partySize: 6, date: "2026-11-11" } },
   // R36 (found testing as a real user): "a week from today" was read as today and escalated for lead time.
   { id: "reg22", group: "regression", text: "dinner for 6 with Globex a week from today", expect: { outcome: "booked", partySize: 6, date: "2026-11-16" } },
+  // R37 (found testing as a real user): "for 4-6 people" booked a table for 4, leaving two guests without a seat.
+  { id: "reg23", group: "regression", text: "dinner for 4-6 people with Globex next Friday", expect: { outcome: "needs_clarification" } },
   // Catering: food delivered to the office, from caterers, under the catering limit.
   { id: "cat01", group: "phrasing", text: "catered lunch for 30 at the office this Thursday", expect: { outcome: "booked", partySize: 30, date: THU, category: "catering" } },
   { id: "cat02", group: "venue_behavior", text: "boxed lunches for 40 delivered to the office on Thursday", order: ["decline"], expect: { outcome: "booked", partySize: 40, category: "catering" } },

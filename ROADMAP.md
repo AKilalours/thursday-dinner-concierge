@@ -32,9 +32,12 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "Feb 29" in a year that has none is now asked about; when the booker clearly means a leap year ("Feb 29, 2028"), check the year they typed is honoured.
 - Lowercase "with globex two weeks from ..." still names the client "Globex Two"; a number word after a one-case name is not part of it.
 - "in a couple of days" and "a fortnight from Friday" still ask which date.
+- "dinner for 4 on Friday 7-9pm" books 9 pm; a time range should book its start (7 pm).
+- A headcount range is now asked with a plain "How many guests?"; offer the range's numbers as one-tap choices.
 
 ## Shipped
 
+- 2026-11-22: "dinner for 4-6 people on Friday" booked a table for 4 and paid the deposit; a headcount range ("4-6 people", "for 4 to 6", "for 8 or 10") is now asked about, while a time range ("between 7-9") still is not a headcount (R37); real-user sentences 73 → 75.
 - 2026-11-22: "dinner for 4 a week from today" was read as today and escalated, and "lunch for 3 in 3 days" asked which date; "a week from today/Friday/Dec 3", "two weeks from tomorrow" and "in N days/weeks" now count from their anchor, an unclear anchor stays flagged, and lowercase "with globex a week ..." no longer names the client "Globex A" (R36); real-user sentences 70 → 73.
 - 2026-11-21: "dinner for 6 the day after tomorrow" booked tomorrow; it now books two days out ("day after tmrw" too), and a lowercase "with globex the ..." no longer names the client "Globex The" (R35); real-user sentences 68 → 70.
 - 2026-11-21: "dinner for 4 on Sept 31 at 7" confirmed "Fri Sep 31" and paid a deposit (and "Feb 30", "2/30" did the same); a day the calendar doesn't have is now asked about, in every date format (R34); real-user sentences 66 → 68.

@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -85,6 +85,18 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for 4 a week from today", "2026-11-11");
     assert.equal(r.outcome, "booked", "the old path escalated it as same-day");
     assert.equal(r.request?.date, "2026-11-18");
+  });
+  it("R37: a headcount range (\"4-6 people\", \"for 8 or 10\") is asked about, not booked at the low end", async () => {
+    assert.equal(partySizeFrom("dinner for 4-6 people on Friday"), null, "was 4");
+    assert.equal(partySizeFrom("dinner for 4 to 6 on Friday"), null);
+    assert.equal(partySizeFrom("team lunch for 8 or 10 on Dec 2"), null);
+    assert.equal(partySizeFrom("drinks, 10–12 people, Friday"), null);
+    assert.equal(partySizeFrom("dinner for 6 on Friday between 7-9"), 6, "a time range is not a headcount");
+    assert.equal(partySizeFrom("dinner for 4 on Friday 7-9pm"), 4);
+    assert.equal(partySizeFrom("dinner for 4 on Dec 3"), 4);
+    const r = await run("dinner for 4-6 people on Friday", "2026-11-11");
+    assert.equal(r.outcome, "needs_clarification", "the old path booked 4 and paid a deposit");
+    assert.match(r.messagesToBooker.at(-1)!, /How many guests/);
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");
