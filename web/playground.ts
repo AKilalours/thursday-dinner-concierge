@@ -152,6 +152,7 @@ function go(page: string) {
   if (page === "monitor") void renderMonitor();
   if (page === "partner") ptRenderBook();
   if (page === "invoice") void renderInvoice();
+  if (page === "ande") renderAnde();
   if (page === "home" && !hBusy && !hDone) requestAnimationFrame(() => { hFit(); hMap(); void hIdle(); });
   if (page === "explore") requestAnimationFrame(() => { if (!xFitted) { xFitAll(); xFitted = true; } else xm.render(); });
   if (["controls", "evals", "compare", "fix", "memory"].includes(page)) autoRun(page);
@@ -1209,6 +1210,50 @@ const tintOf = (name: string) => TINTS[[...name].reduce((a, c) => a + c.charCode
 type OrdState = "up" | "done" | "cx" | "chg";
 const ordState = (r: BkRow): OrdState => r.status === "cancelled" ? (changedTo.has(r.id) ? "chg" : "cx") : Date.parse(r.startsAt) < Date.now() ? "done" : "up";
 const ORD_LBL: Record<OrdState, string> = { up: "Upcoming", done: "Completed", cx: "Cancelled", chg: "Replaced" };
+// =====================================================================
+// FOR ANDE: each feature mapped to a revenue lever, with this repo's measured proof and a model the reader drives.
+// Public facts come from the sources linked on the page; everything Ande hasn't published is a labelled slider.
+// =====================================================================
+const MODEL_SHARE = 43 / 102; // measured: hybrid strict asked the model on 28 of 62 held-out + 15 of 40 fresh venue emails (docs/classifiers.json)
+const LEVERS: [string, string, string, string, string, string, boolean][] = [
+  ["🔁", "Book again + memory", "Repeat dinners stay on Ande", "55% → 72%", "first pick confirms, no memory → memory", "home", true],
+  ["⚖️", "Real price, policy check, similar places", "Bookings land on policy, at partner rates", "0 / 2,035", "unsafe or off-policy actions in 300 random worlds", "home", true],
+  ["🧠", "Rules first, model only when unsure", "Each booking costs less to serve", `${Math.round(MODEL_SHARE * 100)}%`, "of venue emails need the model · 92.5% read right vs 55%", "evals", true],
+  ["🛡️", "Scam-proof payments", "Finance trusts it, so more spend moves on", "7 / 7", "hidden instructions caught in fresh, unseen emails · money only to the payee on file", "lab", true],
+  ["🏪", "Venue side", "Venues answer faster, more join and pay", "7 types", "of venue reply read and routed automatically", "partner", true],
+  ["📌", "One request · orders on every device", "Whole teams adopt it, not one EA", "7 pages", "follow one request · history by name + PIN", "bookings", false],
+  ["🔬", "Evals + Agent Watch", "Ship daily without breaking money flows", "64 / 64", "scenarios · re-run 3 times a day", "monitor", true],
+];
+const AN = { spend: 400, repeat: 35, keep: 5, complete: 2, fee: 3, avg: 2000, emails: 8, call: 0.6 };
+const SL: [keyof typeof AN, string, number, number, number, (v: number) => string, boolean][] = [
+  ["spend", "Spend through Ande a year", 400, 2000, 50, (v) => `$${v}M`, false],
+  ["repeat", "Share of dinners that are repeats", 10, 60, 5, (v) => `${v}%`, true],
+  ["keep", "Repeats kept on Ande by Book again", 0, 20, 1, (v) => `+${v}%`, true],
+  ["complete", "More requests that end in a booking", 0, 10, 1, (v) => `+${v}%`, true],
+  ["fee", "Ande's fees as a share of spend", 1, 10, 0.5, (v) => `${v}%`, true],
+  ["avg", "Average booking", 500, 10000, 250, (v) => `$${v.toLocaleString()}`, true],
+  ["emails", "Venue emails per booking", 2, 20, 1, (v) => `${v}`, true],
+  ["call", "Model cost per email (cents)", 0.1, 5, 0.1, (v) => `${v.toFixed(1)}¢`, true],
+];
+function renderAnde() {
+  $("#anLevers").innerHTML = LEVERS.map(([i, f, lever, num, what, pg, measured]) => `<div class="alv" data-go="${pg}"><div class="lh"><i>${i}</i><div><small>${esc(f)}</small><b>${esc(lever)}</b></div></div><div class="lp"><em>${num}</em><span>${esc(what)}</span></div><div class="lt">${measured ? `<span class="mtag">measured</span>` : `<span class="mtag">built</span>`} Try it ›</div></div>`).join("");
+  $$<HTMLElement>("#anLevers [data-go]").forEach((c) => c.onclick = () => go(c.dataset.go!));
+  $("#anSl").innerHTML = SL.map(([k, l, mn, mx, st, f, as]) => `<label><div><span>${l}${as ? `<span class="mtag as">assumption</span>` : `<span class="mtag">public</span>`}</span><b id="anv_${k}">${f(AN[k])}</b></div><input type="range" min="${mn}" max="${mx}" step="${st}" value="${AN[k]}" data-k="${k}"></label>`).join("");
+  $$<HTMLInputElement>("#anSl input").forEach((r) => r.oninput = () => { const k = r.dataset.k as keyof typeof AN; AN[k] = Number(r.value); $(`#anv_${k}`).textContent = SL.find((x) => x[0] === k)![5](AN[k]); anCalc(); });
+  anCalc();
+  $("#an90").innerHTML = [["DAYS 1–30", "Learn the agent, ship small fixes", ["Read real conversations, find the first failure, fix it with a regression case", "Add every bug to the eval suite, the way R1–R30 are here", "Shadow-test one classifier against the rules"]], ["DAYS 31–60", "Make the agent cheaper and safer", ["Rules-first routing with a promotion gate for triage and consent", "Payee-on-file and approval checks enforced below the app", "Agent Watch-style scheduled runs on production traces"]], ["DAYS 61–90", "Grow spend per customer", ["Book again and similar-at-the-same-price from each team's history", "Venue memory that turns every reply into facts for the next pick", "Measure before and after on confirmations and cost per booking"]]]
+    .map(([t, h, items]) => `<div><small>${t}</small><br><b>${h}</b><ul>${(items as string[]).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");
+}
+function anCalc() {
+  const S = AN.spend * 1e6, fromRepeat = S * (AN.repeat / 100) * (AN.keep / 100), fromComplete = S * (1 - AN.repeat / 100) * (AN.complete / 100);
+  const added = fromRepeat + fromComplete, rev = added * (AN.fee / 100), bookings = S / AN.avg, avoided = bookings * AN.emails * (1 - MODEL_SHARE), saved = avoided * AN.call / 100;
+  const M = (x: number) => x >= 1e6 ? `$${(x / 1e6).toFixed(1)}M` : `$${Math.round(x / 1e3)}K`;
+  $("#anOut").innerHTML = `<div class="ao"><b>${M(added)}</b><span>more spend through Ande a year</span></div><div class="ao"><b>${M(rev)}</b><span>more fee revenue a year, at ${AN.fee}%</span></div><div class="ao"><b>${Math.round(avoided / 1000).toLocaleString()}K</b><span>model calls avoided a year</span></div><div class="ao"><b>${M(saved)}</b><span>model cost saved a year</span></div>`;
+  const tot = Math.max(1, added);
+  $("#anBar").innerHTML = `<div class="vsl">Where the added spend comes from</div><div class="abar"><div style="width:${(fromRepeat / tot) * 100}%;background:var(--wine)">${fromRepeat ? `Book again ${M(fromRepeat)}` : ""}</div><div style="width:${(fromComplete / tot) * 100}%;background:var(--sage)">${fromComplete ? `More bookings ${M(fromComplete)}` : ""}</div></div><div class="cs">Customers already save 12–15% (reported by Ande): on ${M(S)} that's ${M(S * 0.12)}–${M(S * 0.15)} a year back to them, the reason they keep moving spend on.</div>`;
+  $("#anFoot").innerHTML = `How it's worked out: repeats × kept by Book again, plus the other requests × booking-rate gain, all on the spend through Ande. Model calls: bookings × emails × the ${Math.round((1 - MODEL_SHARE) * 100)}% of emails the rules settle without the model (measured). Change any slider; nothing here is Ande's internal data.`;
+}
+
 // =====================================================================
 // HOME: greeting, occasions, Book again, places near the office, and a venue sheet with similar places at the same price
 // =====================================================================

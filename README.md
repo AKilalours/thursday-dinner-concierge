@@ -17,9 +17,9 @@
 <p align="center"><a href="docs/img/thursday-home-4k.mp4"><img src="docs/img/home-tour.gif" width="900" alt="Welcome back and book again, a colour street map with live pins, a venue sheet with the real price and similar places, the agent emailing venues and ignoring a scam, slide to book, every page on one request, the inbox, Agent Watch"></a><br><sub>Filmed on the app itself, frame by frame · <a href="docs/img/thursday-home-4k.mp4"><b>Watch in 4K</b></a></sub></p>
 
 <table align="center"><tr>
-<td align="center"><h3>60/60</h3>eval<br>scenarios</td>
+<td align="center"><h3>64/64</h3>eval<br>scenarios</td>
 <td align="center"><h3>0 / 2,035</h3>safety checks failed<br>in 300 random worlds</td>
-<td align="center"><h3>146</h3>tests</td>
+<td align="center"><h3>152</h3>tests</td>
 <td align="center"><h3>59/59</h3>real-user<br>sentences</td>
 <td align="center"><h3>92.5%</h3>unseen venue emails<br>read right · 7/7 scams</td>
 <td align="center"><h3>R1–R30</h3>bugs found →<br>permanent tests</td>
@@ -39,6 +39,22 @@
 <td align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/#lab"><img src="docs/img/v3-inbox.jpg" alt="Inbox lab: a scam email is read as data"></a><br><b>Scam email</b> · read as data</td>
 </tr>
 </table>
+
+## For Ande: how this grows the business
+
+<a href="https://akilalours.github.io/thursday-dinner-concierge/#ande"><img src="docs/img/for-ande.jpg" width="900" alt="For Ande: public facts, feature to revenue lever, a model with sliders, first 90 days"></a>
+
+Ande earns annual fees from companies and venues on **$400M+** of yearly spend across **60+ enterprises** and **1,600 partner venues**. Its revenue isn't public; the $52M is money raised. The [For Ande page](https://akilalours.github.io/thursday-dinner-concierge/#ande) maps each feature to a lever, with proof measured in this repo:
+
+| Feature | Lever for Ande | Measured here |
+|---|---|---|
+| Book again + memory | Repeat dinners stay on Ande | first pick confirms **55% → 72%** |
+| Real price, policy check, similar places | Bookings land on policy, at partner rates | **0 / 2,035** unsafe or off-policy actions |
+| Rules first, model only when unsure | Lower cost per booking | model needed on **42%** of venue emails, **92.5%** read right vs 55% |
+| Scam-proof payments | Finance trusts it, more spend moves on | **7 / 7** hidden instructions caught in fresh emails |
+| Evals + Agent Watch | Ship daily without breaking money flows | **64 / 64** scenarios, 3 runs a day |
+
+The page's sliders turn these into spend, fee revenue and model cost for Ande, with every unpublished number labelled as an assumption. Sources: [Dealroom](https://dealroom.co/news/155492-ande-raises-52m-series-a-to-manage-corporate-entertainment-spend/), [TechCompanyNews](https://www.techcompanynews.com/ande-raises-over-52-million-in-seed-and-series-a-financing/), [RuntimeWire](https://runtimewire.com/article/ande-52m-corporate-entertainment-procurement), [Tiger / The Information](https://www.itiger.com/news/1163482194).
 
 ## What's real
 
