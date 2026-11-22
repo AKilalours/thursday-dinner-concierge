@@ -53,8 +53,10 @@ Ande earns annual fees from companies and venues on **$400M+** of yearly spend a
 | Rules first, model only when unsure | Lower cost per booking | model needed on **42%** of venue emails, **92.5%** read right vs 55% |
 | Scam-proof payments | Finance trusts it, more spend moves on | **7 / 7** hidden instructions caught in fresh emails |
 | Evals + Agent Watch | Ship daily without breaking money flows | **64 / 64** scenarios, 3 runs a day |
+| Venue badges + miles from HQ (as on [ande.ai](https://ande.ai/)) | Faster, on-policy picks | computed from the policy engine and the team's bookings |
+| Deal ROI page ("ROI on deals won, not just cost per event", [ande.ai](https://ande.ai/how-it-works)) | Field marketing proves ROI, budgets grow | won ÷ spent per client, from linked dinners |
 
-The page's sliders turn these into spend, fee revenue and model cost for Ande, with every unpublished number labelled as an assumption. Sources: [Dealroom](https://dealroom.co/news/155492-ande-raises-52m-series-a-to-manage-corporate-entertainment-spend/), [TechCompanyNews](https://www.techcompanynews.com/ande-raises-over-52-million-in-seed-and-series-a-financing/), [RuntimeWire](https://runtimewire.com/article/ande-52m-corporate-entertainment-procurement), [Tiger / The Information](https://www.itiger.com/news/1163482194).
+The page also lines up Ande's published product against this project, marking what is built and what is not (catering, sports, gifting and a venue-side AI agent are not). Its sliders turn these into spend, fee revenue and model cost for Ande, with every unpublished number labelled as an assumption. Sources: [Dealroom](https://dealroom.co/news/155492-ande-raises-52m-series-a-to-manage-corporate-entertainment-spend/), [TechCompanyNews](https://www.techcompanynews.com/ande-raises-over-52-million-in-seed-and-series-a-financing/), [RuntimeWire](https://runtimewire.com/article/ande-52m-corporate-entertainment-procurement), [Tiger / The Information](https://www.itiger.com/news/1163482194).
 
 ## What's real
 

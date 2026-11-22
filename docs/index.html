@@ -477,6 +477,11 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
 .abar{display:flex;height:34px;border-radius:10px;overflow:hidden;margin:8px 0}.abar div{display:grid;place-items:center;color:#fff;font:700 12px Inter;white-space:nowrap;overflow:hidden;transition:width .3s}
 .a90{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}.a90>div{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:14px}.a90 b{font:700 16px Fraunces,Georgia,serif}.a90 ul{margin:8px 0 0;padding-left:18px;font-size:13px}.a90 small{color:var(--wine);font-weight:800;letter-spacing:.08em}
 .asrc{margin:20px 0 6px;font-size:12px;color:var(--dim)}.asrc a{color:var(--wine)}
+.vchips{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;min-height:20px}.vchips i,.vsb2 i{font-style:normal;font:700 10.5px Inter;border-radius:99px;padding:2px 8px;background:#f3ece1;color:#6d5d51}.vsb2{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.vsb2 i{background:#ffffff26;color:#fff;backdrop-filter:blur(4px)}
+.roic{display:grid;grid-template-columns:1fr auto;gap:6px 12px;padding:12px 0;border-bottom:1px solid var(--line)}.roic:last-child{border:0}.roic b{font:700 16px Fraunces,Georgia,serif}.roic .rb{grid-column:1/3;display:grid;gap:4px}.roic .rb div{display:flex;align-items:center;gap:8px;font-size:12px}.roic .rb span{width:64px;color:var(--dim)}.roic .rb i{height:10px;border-radius:5px;min-width:3px;transition:width .3s}.roi-x{font:700 20px Fraunces,Georgia,serif;color:var(--sage)}
+.dealf{display:grid;gap:8px;margin-top:10px;padding:12px;border:1px dashed #d9c7ad;border-radius:14px;background:#fbf6ee}.dealf input{border:1px solid var(--line);border-radius:10px;padding:7px 10px;font:inherit;width:100%}.dealf .row{display:grid;grid-template-columns:1fr 110px;gap:8px}
+.amx table{width:100%;border-collapse:collapse;font-size:13px}.amx th{text-align:left;font:800 10.5px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);padding:6px 8px;border-bottom:1px solid var(--line)}.amx td{padding:9px 8px;border-bottom:1px solid #f0e8dc;vertical-align:top}.amx tr:last-child td{border:0}.amx tr[data-go]{cursor:pointer}.amx tr[data-go]:hover td{background:#fbf6ee}.amx .mst{white-space:nowrap;font-weight:800}.amx .mst.y{color:var(--sage)}.amx .mst.p{color:#8a6516}.amx .mst.n{color:var(--dim)}.amx a{color:var(--wine)}
+@media(max-width:700px){.amx td:nth-child(2){display:none}.amx th:nth-child(2){display:none}}
 </style>
 </head>
 <body>
@@ -488,7 +493,7 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
     <span class="tsep">Concierge</span><button class="on" data-p="home">Home</button><button data-p="ande">For Ande</button><button data-p="chat">Chat</button><button data-p="desk">Live desk</button>
     <span class="tsep">Plan</span><button data-p="explore">Explore</button><button data-p="avail">Availability</button><button data-p="compare">Compare</button><button data-p="bookings">Orders</button><button data-p="calendar">Calendar</button><button data-p="seating">Seating</button>
     <span class="tsep">Partners</span><button data-p="partner">Venue side</button>
-    <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button><button data-p="invoice">Invoice</button>
+    <span class="tsep">Admin</span><button data-p="policy">Policy</button><button data-p="spend">Spend</button><button data-p="invoice">Invoice</button><button data-p="roi">ROI</button>
     <span class="tsep">Engineering</span><button data-p="traces">Traces</button><button data-p="monitor">Monitor</button><button data-p="lab">Inbox lab</button><button data-p="fix">Fix lab</button><button data-p="tools">Tools</button><button data-p="judg">Judgments</button><button data-p="controls">Controls</button><button data-p="evals">Evals</button><button data-p="memory">Memory</button>
     <div class="navfoot">Built for Ande · AI Engineer<br>Independent project · fictional data</div>
   </nav>
@@ -573,13 +578,15 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
   <div class="ahero"><div><span class="atag">For Ande · public facts + this project's measured results</span><h1>How this would grow Ande</h1><p>Every feature here maps to one of Ande's revenue levers. Facts link to their source. Your own assumptions go in the sliders.</p></div></div>
   <div class="afacts"><a class="af" href="https://dealroom.co/news/155492-ande-raises-52m-series-a-to-manage-corporate-entertainment-spend/" target="_blank" rel="noopener"><b>$400M+</b><span>annual spend through Ande</span><i>source ↗</i></a><a class="af" href="https://dealroom.co/news/155492-ande-raises-52m-series-a-to-manage-corporate-entertainment-spend/" target="_blank" rel="noopener"><b>60+</b><span>enterprises: Cloudflare, Salesforce, Netskope…</span><i>source ↗</i></a><a class="af" href="https://dealroom.co/news/155492-ande-raises-52m-series-a-to-manage-corporate-entertainment-spend/" target="_blank" rel="noopener"><b>12–15%</b><span>savings customers report</span><i>source ↗</i></a><a class="af" href="https://www.techcompanynews.com/ande-raises-over-52-million-in-seed-and-series-a-financing/" target="_blank" rel="noopener"><b>1,600</b><span>partner venues (Nobu, Tao Group…)</span><i>source ↗</i></a><a class="af" href="https://www.techcompanynews.com/ande-raises-over-52-million-in-seed-and-series-a-financing/" target="_blank" rel="noopener"><b>93,000</b><span>providers in 90+ cities</span><i>source ↗</i></a><a class="af" href="https://www.techcompanynews.com/ande-raises-over-52-million-in-seed-and-series-a-financing/" target="_blank" rel="noopener"><b>$325B</b><span>yearly corporate entertainment spend</span><i>source ↗</i></a><a class="af" href="https://dealroom.co/news/155492-ande-raises-52m-series-a-to-manage-corporate-entertainment-spend/" target="_blank" rel="noopener"><b>$52M+</b><span>seed + Series A, Sept 2026</span><i>source ↗</i></a><a class="af" href="https://www.itiger.com/news/1163482194" target="_blank" rel="noopener"><b>Both sides</b><span>companies and venues pay annual fees</span><i>source ↗</i></a></div>
   <div class="anote">💡 <b>$52M is money raised, not revenue.</b> Ande's revenue isn't public, and the $400M is spend flowing through its network (<a href="https://runtimewire.com/article/ande-52m-corporate-entertainment-procurement" target="_blank" rel="noopener">source</a>). Ande earns annual fees from companies and venues (<a href="https://www.itiger.com/news/1163482194" target="_blank" rel="noopener">source</a>), and those grow when more spend runs through it, more venues join, and each booking costs less to serve. That's what the model below measures.</div>
+  <h2 class="ah2">Ande's product today, and where this project stands</h2>
+  <div class="card amx" id="anMatrix"></div>
   <h2 class="ah2">Feature → lever → proof</h2>
   <div class="alevers" id="anLevers"></div>
   <h2 class="ah2">Model it yourself</h2>
   <div class="amodel"><div class="card asl" id="anSl"></div><div class="aout"><div class="aouts" id="anOut"></div><div class="card" id="anBar"></div><div class="cs" id="anFoot"></div></div></div>
   <h2 class="ah2">What I'd ship in my first 90 days</h2>
   <div class="a90" id="an90"></div>
-  <div class="asrc"><b>Sources</b> · <a href="https://dealroom.co/news/155492-ande-raises-52m-series-a-to-manage-corporate-entertainment-spend/" target="_blank" rel="noopener">Dealroom</a> · <a href="https://www.techcompanynews.com/ande-raises-over-52-million-in-seed-and-series-a-financing/" target="_blank" rel="noopener">TechCompanyNews</a> · <a href="https://runtimewire.com/article/ande-52m-corporate-entertainment-procurement" target="_blank" rel="noopener">RuntimeWire</a> · <a href="https://www.itiger.com/news/1163482194" target="_blank" rel="noopener">Tiger / The Information</a> · <a href="https://pulse2.com/ande-raises-more-than-52-million-to-launch-ai-powered-corporate-entertainment-platform/" target="_blank" rel="noopener">Pulse 2.0</a> · <a href="https://jobs.ashbyhq.com/ande/8ff8145e-8040-4a7a-a90c-cc1fdc36deb1" target="_blank" rel="noopener">Ande job post</a> · numbers checked Nov 21, 2026. Results marked "measured" come from this repo's own evals.</div>
+  <div class="asrc"><b>Sources</b> · <a href="https://dealroom.co/news/155492-ande-raises-52m-series-a-to-manage-corporate-entertainment-spend/" target="_blank" rel="noopener">Dealroom</a> · <a href="https://www.techcompanynews.com/ande-raises-over-52-million-in-seed-and-series-a-financing/" target="_blank" rel="noopener">TechCompanyNews</a> · <a href="https://runtimewire.com/article/ande-52m-corporate-entertainment-procurement" target="_blank" rel="noopener">RuntimeWire</a> · <a href="https://www.itiger.com/news/1163482194" target="_blank" rel="noopener">Tiger / The Information</a> · <a href="https://ande.ai/" target="_blank" rel="noopener">ande.ai</a> · <a href="https://ande.ai/how-it-works" target="_blank" rel="noopener">ande.ai/how-it-works</a> · <a href="https://pulse2.com/ande-raises-more-than-52-million-to-launch-ai-powered-corporate-entertainment-platform/" target="_blank" rel="noopener">Pulse 2.0</a> · <a href="https://jobs.ashbyhq.com/ande/8ff8145e-8040-4a7a-a90c-cc1fdc36deb1" target="_blank" rel="noopener">Ande job post</a> · numbers checked Nov 21, 2026. Results marked "measured" come from this repo's own evals.</div>
 </section>
 <section class="page" id="p-chat">
   <div class="chatwrap"><div class="chathead"><div class="cav">✳</div><div><b>Concierge</b><small>Usually books in a few venue replies · acts only after you approve</small></div></div>
@@ -628,6 +635,11 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
   </div>
 </section>
 
+<section class="page" id="p-roi">
+  <div class="hrh"><div><h1 style="margin:0">Return on entertainment</h1><p class="lead" style="margin:4px 0 0">Link a dinner to the deal it was for. See what it influenced, not just what it cost.</p></div></div>
+  <div class="aouts" id="roiKpis" style="margin-top:12px"></div>
+  <div class="gwrap"><div class="card" id="roiClients"></div><div class="card gside" id="roiSide"></div></div>
+</section>
 <section class="page" id="p-invoice">
   <div class="ph"><div><h1>Invoice</h1><p class="lead">One invoice for the month. Drag a dinner onto a budget, tap a line for the receipt.</p></div><button class="btn pri" id="invCsv">Download CSV</button></div>
   <div class="row" style="margin-bottom:12px;gap:10px;flex-wrap:wrap"><div class="seg" id="invMonth"></div><div class="cs" id="invFilt"></div><div class="cs" id="invVisit" style="margin-left:auto"></div></div>
@@ -775,7 +787,7 @@ pre.json{font:11px/1.5 JetBrains Mono,monospace;background:#1f1519;color:#f3e9de
 </main>
 <div class="cap2" id="caption"><span id="capN"></span><b id="capT"></b></div>
 <script src="./config.js"></script>
-<script type="module" src="./app.js?v=270db51c09"></script>
+<script type="module" src="./app.js?v=8d43a91bf9"></script>
 <div id="kbar"><div class="kbox"><input id="kIn" placeholder="dinner for 12 with Acme next Thursday, somewhere private" autocomplete="off"><div id="kList"></div><div class="kfoot"><span>↑↓ to move</span><span>↵ to run</span><span>esc to close</span></div></div></div>
 <div id="toasts"></div>
 </body>

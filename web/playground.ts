@@ -153,6 +153,7 @@ function go(page: string) {
   if (page === "partner") ptRenderBook();
   if (page === "invoice") void renderInvoice();
   if (page === "ande") renderAnde();
+  if (page === "roi") void renderROI();
   if (page === "home" && !hBusy && !hDone) requestAnimationFrame(() => { hFit(); hMap(); void hIdle(); });
   if (page === "explore") requestAnimationFrame(() => { if (!xFitted) { xFitAll(); xFitted = true; } else xm.render(); });
   if (["controls", "evals", "compare", "fix", "memory"].includes(page)) autoRun(page);
@@ -1204,12 +1205,33 @@ function receipt(r: BkRow) {
   return { min, per, list, disc, sub, tax, svc, total: sub + tax + svc };
 }
 // ORDERS: every dinner this person booked, on this visit and earlier ones, like a delivery app's order history.
+interface Deal { client: string; stage: "open" | "won" | "lost"; value: number }
+const deals = new Map<string, Deal>(); // booking id -> the deal it was for, typed by the person (kept in their history)
+const clientOf = (id: string) => bkAsk.get(id)?.match(/\bwith (?:the )?([A-Z][\w&.'-]*(?: [A-Z][\w&.'-]*)*)/)?.[1] ?? "";
 const bkAsk = new Map<string, string>(); // booking id -> the sentence that booked it, so "Book again" re-asks it
 const TINTS = ["#7b1e3a", "#3f7d5a", "#b8862b", "#5b6b8c", "#8a4f7d", "#2f6f73", "#a0522d"];
 const tintOf = (name: string) => TINTS[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % TINTS.length];
 type OrdState = "up" | "done" | "cx" | "chg";
 const ordState = (r: BkRow): OrdState => r.status === "cancelled" ? (changedTo.has(r.id) ? "chg" : "cx") : Date.parse(r.startsAt) < Date.now() ? "done" : "up";
 const ORD_LBL: Record<OrdState, string> = { up: "Upcoming", done: "Completed", cx: "Cancelled", chg: "Replaced" };
+// =====================================================================
+// ROI: what each client's dinners cost against the deals they were for. Every number comes from the person's own
+// bookings and the deals they linked; nothing is estimated.
+// =====================================================================
+async function renderROI() {
+  const rows = (await bkRows()).filter((r) => r.status === "confirmed" && r.src !== "Live desk" && !r.src.startsWith("Sample"));
+  const linked = rows.filter((r) => deals.has(r.id)), by = new Map<string, { spend: number; n: number; pipe: number; won: number; lost: number }>();
+  for (const r of linked) { const d = deals.get(r.id)!, k = d.client || "No client"; const c = by.get(k) ?? { spend: 0, n: 0, pipe: 0, won: 0, lost: 0 }; c.spend += r.approved; c.n++; if (d.stage === "won") c.won += d.value; else if (d.stage === "lost") c.lost += d.value; else c.pipe += d.value; by.set(k, c); }
+  const spend = linked.reduce((a, r) => a + r.approved, 0), won = [...by.values()].reduce((a, c) => a + c.won, 0), pipe = [...by.values()].reduce((a, c) => a + c.pipe, 0), closed = linked.filter((r) => deals.get(r.id)!.stage !== "open").length, wins = linked.filter((r) => deals.get(r.id)!.stage === "won").length;
+  $("#roiKpis").innerHTML = `<div class="ao"><b>${usd(spend)}</b><span>entertainment linked to deals</span></div><div class="ao"><b>${usd(pipe)}</b><span>open pipeline it touched</span></div><div class="ao"><b>${usd(won)}</b><span>won after a dinner</span></div><div class="ao"><b>${spend && won ? `${Math.round(won / spend)}×` : "—"}</b><span>won per $1 of entertainment${closed ? ` · ${wins}/${closed} closed deals won` : ""}</span></div>`;
+  const max = Math.max(1, ...[...by.values()].map((c) => Math.max(c.spend, c.won, c.pipe)));
+  $("#roiClients").innerHTML = by.size ? `<h3>By client</h3>${[...by.entries()].sort((a, b) => b[1].won - a[1].won).map(([k, c]) => `<div class="roic"><b>${esc(k)}</b><span class="roi-x">${c.won ? `${Math.round(c.won / Math.max(1, c.spend))}×` : ""}</span><div class="rb"><div><span>Spent</span><i style="width:${(c.spend / max) * 100}%;background:var(--wine)"></i>${usd(c.spend)} · ${c.n} dinner${c.n > 1 ? "s" : ""}</div><div><span>Pipeline</span><i style="width:${(c.pipe / max) * 100}%;background:var(--gold)"></i>${usd(c.pipe)}</div><div><span>Won</span><i style="width:${(c.won / max) * 100}%;background:var(--sage)"></i>${usd(c.won)}</div></div></div>`).join("")}`
+    : `<div class="empty">No dinners linked to a deal yet.<br><span class="cs">Open a dinner in Orders, type the client and deal size, and mark it open, won or lost.</span><br><button class="btn pri" style="margin-top:10px" onclick="go('bookings')">Open Orders</button></div>`;
+  const unl = rows.filter((r) => !deals.has(r.id));
+  $("#roiSide").innerHTML = `<h3>Not linked yet · ${unl.length}</h3>${unl.length ? unl.slice(0, 8).map((r) => `<div class="ord" data-id="${r.id}" style="grid-template-columns:44px 1fr;padding:8px;margin-bottom:6px"><div class="ordimg" style="width:44px;height:44px;background:url('${roomPhoto(r.v.id, r.room.name, 120, 120)}') center/cover"></div><div><div class="on1" style="font-size:14px">${esc(r.v.name)}</div><div class="on2">${md(localDate(r.startsAt))} · ${usd(r.approved)}${clientOf(r.id) ? ` · ${esc(clientOf(r.id))}` : ""}</div></div></div>`).join("") : `<div class="cs">Every dinner is linked.</div>`}<div class="cs" style="margin-top:8px">Ande's pitch to field marketing: "show true ROI on deals won, not just cost per event." This is that view, from your own data.</div>`;
+  $$<HTMLElement>("#roiSide [data-id]").forEach((c) => c.onclick = () => { bkPick = c.dataset.id!; const r = rows.find((x) => x.id === bkPick)!; bkFilter = ordState(r) === "done" ? "past" : "upcoming"; $$("#bkFilter button").forEach((x) => x.classList.toggle("on", (x as HTMLElement).dataset.f === bkFilter)); go("bookings"); });
+}
+
 // =====================================================================
 // FOR ANDE: each feature mapped to a revenue lever, with this repo's measured proof and a model the reader drives.
 // Public facts come from the sources linked on the page; everything Ande hasn't published is a labelled slider.
@@ -1221,6 +1243,8 @@ const LEVERS: [string, string, string, string, string, string, boolean][] = [
   ["🧠", "Rules first, model only when unsure", "Each booking costs less to serve", `${Math.round(MODEL_SHARE * 100)}%`, "of venue emails need the model · 92.5% read right vs 55%", "evals", true],
   ["🛡️", "Scam-proof payments", "Finance trusts it, so more spend moves on", "7 / 7", "hidden instructions caught in fresh, unseen emails · money only to the payee on file", "lab", true],
   ["🏪", "Venue side", "Venues answer faster, more join and pay", "7 types", "of venue reply read and routed automatically", "partner", true],
+  ["🏷️", "Venue badges + distance from HQ", "Faster, on-policy picks", "5 badges", "In-policy · Quick approval · Booked by your team · preferred · big groups", "home", false],
+  ["📈", "Deal ROI", "Field marketing proves ROI, so budgets grow", "won ÷ spent", "per client, from the dinners each deal touched", "roi", false],
   ["📌", "One request · orders on every device", "Whole teams adopt it, not one EA", "7 pages", "follow one request · history by name + PIN", "bookings", false],
   ["🔬", "Evals + Agent Watch", "Ship daily without breaking money flows", "64 / 64", "scenarios · re-run 3 times a day", "monitor", true],
 ];
@@ -1235,7 +1259,20 @@ const SL: [keyof typeof AN, string, number, number, number, (v: number) => strin
   ["emails", "Venue emails per booking", 2, 20, 1, (v) => `${v}`, true],
   ["call", "Model cost per email (cents)", 0.1, 5, 0.1, (v) => `${v.toFixed(1)}¢`, true],
 ];
+const AMX: [string, string, string, "y" | "p" | "n", string, string][] = [
+  ["Discover across dining, catering, sports, experiences, gifting", "https://ande.ai/how-it-works", "Dining end to end. Catering, sports, experiences and gifting are not built yet.", "p", "Dining only", "explore"],
+  ["Venue badges: In-Policy, Quick Approvals, booked by coworkers", "https://ande.ai/", "Computed live from the policy engine and the team's own bookings.", "y", "Built", "home"],
+  ["Distance from HQ or a top client", "https://ande.ai/", "Miles from HQ on the real map, on every card and sheet. Top-client locations: not yet.", "p", "HQ only", "home"],
+  ["Approvals, contracts, payment, receipts", "https://ande.ai/how-it-works", "Approved proposals enforced by Postgres; deposit only to the payee on file; a receipt per booking.", "y", "Built", "bookings"],
+  ["Unified monthly invoicing, spend pre-coded to the ERP", "https://ande.ai/how-it-works", "Monthly invoice with GL codes and cost centers, CSV export.", "y", "Built", "invoice"],
+  ["ROI on deals won, not just cost per event", "https://ande.ai/how-it-works", "Link a dinner to a deal; ROI per client from real bookings.", "y", "Built", "roi"],
+  ["Learns the event formats you like", "https://ande.ai/how-it-works", "Memory of past replies lifts first-pick confirmations 55% → 72% (measured).", "y", "Built", "memory"],
+  ["Venue agents negotiate with corporate agents", "https://www.itiger.com/news/1163482194", "Venue side: a person plays the venue, and counters are read and routed. Venue-side AI agent: not yet.", "p", "Partly", "partner"],
+  ["Cheaper models for simpler tasks", "https://www.itiger.com/news/1163482194", "Rules first; the model only when the rules aren't sure (42% of emails), behind a promotion gate.", "y", "Built", "evals"],
+];
 function renderAnde() {
+  $("#anMatrix").innerHTML = `<table><thead><tr><th>Ande does</th><th>In this project</th><th>Status</th></tr></thead><tbody>${AMX.map(([a, src, here, st, lbl, pg]) => `<tr data-go="${pg}"><td><b>${esc(a)}</b> <a href="${src}" target="_blank" rel="noopener" onclick="event.stopPropagation()">source ↗</a></td><td>${esc(here)}</td><td class="mst ${st}">${st === "y" ? "✓ " : ""}${lbl}</td></tr>`).join("")}</tbody></table>`;
+  $$<HTMLElement>("#anMatrix tr[data-go]").forEach((t) => t.onclick = () => go(t.dataset.go!));
   $("#anLevers").innerHTML = LEVERS.map(([i, f, lever, num, what, pg, measured]) => `<div class="alv" data-go="${pg}"><div class="lh"><i>${i}</i><div><small>${esc(f)}</small><b>${esc(lever)}</b></div></div><div class="lp"><em>${num}</em><span>${esc(what)}</span></div><div class="lt">${measured ? `<span class="mtag">measured</span>` : `<span class="mtag">built</span>`} Try it ›</div></div>`).join("");
   $$<HTMLElement>("#anLevers [data-go]").forEach((c) => c.onclick = () => go(c.dataset.go!));
   $("#anSl").innerHTML = SL.map(([k, l, mn, mx, st, f, as]) => `<label><div><span>${l}${as ? `<span class="mtag as">assumption</span>` : `<span class="mtag">public</span>`}</span><b id="anv_${k}">${f(AN[k])}</b></div><input type="range" min="${mn}" max="${mx}" step="${st}" value="${AN[k]}" data-k="${k}"></label>`).join("");
@@ -1262,10 +1299,25 @@ const OFFICE_HOOD = COMPANY.officeNeighborhood.toLowerCase(), ADJ = ADJACENT;
 const fromPerHead = (v: Venue) => estimate(10, perHeadFor(v, "client_dinner"), 0, v.preferredRatePct).perHeadAllInCents;
 const bigRoom = (v: Venue) => Math.max(...v.rooms.filter((r) => r.private).map((r) => r.listedCapacity), 0);
 function vcard(v: Venue, extra = "", badge = "") {
-  const deal = v.preferredRatePct ? `<span class="vbadge">−${v.preferredRatePct}% preferred</span>` : "";
-  return `<button class="vcard" data-v="${v.id}"><div class="vph" style="background-image:url('${venuePhoto(v.id, 520, 300)}')">${badge || deal}${extra}</div><div class="vb"><b>${esc(v.name)}</b><div class="vm">${esc(v.cuisine[0].toUpperCase() + v.cuisine.slice(1))} · ${esc(v.neighborhood)}</div><div class="vp"><span>from <em>${usd(fromPerHead(v))}</em>/head</span><span>${bigRoom(v) ? `private · ${bigRoom(v)}` : "dining room"}</span></div></div></button>`;
+  const bs = badgesFor(v), top = bs.find((b) => b.startsWith("Booked")) ?? bs.find((b) => b.startsWith("−")) ?? bs[0];
+  const deal = top ? `<span class="vbadge">${esc(top)}</span>` : "";
+  return `<button class="vcard" data-v="${v.id}"><div class="vph" style="background-image:url('${venuePhoto(v.id, 520, 300)}')">${badge || deal}${extra}</div><div class="vb"><b>${esc(v.name)}</b><div class="vm">${esc(v.cuisine[0].toUpperCase() + v.cuisine.slice(1))} · ${milesFromHQ(v).toFixed(1)} mi from HQ</div><div class="vchips">${bs.filter((b) => b !== top).slice(0, 2).map((b) => `<i>${esc(b)}</i>`).join("")}</div><div class="vp"><span>from <em>${usd(fromPerHead(v))}</em>/head</span><span>${bigRoom(v) ? `private · ${bigRoom(v)}` : "dining room"}</span></div></div></button>`;
 }
 let popF = "near";
+// Badges like Ande's venue cards, each computed from data the app actually has: the policy engine, the team's own
+// bookings, the venue's preferred rate, and the distance from the office on the real map.
+const teamCount = new Map<string, number>();
+async function refreshTeamCounts() { teamCount.clear(); for (const r of await bkRows()) if (r.status === "confirmed") teamCount.set(r.v.id, (teamCount.get(r.v.id) ?? 0) + 1); }
+const milesFromHQ = (v: Venue) => { const [a, b] = vLL.get(v.id) ?? OFFICE, R = 3958.8, rad = Math.PI / 180, dLat = (a - OFFICE[0]) * rad, dLng = (b - OFFICE[1]) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(OFFICE[0] * rad) * Math.cos(a * rad) * Math.sin(dLng / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+function badgesFor(v: Venue, n = 8): string[] {
+  const out: string[] = [], d = NIGHTS.slice(2).find((x) => !v.closedDays.includes(weekday(x))) ?? NIGHTS[2], room = v.rooms.find((r) => !r.private)!;
+  const pol = checkPolicy(company, reqFor(n, d, false), v, { minSpendCents: 0, perHeadCents: null, depositPct: null, capacity: null }, leadHours(NOW, d, "19:00"));
+  if (pol.onPolicy) out.push("In-policy"); if (pol.onPolicy && pol.requiredRoles.length === 1) out.push("Quick approval");
+  const c = teamCount.get(v.id) ?? 0; if (c) out.push(`Booked ${c}× by your team`);
+  if (v.preferredRatePct) out.push(`−${v.preferredRatePct}% preferred`); if (bigRoom(v) >= 20) out.push("Big groups"); void room;
+  return out;
+}
 async function renderHomeRails() {
   const h = new Date().getHours(); $("#hGreet").textContent = `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, ${meFirst()}`;
   $("#hHero").style.backgroundImage = `url('${HERO_BG}')`; $("#hHero").classList.add("kb");
@@ -1273,6 +1325,7 @@ async function renderHomeRails() {
   { const last = monRows.at(-1); if (last) $("#hStat").innerHTML = `<span class="pulse ${last.ok ? "" : "bad"}"></span>Agent Watch: ${last.ok ? "all checks green" : "a check failed"} · ${ago(last.at)} · ${monRows.reduce((a, r) => a + r.worlds.checks, 0).toLocaleString()} safety checks`; }
   $("#hOcc").innerHTML = OCC.map(([i, t, ask]) => `<button type="button" data-ask="${esc(ask)}"><i>${i}</i>${t}</button>`).join("");
   $$<HTMLButtonElement>("#hOcc button").forEach((b) => b.onclick = () => { $$("#hOcc button").forEach((x) => x.classList.toggle("on", x === b)); const inp = $<HTMLInputElement>("#hIn"); inp.value = b.dataset.ask!; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); });
+  await refreshTeamCounts();
   const near = [OFFICE_HOOD, ...(ADJ[OFFICE_HOOD] ?? [])];
   const pop = popF === "near" ? venues.filter((v) => near.includes(v.neighborhood.toLowerCase())) : popF === "deal" ? venues.filter((v) => v.preferredRatePct).sort((a, b) => b.preferredRatePct - a.preferredRatePct) : [...venues].sort((a, b) => bigRoom(b) - bigRoom(a));
   $("#hPop").innerHTML = pop.slice(0, 10).map((v) => vcard(v)).join("");
@@ -1303,7 +1356,7 @@ function openVenue(v: Venue, o: { n?: number; room?: string; date?: string; agai
       const r = x.rooms.filter((rr) => rr.private === room.private && rr.listedCapacity >= n).sort((a, b) => a.listedCapacity - b.listedCapacity)[0]; if (!r) return null;
       const pp = polFor(x, r, n, date); return { x, r, e: pp.estimate.perHeadAllInCents, ok: pp.onPolicy };
     }).filter((z): z is { x: Venue; r: Venue["rooms"][number]; e: number; ok: boolean } => !!z && (z.ok || !pol.onPolicy) && Math.abs(z.e - per) <= per * 0.3).sort((a, b) => Math.abs(a.e - per) - Math.abs(b.e - per)).slice(0, 6);
-    m.innerHTML = `<div class="vsheet"><div class="vshero" style="background-image:url('${roomPhoto(v.id, room.name, 1200, 520)}')"><button class="vsx" aria-label="Close">✕</button><div><h2>${esc(v.name)}</h2><span>${esc(v.cuisine)} · ${esc(v.neighborhood)}${v.preferredRatePct ? ` · −${v.preferredRatePct}% preferred rate` : ""}</span></div></div>
+    m.innerHTML = `<div class="vsheet"><div class="vshero" style="background-image:url('${roomPhoto(v.id, room.name, 1200, 520)}')"><button class="vsx" aria-label="Close">✕</button><div><h2>${esc(v.name)}</h2><span>${esc(v.cuisine)} · ${esc(v.neighborhood)} · ${milesFromHQ(v).toFixed(1)} mi from HQ</span><div class="vsb2">${badgesFor(v, n).map((b) => `<i>${esc(b)}</i>`).join("")}</div></div></div>
       <div class="vsb">${o.again ? `<div class="gstep">Last time: ${o.again.partySize} guests in ${esc(o.again.room.name)}, ${md(localDate(o.again.startsAt))}, <b>${usd(o.again.approved)}</b>. Same again?</div>` : ""}
       <div><div class="vsl">Room</div><div class="rooms">${v.rooms.map((r) => `<button class="roomc ${r.id === roomId ? "on" : ""} ${r.listedCapacity < n ? "no" : ""}" data-r="${r.id}"><div style="background-image:url('${roomPhoto(v.id, r.name, 360, 200)}')"></div><span><b>${esc(r.name)}</b>${r.private ? "private" : "dining room"} · up to ${r.listedCapacity}</span></button>`).join("")}</div></div>
       <div class="vsrow"><div><div class="vsl">Guests</div><div class="step"><button data-d="-1">−</button><b>${n}</b><button data-d="1">+</button></div></div>
@@ -1382,10 +1435,15 @@ async function renderBookings() {
   $("#bkSide").innerHTML = `<div class="ordimg" style="width:100%;height:150px;border-radius:14px;margin-bottom:10px;background:linear-gradient(0deg,#000a,#0000 70%),url('${roomPhoto(r.v.id, r.room.name, 700, 320)}') center/cover,${tintOf(r.v.name)}">${esc(r.v.name)}<small>${esc(r.room.name)} · ${esc(r.v.neighborhood)}</small></div>
     <div class="vs"><span class="ost ${st}">${ORD_LBL[st]}</span> ${when(r.startsAt)}, ${md(localDate(r.startsAt))} · ${r.partySize} guests${bkAsk.get(r.id) ? `<div class="cs" style="margin-top:6px">“${esc(bkAsk.get(r.id)!)}”</div>` : ""}</div>
     <div class="rcpt"><div><span>${rc.min > rc.per * r.partySize ? `Food &amp; beverage minimum` : `Menu, ${r.partySize} × ${usd(rc.per)}`}</span><b>${usd(rc.list)}</b></div>${rc.disc ? `<div class="g"><span>Preferred rate −${r.v.preferredRatePct}%</span><b>−${usd(rc.disc)}</b></div>` : ""}<div><span>NYC sales tax 8.875%</span><b>${usd(rc.tax)}</b></div><div><span>Service 20%</span><b>${usd(rc.svc)}</b></div><div class="t"><span>Total</span><b>${usd(rc.total)}</b></div><div><span>Deposit paid${carried.has(r.id) ? " (carried over)" : ""}</span><b>${r.paid ? `−${usd(r.paid)}` : "—"}</b></div></div>
+    ${(() => { const d = deals.get(r.id) ?? { client: clientOf(r.id), stage: "open", value: 0 }; return `<div class="dealf"><div class="vsl" style="margin:0">Deal this dinner was for</div><div class="row"><input id="dlClient" placeholder="Client, e.g. Acme" value="${esc(d.client)}"><input id="dlValue" inputmode="numeric" placeholder="Deal $" value="${d.value ? d.value / 100 : ""}"></div><div class="seg" id="dlStage">${(["open", "won", "lost"] as const).map((k) => `<button data-s="${k}" class="${(deals.get(r.id)?.stage ?? "") === k ? "on" : ""}">${k[0].toUpperCase() + k.slice(1)}</button>`).join("")}</div></div>`; })()}
     <button class="btn pri" id="bkAgain" style="width:100%;margin:10px 0">↻ Book again</button>
     ${st === "up" ? `<div class="cs" style="margin:0 0 8px">${free ? `Free cancellation for ${hrs - r.v.cancellationHours} more hours` : `Inside the ${r.v.cancellationHours} h window: the deposit would be forfeited`}</div>
     <div class="seg" id="bkAct"><button data-a="change" class="on">Change</button><button data-a="cancel">Cancel</button></div><div id="bkPane"></div>` : st === "done" ? `<div class="cs">Completed. <span class="mono">${r.id}</span></div>` : `<div class="cs">${changedTo.has(r.id) ? `Replaced by <a href="#" data-j="${changedTo.get(r.id)}">${changedTo.get(r.id)}</a>.` : "This booking was cancelled."}</div>`}`;
   $("#bkAgain").onclick = () => bookAgain(r);
+  const saveDeal = (stage?: Deal["stage"]) => { const c = $<HTMLInputElement>("#dlClient").value.trim(), val = Math.round(Number($<HTMLInputElement>("#dlValue").value.replace(/[^\d.]/g, "")) * 100) || 0, st = stage ?? deals.get(r.id)?.stage ?? "open";
+    if (!c && !val) { deals.delete(r.id); } else deals.set(r.id, { client: c, value: val, stage: st }); histDirty = true; $$("#dlStage button").forEach((x) => x.classList.toggle("on", (x as HTMLElement).dataset.s === st && deals.has(r.id))); };
+  $("#dlClient").onchange = () => saveDeal(); $("#dlValue").onchange = () => saveDeal();
+  $$<HTMLButtonElement>("#dlStage button").forEach((b) => b.onclick = () => { saveDeal(b.dataset.s as Deal["stage"]); toast("Deal linked", `${$<HTMLInputElement>("#dlClient").value || "Client"} · ${b.dataset.s}`, "ok"); });
   $$<HTMLElement>("#bkSide [data-j]").forEach((a) => a.onclick = (e) => { e.preventDefault(); bkPick = a.dataset.j!; bkFilter = "upcoming"; $$("#bkFilter button").forEach((x) => x.classList.toggle("on", (x as HTMLElement).dataset.f === "upcoming")); void renderBookings(); });
   if (st !== "up") return;
   $$<HTMLButtonElement>("#bkAct button").forEach((b) => b.onclick = () => { $$("#bkAct button").forEach((x) => x.classList.remove("on")); b.classList.add("on"); b.dataset.a === "change" ? bkChange(r) : bkCancel(r, free, hrs); });
@@ -2359,7 +2417,7 @@ $("#wsBtn").onclick = editMe; $("#meBtn").onclick = editMe;
 // so signing in again shows everything from earlier visits, not just this one. Nothing leaves the browser.
 // =====================================================================
 const HIST = (name: string) => `tdc_hist_v1:${name.trim().toLowerCase()}`;
-interface Saved { v: 1; name: string; visits: number[]; stores: { src: string; snap: StoreSnapshot }[]; runs: RunLog[]; codes: [string, string][]; asks?: [string, string][]; savedAt?: number }
+interface Saved { v: 1; name: string; visits: number[]; stores: { src: string; snap: StoreSnapshot }[]; runs: RunLog[]; codes: [string, string][]; asks?: [string, string][]; deals?: [string, Deal][]; savedAt?: number }
 let histDirty = false, histLoaded = false, visits: number[] = [], lastBody = "", savedAt = 0;
 // ---- across devices: the same history, kept on the server under a hash of name + 4-digit PIN ----
 const PINK = (name: string) => `tdc_pin:${name.trim().toLowerCase()}`;
@@ -2389,7 +2447,7 @@ function saveHistory() {
   try {
     const keep = stores.filter((st) => (srcOf.get(st) ?? "Live desk") !== "Live desk" && st.allBookings().length);
     const data: Saved = { v: 1, name: me.name, visits: visits.slice(-50), stores: keep.map((st) => ({ src: srcOf.get(st)!, snap: st.snapshot() })),
-      runs: runsLog.filter((r) => !/^desk/.test(r.id)).slice(0, 40).map((r) => ({ ...r, trace: slimTrace(r.trace), past: undefined })), codes: [...invCode], asks: [...bkAsk] };
+      runs: runsLog.filter((r) => !/^desk/.test(r.id)).slice(0, 40).map((r) => ({ ...r, trace: slimTrace(r.trace), past: undefined })), codes: [...invCode], asks: [...bkAsk], deals: [...deals] };
     const body = JSON.stringify(data); if (body !== lastBody) { lastBody = body; savedAt = Date.now(); }
     data.savedAt = savedAt; const full = JSON.stringify(data);
     localStorage.setItem(HIST(me.name), full); histDirty = false; pushHistory(full);
@@ -2414,6 +2472,7 @@ async function startHistory() {
     runsLog.push(...saved.runs.map((r) => ({ ...r, past: true })));
     for (const [k, v] of saved.codes ?? []) invCode.set(k, v);
     for (const [k, v] of saved.asks ?? []) bkAsk.set(k, v);
+    for (const [k, v] of saved.deals ?? []) deals.set(k, v);
     histLoaded = true;
     const n = saved.stores.reduce((a, s) => a + s.snap.bookings.filter((b) => b.status === "confirmed").length, 0);
     const last = saved.visits.at(-1);
