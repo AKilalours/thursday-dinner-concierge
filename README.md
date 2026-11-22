@@ -17,9 +17,9 @@
 <p align="center"><a href="docs/img/thursday-home-4k.mp4"><img src="docs/img/home-tour.gif" width="900" alt="Welcome back and book again, a colour street map with live pins, a venue sheet with the real price and similar places, the agent emailing venues and ignoring a scam, slide to book, every page on one request, the inbox, Agent Watch"></a><br><sub>Filmed on the app itself, frame by frame · <a href="docs/img/thursday-home-4k.mp4"><b>Watch in 4K</b></a></sub></p>
 
 <table align="center"><tr>
-<td align="center"><h3>64/64</h3>eval<br>scenarios</td>
+<td align="center"><h3>68/68</h3>eval<br>scenarios</td>
 <td align="center"><h3>0 / 2,035</h3>safety checks failed<br>in 300 random worlds</td>
-<td align="center"><h3>152</h3>tests</td>
+<td align="center"><h3>161</h3>tests</td>
 <td align="center"><h3>59/59</h3>real-user<br>sentences</td>
 <td align="center"><h3>92.5%</h3>unseen venue emails<br>read right · 7/7 scams</td>
 <td align="center"><h3>R1–R30</h3>bugs found →<br>permanent tests</td>
@@ -39,24 +39,6 @@
 <td align="center"><a href="https://akilalours.github.io/thursday-dinner-concierge/#lab"><img src="docs/img/v3-inbox.jpg" alt="Inbox lab: a scam email is read as data"></a><br><b>Scam email</b> · read as data</td>
 </tr>
 </table>
-
-## For Ande: how this grows the business
-
-<a href="https://akilalours.github.io/thursday-dinner-concierge/#ande"><img src="docs/img/for-ande.jpg" width="900" alt="For Ande: public facts, feature to revenue lever, a model with sliders, first 90 days"></a>
-
-Ande earns annual fees from companies and venues on **$400M+** of yearly spend across **60+ enterprises** and **1,600 partner venues**. Its revenue isn't public; the $52M is money raised. The [For Ande page](https://akilalours.github.io/thursday-dinner-concierge/#ande) maps each feature to a lever, with proof measured in this repo:
-
-| Feature | Lever for Ande | Measured here |
-|---|---|---|
-| Book again + memory | Repeat dinners stay on Ande | first pick confirms **55% → 72%** |
-| Real price, policy check, similar places | Bookings land on policy, at partner rates | **0 / 2,035** unsafe or off-policy actions |
-| Rules first, model only when unsure | Lower cost per booking | model needed on **42%** of venue emails, **92.5%** read right vs 55% |
-| Scam-proof payments | Finance trusts it, more spend moves on | **7 / 7** hidden instructions caught in fresh emails |
-| Evals + Agent Watch | Ship daily without breaking money flows | **64 / 64** scenarios, 3 runs a day |
-| Venue badges + miles from HQ (as on [ande.ai](https://ande.ai/)) | Faster, on-policy picks | computed from the policy engine and the team's bookings |
-| Deal ROI page ("ROI on deals won, not just cost per event", [ande.ai](https://ande.ai/how-it-works)) | Field marketing proves ROI, budgets grow | won ÷ spent per client, from linked dinners |
-
-The page also lines up Ande's published product against this project, marking what is built and what is not (catering, sports, gifting and a venue-side AI agent are not). Its sliders turn these into spend, fee revenue and model cost for Ande, with every unpublished number labelled as an assumption. Sources: [Dealroom](https://dealroom.co/news/155492-ande-raises-52m-series-a-to-manage-corporate-entertainment-spend/), [TechCompanyNews](https://www.techcompanynews.com/ande-raises-over-52-million-in-seed-and-series-a-financing/), [RuntimeWire](https://runtimewire.com/article/ande-52m-corporate-entertainment-procurement), [Tiger / The Information](https://www.itiger.com/news/1163482194).
 
 ## What's real
 
@@ -120,6 +102,13 @@ Each run appends a row to [`docs/monitor.json`](docs/monitor.json), charted on t
 
 </details>
 
+<details><summary><b>Office catering, and cheaper nights</b></summary>
+
+- **Catering:** "catered lunch for 30 at the office Thursday" or "boxed lunches for 40" goes to caterers, never to a restaurant, and a team dinner never goes to a caterer. Caterers have their own per-head limit ($40) and a minimum order; the same reply triage, injection checks and payee-on-file rule apply. Four eval scenarios and six tests cover it.
+- **Cheaper nights:** a private-room minimum often depends on the weekday. The venue sheet prices every night for the room and party size you picked and outlines the cheapest; when a proposal's room is meaningfully cheaper a few days either side (at least $150 and 12%), the booker's proposal says so, with the date and the saving.
+
+</details>
+
 <details><summary><b>Sign in as yourself, come back to your own history</b></summary>
 
 Sign in from the top-left and pick your name (or type one). Everything you do as that person is kept in your browser under your name: bookings, approvals, deposits, cost-center codes and every agent run. Sign in again tomorrow and it's all still there, marked **earlier visit**, and still live: you can change or cancel an earlier booking, and the change goes through the same approval rules. Switching people reloads the app from the next person's own history, so nobody sees anyone else's. Nothing leaves the browser.
@@ -136,7 +125,7 @@ Restoring is a store snapshot (`MemoryStore.snapshot()` / `restore()`), tested s
 
 A green eval suite only matters if it would go red on the bugs you actually have. All four run in CI, and three run in your browser on the [Evals page](https://akilalours.github.io/thursday-dinner-concierge/#evals).
 
-**1. Bug replay** (`npm run evals:replay`). Every fixed bug that changed agent behavior has a switch that turns the old code back on. The replay flips each one and re-runs the 53 scenarios, the real-user sweep and the ranking eval. **8/8 fixed bugs are caught again**, by different layers: R7 and R8 by real-user rows that check what the booker is told, R11 only by the ranking eval (warm hit@1 drops from 60% to 54%), R25 only by real-user rows. A bug no layer catches fails the build.
+**1. Bug replay** (`npm run evals:replay`). Every fixed bug that changed agent behavior has a switch that turns the old code back on. The replay flips each one and re-runs every scenario, the real-user sweep and the ranking eval. **8/8 fixed bugs are caught again**, by different layers: R7 and R8 by real-user rows that check what the booker is told, R11 only by the ranking eval (warm hit@1 drops from 60% to 54%), R25 only by real-user rows. A bug no layer catches fails the build.
 
 **2. Metamorphic testing** (`npm run evals:metamorphic`). No labels needed, only relations: every real-user and scenario sentence is retyped 11 ways a person might type it (ALL CAPS, all lowercase, pasted line breaks, doubled spaces, "please", "thanks!") and must make the same booking; a changed headcount must be followed. **1,078 checks.** On its first run it failed 91 of them and found two bugs:
 
@@ -220,7 +209,7 @@ flowchart LR
 | **Changes after booking** | Amendments and cancellations are proposals too; an amendment swaps the booking atomically and rolls back if the new slot is taken. |
 | **Spend control** | Policy as code: per-head caps, manager thresholds, notice; preferred corporate rates (12-15%) applied and reported. |
 | **Typed tools** | zod in and out, run as the EA *for* the executive, idempotent, audited. `book`, `pay_deposit`, `amend_booking` and `cancel_booking` need an approved proposal. |
-| **Evals** | 53 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
+| **Evals** | 68 scenarios, invariant + expectation graders, LLM judge with calibration, recorded model calls replayed in CI, randomized fuzz. |
 | **Memory** | Every venue reply leaves facts ("the Library really seats 10", "offered as asked", "declined"). Sourcing ranks on that track record next time. Private memories protected by row-level security. |
 | **Both sides of the marketplace** | **Venue side**: a person stands in for the first venue the agent emails. Their reply (a quick reply or anything they type) goes through the same extraction, injection check and policy comparison as a simulated venue's, and they see what the agent read and why they won or lost. **Invoice**: every confirmed dinner on one statement, pre-coded to a cost center, PO and GL account, with PO balances that follow as you drag a line onto a budget, and a CSV export. |
 | **Ranking eval** | `npm run evals:ranking`: 10 worlds where each venue has a hidden temperament, 400 past bookings, 600 held-out requests ranked with and without memory. First pick confirms 55% → 72%, MRR 0.72 → 0.82, hit@3 89% → 92%, 0 requests made worse. Gated in CI; runs live on the Memory page. |

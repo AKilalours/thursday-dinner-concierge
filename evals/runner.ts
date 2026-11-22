@@ -1,7 +1,7 @@
 // Runs one eval scenario or one random world. No file system, so the same code runs in CI and in the
 // browser playground ("Run the evals" tab).
 import type { Ctx } from "../src/tools/registry.ts";
-import { buildVenues, COMPANY, rng, user } from "../data/seed.ts";
+import { buildSupply, COMPANY, rng, user } from "../data/seed.ts";
 import type { Company } from "../src/domain/types.ts";
 import { carefulApprover, runConcierge } from "../src/agents/concierge.ts";
 import type { Approver, RunResult } from "../src/agents/concierge.ts";
@@ -13,7 +13,7 @@ import { grade } from "./graders.ts";
 import type { Check } from "./graders.ts";
 import type { Scenario } from "./scenarios.ts";
 
-const venues = buildVenues();
+const venues = buildSupply();
 const priya = user("usr_priya");
 const dana = user("usr_dana");
 const localDate = (iso: string) => new Date(Date.parse(iso) - 5 * 3_600_000).toISOString().slice(0, 10);

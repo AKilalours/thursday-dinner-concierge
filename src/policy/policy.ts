@@ -7,7 +7,16 @@ export const ALL_IN = 1.08875 + 0.2;
 /** Venues list dinner pricing; lunch and drinks-only events cost a fraction of it. */
 const KIND_FACTOR: Record<string, number> = { client_dinner: 1, team_dinner: 1, client_lunch: 0.55, happy_hour: 0.35 };
 export function perHeadFor(venue: Venue, kind: string): number {
-  return Math.round(venue.perHeadCents * (KIND_FACTOR[kind] ?? 1));
+  // A caterer quotes one price per person whatever the occasion.
+  return venue.category === "catering" ? venue.perHeadCents : Math.round(venue.perHeadCents * (KIND_FACTOR[kind] ?? 1));
+}
+/** The per-head limit that applies: catering has its own; dining depends on the kind of event. */
+export function baseCap(p: Company["policy"], req: Pick<BookingRequest, "category" | "kind">): number {
+  return req.category === "catering" ? p.cateringPerHeadCapCents ?? 4_000 : p.perHeadCapCents[req.kind];
+}
+export function capFor(p: Company["policy"], req: BookingRequest): number {
+  const base = baseCap(p, req);
+  return Math.min(base, req.maxPerHeadCents ? Math.round(req.maxPerHeadCents * ALL_IN) : Infinity);
 }
 
 export interface Estimate { subtotalCents: number; allInCents: number; perHeadAllInCents: number; savingsCents: number }
@@ -35,7 +44,7 @@ export function checkPolicy(company: Company, req: BookingRequest, venue: Venue,
   const depositPct = offer.depositPct ?? venue.depositPct;
   const violations: string[] = [];
   if (p.blockedVenueIds.includes(venue.id)) violations.push(`${venue.name} is on the company's blocked list`);
-  const cap = Math.min(p.perHeadCapCents[req.kind], req.maxPerHeadCents ? Math.round(req.maxPerHeadCents * ALL_IN) : Infinity);
+  const cap = capFor(p, req);
   if (est.perHeadAllInCents > cap) violations.push(`about $${Math.round(est.perHeadAllInCents / 100)} a head all-in is over the $${Math.round(cap / 100)} limit`);
   if (leadHours < p.minLeadHours) violations.push(`only ${Math.round(leadHours)} h notice; policy needs ${p.minLeadHours} h`);
   if (offer.capacity !== null && offer.capacity < req.partySize) violations.push(`the room seats ${offer.capacity}, the party is ${req.partySize}`);

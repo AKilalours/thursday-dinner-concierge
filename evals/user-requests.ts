@@ -1,6 +1,6 @@
 // Requests written the way real people type them, each with the outcome a person would expect.
 // Shared by `npm run evals:users` and the scheduled monitor. No file system, no network.
-import { buildVenues, COMPANY, user } from "../data/seed.ts";
+import { buildSupply, COMPANY, user } from "../data/seed.ts";
 import { carefulApprover, runConcierge } from "../src/agents/concierge.ts";
 import type { Outcome } from "../src/domain/types.ts";
 import { offline } from "../src/llm/client.ts";
@@ -101,7 +101,7 @@ export async function checkUserRow([text, want, mustSay]: UserRow, legacy?: Ctx[
 }
 
 export async function runUserRequest(text: string, legacy?: Ctx["legacy"]) {
-  const venues = buildVenues(), store = new MemoryStore(); await store.init(venues);
+  const venues = buildSupply(), store = new MemoryStore(); await store.init(venues);
   const actor = user("usr_priya");
   return runConcierge({
     text, actor, principal: user("usr_dana"), today: TODAY, store, venues, llm: offline, company: COMPANY, legacy,

@@ -142,20 +142,24 @@ export function parseRules(raw: string, today: string): BookingRequest {
   const total = totalBudgetCents(text), party = partySizeFrom(text);
   const fromTotal = !perHead && total !== null && party ? Math.floor(total / party) : null;
   const d = resolveDate(text, today);
+  // Catering: food brought to the office rather than a table somewhere. "near the office" is still a restaurant.
+  const catering = /\bcater(?:ed|ing|er|ers)?\b|\bboxed (?:lunch|breakfast)|\bdeliver(?:ed|y)\b|\border (?:in )?(?:lunch|breakfast|food)\b|\b(?:lunch|breakfast|food) (?:in|at|to|for) the office\b|\bin-office (?:lunch|breakfast)\b/.test(t);
+  const stated = timeFrom(text, kind), defaultTime = timeFrom("", kind);
   return {
     partySize: partySizeFrom(text) ?? 2,
     partySizeStated: partySizeFrom(text) !== null,
     date: d.date,
     dateAmbiguous: d.ambiguous,
-    time: timeFrom(text, kind),
+    time: catering && stated === defaultTime ? (/breakfast/.test(t) ? "08:30" : "12:00") : stated,
     kind,
     clientName: kind === "team_dinner" ? null : clientName,
-    privateRoom: /\bprivate\b|privately|\bpdr\b|buyout|private dining|our own room|somewhere quiet|closed[- ]door/.test(t),
+    privateRoom: !catering && /\bprivate\b|privately|\bpdr\b|buyout|private dining|our own room|somewhere quiet|closed[- ]door/.test(t),
     neighborhood: NEIGHBORHOODS.find((n) => t.includes(n)) ?? (/near (the )?office|close to (the )?office/.test(t) ? "office" : null),
     cuisine: CUISINES.find((c) => new RegExp(`\\b${c}\\b`).test(t))?.replace(/^steak$/, "steakhouse").replace(/^(sushi|omakase)$/, "japanese") ?? null,
     maxPerHeadCents: perHead ? Number(perHead[1]) * 100 : fromTotal,
     dietary: dietaryFrom(t),
     notes: "",
+    ...(catering ? { category: "catering" as const, neighborhood: "office" } : {}),
   };
 }
 
@@ -195,7 +199,8 @@ export async function parseRequest(llm: LLM, text: string, today: string): Promi
     partySizeStated: partySize !== null,
     kind: v.kind,
     clientName: v.clientName,
-    privateRoom: v.privateRoom,
+    // A catering order is delivered; there is no room to make private.
+    privateRoom: base.category === "catering" ? false : v.privateRoom,
     neighborhood: v.neighborhood?.toLowerCase() ?? base.neighborhood,
     cuisine: v.cuisine?.toLowerCase() ?? base.cuisine,
     // A cap code derived from a total wins: the model may report the total itself as the per-head figure.

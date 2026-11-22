@@ -20,12 +20,15 @@ const ROOMS: Record<string, string[]> = {
   "Chef's Room": ["photo-1531856396526-a0c8d7bd628b", "photo-1578758391363-1ea37a77ec87", "photo-1625584733117-23a842650ff1", "photo-1625668751669-65ceebd81e34"],
   "Garden Room": ["photo-1493246318656-5bfd4cfb29b8", "photo-1622758235004-51977c5863f5", "photo-1756397391675-dce7c5faf9cc", "photo-1613274554329-70f997f5789f"],
 };
+/** Caterers (cat_01..cat_08): the food itself, since there is no dining room to show. */
+const CATER = ["photo-1600335895229-6e75511892c8", "photo-1567496295302-b8dbcd2913b6", "photo-1599974579688-8dbdd335c77f", "photo-1592868859049-dfdcd6c07c29",
+  "photo-1543352632-5a4b24e4d2a6", "photo-1530610476181-d83430b64dcd", "photo-1555244162-803834f70033", "photo-1576842546422-60562b9242ae"];
 const num = (id: string) => Number(id.replace(/\D/g, "")) || 0;
-export const venuePhoto = (venueId: string, w?: number, _h?: number) => U(HERO[(num(venueId) - 1 + HERO.length) % HERO.length], w);
+export const venuePhoto = (venueId: string, w?: number, _h?: number) => U(venueId.startsWith("cat_") ? CATER[(num(venueId) - 1) % CATER.length] : HERO[(num(venueId) - 1 + HERO.length) % HERO.length], w);
 export function roomPhoto(venueId: string, roomName: string, w?: number, _h?: number) {
   const set = ROOMS[roomName]; return set ? U(set[num(venueId) % set.length], w) : venuePhoto(venueId, w);
 }
 export const HERO_BG = U("photo-1786209677036-1580ca1b280d", 1800);
 /** Every photo id, for scripts/fetch-media.mjs. */
-export const ALL_PHOTOS = [...new Set([...HERO, ...Object.values(ROOMS).flat(), "photo-1786209677036-1580ca1b280d"])];
+export const ALL_PHOTOS = [...new Set([...HERO, ...Object.values(ROOMS).flat(), ...CATER, "photo-1786209677036-1580ca1b280d"])];
 export const PHOTO_CREDIT = "Photos: Unsplash";

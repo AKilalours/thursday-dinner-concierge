@@ -5,7 +5,9 @@ import type { Mode } from "./classifier.ts";
 
 const has = (t: string, re: RegExp) => re.test(t.toLowerCase());
 // Venues confirm in plain words ("Yes, our room fits 10", "that date works", "we're open"), not just "available".
-const offerish = /available|happy to (host|hold)|we can (host|do|hold)|pencil(led)? (you|it) in|on hold for you|would love to host|^(?:(?:hi|hello|hey)\b[^.!?]{0,30}[,!.]\s*)?(?:yes|sure|absolutely|of course)\b|yes,? we can|(?:date|night|evening|that|friday|thursday|wednesday) works|(?:is|are) (?:open|free)\b(?!\?)|we(?:'re| are) open|free that|delighted to have|can seat \d/;
+// Regression R31 (found by the catering evals): "Happy to cater for 15" and "we can deliver" read as needs_human, so a
+// caterer's yes was dropped and the agent gave up. Caterers say yes in their own words.
+const offerish = /available|happy to (host|hold|cater)|we can (host|do|hold|cater|deliver|feed)|pencil(led)? (you|it) in|on hold for you|would love to (host|cater)|^(?:(?:hi|hello|hey)\b[^.!?]{0,30}[,!.]\s*)?(?:yes|sure|absolutely|of course)\b|yes,? we can|(?:date|night|evening|that|friday|thursday|wednesday) works|(?:is|are) (?:open|free)\b(?!\?)|we(?:'re| are) open|free that|delighted to have|can seat \d/;
 
 /** What kind of venue email is this? Below threshold it goes to a person, never guessed. */
 export type Triage = "offer" | "decline" | "counter" | "question" | "payment_request" | "auto_reply" | "needs_human";

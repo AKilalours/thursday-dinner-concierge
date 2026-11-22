@@ -5,6 +5,9 @@ export const Cents = z.number().int().nonnegative();
 export const Iso = z.string().datetime({ offset: true });
 
 export const EventKind = z.enum(["client_dinner", "team_dinner", "client_lunch", "happy_hour"]);
+/** What is being booked: a table or room at a restaurant, or food delivered to the office. Absent means dining. */
+export const Category = z.enum(["dining", "catering"]);
+export type Category = z.infer<typeof Category>;
 export type EventKind = z.infer<typeof EventKind>;
 
 /** A real wall-clock time, 00:00-23:59. Shape alone let "25:00" through to the booking (R24). */
@@ -26,6 +29,7 @@ export const BookingRequest = z.object({
   maxPerHeadCents: Cents.nullable(),
   dietary: z.array(z.string()),
   notes: z.string(),
+  category: Category.optional(),
 });
 export type BookingRequest = z.infer<typeof BookingRequest>;
 
@@ -55,6 +59,7 @@ export const Venue = z.object({
   contractRequired: z.boolean(),
   cancellationHours: z.number().int(),
   closedDays: z.array(z.number().int().min(0).max(6)),
+  category: Category.optional(),
 });
 export type Venue = z.infer<typeof Venue>;
 
@@ -94,6 +99,8 @@ export type User = z.infer<typeof User>;
 
 export const Policy = z.object({
   perHeadCapCents: z.object({ client_dinner: Cents, team_dinner: Cents, client_lunch: Cents, happy_hour: Cents }),
+  /** Per-head limit for catered food delivered to the office, all-in. */
+  cateringPerHeadCapCents: Cents.optional(),
   managerApprovalAboveCents: Cents,
   financeApprovalDepositAbovePct: z.number(),
   minLeadHours: z.number(),

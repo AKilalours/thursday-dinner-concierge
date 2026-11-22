@@ -2,7 +2,7 @@
 // blocked, too small, not private), then a score whose parts add back up to the total.
 import type { BookingRequest, Venue } from "../domain/types.ts";
 import { knowledge } from "../memory/supply.ts";
-import { estimate, ALL_IN, perHeadFor } from "../policy/policy.ts";
+import { estimate, capFor, perHeadFor } from "../policy/policy.ts";
 import { weekday } from "../time.ts";
 import type { Ctx } from "../tools/registry.ts";
 import { log } from "../tools/registry.ts";
@@ -29,7 +29,8 @@ export async function source(ctx: Ctx, req: BookingRequest, exclude: Set<string>
   const hosted = (await ctx.store.recall(ctx.company.id, ctx.actor.id))
     .filter((m) => req.clientName && m.subject.toLowerCase() === req.clientName.toLowerCase() && m.fact.startsWith("hosted_at:"))
     .map((m) => m.fact.slice("hosted_at:".length));
-  const cap = Math.min(ctx.company.policy.perHeadCapCents[req.kind], req.maxPerHeadCents ? Math.round(req.maxPerHeadCents * ALL_IN) : Infinity);
+  const cap = capFor(ctx.company.policy, req);
+  const cat = req.category ?? "dining";
   const out: Candidate[] = [];
   const dropped: Record<string, number> = {};
   const drop = (why: string) => { dropped[why] = (dropped[why] ?? 0) + 1; };
@@ -39,6 +40,8 @@ export async function source(ctx: Ctx, req: BookingRequest, exclude: Set<string>
   const cuisineRequired = !ctx.legacy?.r7 && !!req.cuisine && ctx.venues.some((v) => v.cuisine === req.cuisine);
   for (const v of ctx.venues) {
     if (exclude.has(v.id)) { drop("already tried"); continue; }
+    // Catering asks go to caterers, dinners to restaurants: the two never mix.
+    if ((v.category ?? "dining") !== cat) { drop(cat === "catering" ? "not a caterer" : "caterer, not a restaurant"); continue; }
     if (cuisineRequired && v.cuisine !== req.cuisine) { drop(`not ${req.cuisine}`); continue; }
     if (ctx.company.policy.blockedVenueIds.includes(v.id)) { drop("blocked by policy"); continue; }
     if (v.closedDays.includes(day)) { drop("closed that day"); continue; }
@@ -53,7 +56,8 @@ export async function source(ctx: Ctx, req: BookingRequest, exclude: Set<string>
     const quoted = ctx.legacy?.r11 ? k.quotedMinByWeekday.get(day) : k.quotedMin.get(`${room.id}:${day}`);
     const min = Math.max(room.minSpendCents[day], quoted ?? 0);
     // Lunch and drinks in the dining room carry no room minimum.
-    const est = estimate(req.partySize, perHeadFor(v, req.kind), room.private ? min : 0, v.preferredRatePct);
+    // A caterer's minimum order always applies; a restaurant's minimum applies to private rooms.
+    const est = estimate(req.partySize, perHeadFor(v, req.kind), room.private || v.category === "catering" ? min : 0, v.preferredRatePct);
     if (est.perHeadAllInCents > cap) { drop("over the per-head limit"); continue; }
 
     const parts: Record<string, number> = {

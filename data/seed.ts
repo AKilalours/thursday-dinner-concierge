@@ -63,12 +63,40 @@ export function buildVenues(seed = 7): Venue[] {
   });
 }
 
+/** Fictional caterers that deliver to the office: one price per person, a minimum order by weekday, closed weekends. */
+const CATERERS: [string, string, string, number, number, number][] = [
+  // name, kitchen neighborhood, cuisine, $/person, minimum order $, preferred %
+  ["Greenline Kitchen", "Flatiron", "new american", 24, 400, 10],
+  ["Pita Republic", "Chelsea", "mediterranean", 22, 350, 0],
+  ["Norte Taqueria Catering", "West Village", "mexican", 20, 300, 12],
+  ["Saffron Box", "Midtown", "indian", 23, 400, 0],
+  ["Bento Lab", "SoHo", "japanese", 32, 500, 15],
+  ["Daybreak Bakery", "Flatiron", "french", 16, 250, 0],
+  ["Brick & Basil", "Tribeca", "italian", 26, 450, 12],
+  ["Harvest Table Catering", "Financial District", "new american", 38, 800, 0],
+];
+export function buildCaterers(): Venue[] {
+  return CATERERS.map(([name, hood, cuisine, per, min, pref], i) => {
+    const id = `cat_${String(i + 1).padStart(2, "0")}`;
+    const m = money(min);
+    return {
+      id, name, neighborhood: hood, cuisine, perHeadCents: money(per), preferredRatePct: pref, category: "catering" as const,
+      rooms: [{ id: `${id}_drop`, name: "Office delivery", private: false, listedCapacity: 300, minSpendCents: [m, m, m, m, m, m, m] }],
+      email: `orders@${name.toLowerCase().replace(/[^a-z]+/g, "")}.example`, payeeId: `payee_${id}`,
+      depositPct: [0, 20, 0, 25][i % 4], contractRequired: false, cancellationHours: 24, closedDays: [0, 6],
+    };
+  });
+}
+/** Everything the agent can book: restaurants and caterers. */
+export const buildSupply = (seed = 7): Venue[] => [...buildVenues(seed), ...buildCaterers()];
+
 export const COMPANY: Company = {
   id: "co_northwind",
   name: "Northwind Labs",
   officeNeighborhood: "Flatiron",
   policy: {
     perHeadCapCents: { client_dinner: 25_000, team_dinner: 12_000, client_lunch: 9_000, happy_hour: 6_000 },
+    cateringPerHeadCapCents: 4_000,
     managerApprovalAboveCents: 250_000,
     financeApprovalDepositAbovePct: 50,
     minLeadHours: 24,

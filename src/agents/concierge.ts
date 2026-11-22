@@ -16,7 +16,7 @@ import { addDays, startsAt, weekday } from "../time.ts";
 import type { Ctx, TraceEvent } from "../tools/registry.ts";
 import { call, log } from "../tools/registry.ts";
 import { book, createProposal, eventWindow, leadHours, notifyBooker, payDeposit } from "../tools/tools.ts";
-import { ALL_IN, estimate, perHeadFor } from "../policy/policy.ts";
+import { ALL_IN, estimate, perHeadFor, baseCap } from "../policy/policy.ts";
 import { compare } from "./comparison.ts";
 import type { Option } from "./comparison.ts";
 import { coordinate } from "./coordination.ts";
@@ -97,6 +97,11 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
   result.parseDecidedBy = parsed.decidedBy;
   await log(ctx, "concierge", "parsed", `${req.partySize} guests, ${req.date ?? "no date"} ${req.time}, ${req.kind}${req.privateRoom ? ", private" : ""}${req.clientName ? `, with ${req.clientName}` : ""}`, { request: req, decidedBy: parsed.decidedBy });
 
+  // Catering and dining draw from different supply: scope the network to what was asked for.
+  const catering = req.category === "catering";
+  ctx.venues = ctx.venues.filter((v) => (v.category ?? "dining") === (req.category ?? "dining"));
+  if (catering) await log(ctx, "concierge", "category", `catering delivered to the office: ${ctx.venues.length} caterers in the network`);
+
   if (!req.partySizeStated || !req.date) {
     result.outcome = "needs_clarification";
     await tell(`Happy to set this up. ${!req.partySizeStated ? "How many guests? " : ""}${!req.date ? "Which date should I book? " : ""}`.trim());
@@ -122,8 +127,8 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
     const cz = req.cuisine[0].toUpperCase() + req.cuisine.slice(1);
     const have = [...new Set(ctx.venues.map((v) => v.cuisine))].sort().map((c) => c.replace(/\b[a-z]/g, (x) => x.toUpperCase()));
     result.outcome = "needs_clarification";
-    await log(ctx, "concierge", "clarify", `no ${req.cuisine} venue in the network; asking instead of substituting`);
-    await tell(`No venue in the network serves ${cz} food, so I haven't contacted anyone. I can book ${have.slice(0, -1).join(", ")} or ${have.at(-1)}. Which would you like, or should I pick the best fit for ${req.partySize}?`);
+    await log(ctx, "concierge", "clarify", `no ${req.cuisine} ${catering ? "caterer" : "venue"} in the network; asking instead of substituting`);
+    await tell(`No ${catering ? "caterer" : "venue"} in the network serves ${cz} food, so I haven't contacted anyone. I can book ${have.slice(0, -1).join(", ")} or ${have.at(-1)}. Which would you like, or should I pick the best fit for ${req.partySize}?`);
     return result;
   }
 
@@ -153,7 +158,7 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
       const open = { ...req, privateRoom: false };
       const tables = (await source(ctx, open, contacted)).slice(0, input.shortlistSize ?? (urg.label === "urgent" ? 4 : 3));
       if (cheapest && tables.length) {
-        relaxedNote = `Private rooms need a food and beverage minimum: the lowest, at ${cheapest.v.name}, works out to about ${usd(cheapest.e.perHeadAllInCents)} a head for ${req.partySize}, over the ${usd(ctx.company.policy.perHeadCapCents[req.kind])} cap, so this is a quiet table in the dining room. Reject if you need a private room and I'll ask ${approverFor("manager", ctx.actor).name} to approve the higher spend.`;
+        relaxedNote = `Private rooms need a food and beverage minimum: the lowest, at ${cheapest.v.name}, works out to about ${usd(cheapest.e.perHeadAllInCents)} a head for ${req.partySize}, over the ${usd(baseCap(ctx.company.policy, req))} cap, so this is a quiet table in the dining room. Reject if you need a private room and I'll ask ${approverFor("manager", ctx.actor).name} to approve the higher spend.`;
         await log(ctx, "concierge", "replan", `no private room fits ${req.partySize} within policy (lowest ${usd(cheapest.e.perHeadAllInCents)} a head); shortlisting quiet tables instead`);
         req.privateRoom = false; candidates = tables;
       }
@@ -171,7 +176,7 @@ export async function runConcierge(input: RunInput): Promise<RunResult> {
         result.outcome = "needs_clarification";
         await log(ctx, "concierge", "clarify", `no ${req.cuisine} venue fits policy; asking the booker which constraint to relax`);
         await tell(best
-          ? `No ${cz} venue has ${req.privateRoom ? "a private room" : "a table"} for ${req.partySize} within the ${usd(ctx.company.policy.perHeadCapCents[req.kind])} cap. Closest is ${best.v.name} at about ${usd(best.e.perHeadAllInCents)} a head. Should I look beyond ${cz}, or ask ${approverFor("manager", ctx.actor).name} to approve the higher spend?`
+          ? `No ${cz} venue has ${req.privateRoom ? "a private room" : "a table"} for ${req.partySize} within the ${usd(baseCap(ctx.company.policy, req))} cap. Closest is ${best.v.name} at about ${usd(best.e.perHeadAllInCents)} a head. Should I look beyond ${cz}, or ask ${approverFor("manager", ctx.actor).name} to approve the higher spend?`
           : `No ${cz} venue in the network can host ${req.partySize}${req.privateRoom ? " privately" : ""}. Should I look at other cuisines?`);
         return result;
       }
@@ -224,6 +229,25 @@ function outsideArea(req: BookingRequest, v: Venue, ctx: Ctx) {
   return n !== a && !(ADJACENT[a] ?? []).includes(n);
 }
 
+/**
+ * Flexible nights: private-room minimums are set per weekday, and weekend nights run far higher. When the same room
+ * lists a lower minimum on a nearby night that still meets the notice rule, say how much the booker would save. The
+ * booking itself is unchanged; it is the booker's call, and the venue fills a quieter night.
+ */
+export function flexNight(ctx: Ctx, req: BookingRequest, v: Venue, room: Venue["rooms"][number], allInCents: number): string {
+  if (!room.private || !req.date) return "";
+  let best: { d: string; all: number } | null = null;
+  for (const off of [-3, -2, -1, 1, 2, 3, 4]) {
+    const d = addDays(req.date, off), day = weekday(d);
+    if (v.closedDays.includes(day) || leadHours(ctx.world.now, d, req.time) < ctx.company.policy.minLeadHours) continue;
+    const all = estimate(req.partySize, perHeadFor(v, req.kind), room.minSpendCents[day], v.preferredRatePct).allInCents;
+    if (!best || all < best.all) best = { d, all };
+  }
+  if (!best) return "";
+  const save = allInCents - best.all;
+  return save >= 15_000 && save >= allInCents * 0.12 ? `Flexible on the date? ${room.name} on ${human(best.d)} lists a lower minimum: about ${usd(save)} less all-in, on a quieter night for ${v.name}.` : "";
+}
+
 async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, input: RunInput, result: RunResult,
   tell: (t: string) => Promise<void>, text: string, relaxedNote = ""): Promise<"done" | "try_next"> {
   const v = opt.thread.venue;
@@ -238,9 +262,10 @@ async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, inp
     v.contractRequired ? `${v.name} requires its private dining agreement; approving authorizes signing it.` : "",
     opt.policy.requiredRoles.includes("manager") ? `Over ${usd(ctx.company.policy.managerApprovalAboveCents)}, so ${approverFor("manager", ctx.actor).name} also approves.` : "",
     outsideArea(req, v, ctx) ? `${v.name} is in ${v.neighborhood}, not ${req.neighborhood}: nothing in or next to ${req.neighborhood} could host ${req.partySize} within policy.` : "",
+    flexNight(ctx, req, v, room, opt.policy.estimate.allInCents),
   ].filter(Boolean);
   const summary = `${v.name}, ${room.name}, ${human(req.date!)} at ${clock(req.time)}, ${req.partySize} guests${req.clientName ? ` with ${req.clientName}` : ""}. `
-    + `Minimum ${usd(opt.minSpendCents)}; about ${usd(opt.policy.estimate.allInCents)} all-in (${usd(opt.policy.estimate.perHeadAllInCents)} a head, under the ${usd(ctx.company.policy.perHeadCapCents[req.kind])} cap). `
+    + `Minimum ${usd(opt.minSpendCents)}; about ${usd(opt.policy.estimate.allInCents)} all-in (${usd(opt.policy.estimate.perHeadAllInCents)} a head, under the ${usd(baseCap(ctx.company.policy, req))} cap). `
     // Regression R28 (found filming 12 bookings): "$40 a head" booked at "$48 a head" looked over budget. A stated budget
     // is before tax and tip, so the booker is told the number in their own terms.
     + (req.maxPerHeadCents ? `That's about ${usd(Math.round(opt.policy.estimate.perHeadAllInCents / ALL_IN))} a head before tax and tip, within your ${usd(req.maxPerHeadCents)}. ` : "")
