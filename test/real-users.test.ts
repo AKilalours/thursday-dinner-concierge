@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -120,6 +120,20 @@ describe("found by testing as real users", () => {
     assert.equal(time("drinks for 10 friday 6-8 please"), "18:00", "a word after the range must not swallow the time");
     assert.equal(partySizeFrom("dinner for 4-6 on friday"), null, "after \"for\" a range is still a headcount");
     const r = await run("drinks for 10 friday 6-8", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.join("\n"), /at 6 pm/);
+  });
+  it("R40: a bare range right after a calendar date (\"Dec 3 6-8\") books its start, not the default", async () => {
+    const time = (s: string) => parseRules(s, "2026-11-11").time;
+    assert.equal(time("drinks for 8 on Dec 3 6-8"), "18:00", "was 17:30");
+    assert.equal(time("dinner for 4 on December 3rd, 8-10"), "20:00", "was 19:00");
+    assert.equal(time("drinks for 6 on 3 Dec 6-8"), "18:00");
+    assert.equal(time("dinner for 6 on 12/3 8 to 10"), "20:00");
+    assert.equal(time("dinner for 5 on the 19th 8-10"), "20:00");
+    assert.equal(time("drinks for 8 on Dec 3, 2026 6-8"), "18:00");
+    assert.equal(parseRules("drinks for 8 on Dec 3 6-8", "2026-11-11").date, "2026-12-03", "the date is kept");
+    assert.equal(partySizeFrom("dinner for 4-6 on Dec 3"), null, "after \"for\" a range is still a headcount");
+    const r = await run("drinks for 8 on Dec 3 6-8", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.match(r.messagesToBooker.join("\n"), /at 6 pm/);
   });

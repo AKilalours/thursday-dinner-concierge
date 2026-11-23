@@ -99,7 +99,11 @@ export function totalBudgetCents(text: string): number | null {
 // "at" or am/pm is left alone: after "for" it is a headcount (R37), and elsewhere it may be a date.
 // Regression R39: "drinks for 10 friday 6-8" booked the default 5:30 pm. Right after a day word a bare range can only
 // be a time, so it books its start too.
-const AFTER_DAY = /\b(?:\w+day|mon|tues?|wed|thu(?:rs?)?|fri|sat|sun|tonight|tomorrow|tmrw)\b,?\s*$/;
+// Regression R40: "drinks for 8 on Dec 3 6-8" still booked 5:30 pm. A calendar date ("Dec 3", "3rd December",
+// "12/3", "the 19th") is a day word too.
+const MONTH = String.raw`(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?`;
+const ORD = String.raw`\d{1,2}(?:st|nd|rd|th)?`;
+const AFTER_DAY = new RegExp(String.raw`\b(?:\w+day|mon|tues?|wed|thu(?:rs?)?|fri|sat|sun|tonight|tomorrow|tmrw|${MONTH}\s+${ORD}(?:,?\s+\d{4})?|${ORD}\s+(?:of\s+)?${MONTH}|the\s+\d{1,2}(?:st|nd|rd|th)|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\b,?\s*$`);
 const TIME_RANGE = /(?<![$\d\/-])(?<!\bfor )\b(from |between |at )?(\d{1,2})((?:[:.]\d{2})?)\s*(am|pm)?\s*(-|–|to|and|until|till)\s*(\d{1,2})(?:[:.]\d{2})?\s*(am|pm)?\b/g;
 
 function rangeStart(all: string, pre: string | undefined, h: string, mm: string, ap: string | undefined, sep: string, h2: string, ap2: string | undefined, at: number, text: string): string {
