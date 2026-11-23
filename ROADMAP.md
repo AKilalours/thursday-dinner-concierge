@@ -32,11 +32,13 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "Feb 29" in a year that has none is now asked about; when the booker clearly means a leap year ("Feb 29, 2028"), check the year they typed is honoured.
 - Lowercase "with globex two weeks from ..." still names the client "Globex Two"; a number word after a one-case name is not part of it.
 - "in a couple of days" and "a fortnight from Friday" still ask which date.
-- "drinks for 10 friday 6-8" (a bare range, no "from", "between" or am/pm) still books the default 5:30 pm; read it as 6 pm without mistaking a date like "12-3" for a time.
 - A headcount range is now asked with a plain "How many guests?"; offer the range's numbers as one-tap choices.
+- Lowercase "with hooli friday 6-8" names the client "Hooli Friday"; a weekday after a one-case name is not part of it.
+- "drinks for 8 on Dec 3 6-8" still books the default 5:30 pm; a bare range right after a month-day date is a time too.
 
 ## Shipped
 
+- 2026-11-23: "drinks for 10 friday 6-8" booked the default 5:30 pm; a bare range right after a day word ("friday 6-8", "Friday, 7-9", "tomorrow 7 to 9") now books its start, a word after a range ("6-8 please") no longer drops the time, and "for 4-6" stays a headcount (R39); real-user sentences 77 → 79.
 - 2026-11-22: "dinner for 4 on Friday 7-9pm" booked 9 pm; a time range ("7-9pm", "from 7 to 9pm", "between 6 and 8pm", "7:30-9:30pm") now books its start, borrowing the end's am/pm unless it wraps ("11-1pm" is 11 am), while "for 4-6 people" stays a headcount (R38); real-user sentences 75 → 77.
 - 2026-11-22: "dinner for 4-6 people on Friday" booked a table for 4 and paid the deposit; a headcount range ("4-6 people", "for 4 to 6", "for 8 or 10") is now asked about, while a time range ("between 7-9") still is not a headcount (R37); real-user sentences 73 → 75.
 - 2026-11-22: "dinner for 4 a week from today" was read as today and escalated, and "lunch for 3 in 3 days" asked which date; "a week from today/Friday/Dec 3", "two weeks from tomorrow" and "in N days/weeks" now count from their anchor, an unclear anchor stays flagged, and lowercase "with globex a week ..." no longer names the client "Globex A" (R36); real-user sentences 70 → 73.

@@ -97,13 +97,18 @@ export function totalBudgetCents(text: string): number | null {
 // Regression R38: "Friday 7-9pm" booked 9 pm, because only the end of the range carried "pm". A range books its
 // start, which borrows the end's am/pm unless it wraps ("11-1pm" is 11 am). A bare "4-6" with no "from", "between",
 // "at" or am/pm is left alone: after "for" it is a headcount (R37), and elsewhere it may be a date.
+// Regression R39: "drinks for 10 friday 6-8" booked the default 5:30 pm. Right after a day word a bare range can only
+// be a time, so it books its start too.
+const AFTER_DAY = /\b(?:\w+day|mon|tues?|wed|thu(?:rs?)?|fri|sat|sun|tonight|tomorrow|tmrw)\b,?\s*$/;
 const TIME_RANGE = /(?<![$\d\/-])(?<!\bfor )\b(from |between |at )?(\d{1,2})((?:[:.]\d{2})?)\s*(am|pm)?\s*(-|–|to|and|until|till)\s*(\d{1,2})(?:[:.]\d{2})?\s*(am|pm)?\b/g;
 
-function rangeStart(all: string, pre: string | undefined, h: string, mm: string, ap: string | undefined, sep: string, h2: string, ap2: string | undefined): string {
-  if ((!pre && !ap2) || (sep === "and" && pre !== "between ")) return all;
+function rangeStart(all: string, pre: string | undefined, h: string, mm: string, ap: string | undefined, sep: string, h2: string, ap2: string | undefined, at: number, text: string): string {
+  const afterDay = sep !== "and" && AFTER_DAY.test(text.slice(0, at));
+  if ((!pre && !ap2 && !afterDay) || (sep === "and" && pre !== "between ")) return all;
   const wraps = Number(h) > Number(h2) && Number(h) !== 12;
   const meridiem = ap ?? (ap2 && wraps ? (ap2 === "pm" ? "am" : "pm") : ap2 ?? "");
-  return `at ${h}${mm}${meridiem}`;
+  // The match can end in a space ("6-8 please"); keep it, or "at 6please" loses the time.
+  return `at ${h}${mm}${meridiem}${all.endsWith(" ") ? " " : ""}`;
 }
 
 function timeFrom(text: string, kind: EventKind): string {

@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -110,6 +110,18 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for 4 on Friday 7-9pm", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.match(r.messagesToBooker.join("\n"), /at 7 pm/);
+  });
+  it("R39: a bare range right after a day (\"friday 6-8\") books its start, not the default", async () => {
+    const time = (s: string) => parseRules(s, "2026-11-11").time;
+    assert.equal(time("drinks for 10 friday 6-8"), "18:00", "was 17:30");
+    assert.equal(time("dinner for 6 on Friday, 7-9"), "19:00");
+    assert.equal(time("dinner tomorrow 7 to 9 for 4"), "19:00");
+    assert.equal(time("lunch for 6 on wed 12-2"), "12:00");
+    assert.equal(time("drinks for 10 friday 6-8 please"), "18:00", "a word after the range must not swallow the time");
+    assert.equal(partySizeFrom("dinner for 4-6 on friday"), null, "after \"for\" a range is still a headcount");
+    const r = await run("drinks for 10 friday 6-8", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.join("\n"), /at 6 pm/);
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");
