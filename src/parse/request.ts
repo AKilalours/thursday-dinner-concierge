@@ -145,6 +145,15 @@ function timeFrom(text: string, kind: EventKind): string {
 /** The deterministic parser: always available, and the fallback when the model times out or is off. */
 const NOT_A_NAME = /^(on|next|this|the|a|an|at|in|for|tomorrow|tonight|team|folks|group|execs|leadership|crew|and|to|near|from|around|somewhere|private|under|people|guests)\b/;
 
+// Regression R41: "with Hooli Friday at 7" named the client "Hooli Friday" (and "with globex two weeks from ..." was
+// "Globex Two"). A weekday, month, "tmrw" or "two weeks" is when the dinner is, never the second word of a name.
+const DATE_WORD = /^(?:mon|monday|tue|tues|tuesday|wed|weds|wednesday|thu|thur|thurs|thursday|fri|friday|sat|saturday|sun|sunday|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december|today|tonight|tomorrow|tmrw|tmr|(?:two|three|four|five|six) (?:days?|weeks?))\b/i;
+
+function withoutDateWord(name: string, after: string): string {
+  const [first, second] = name.split(/\s+/);
+  return second && DATE_WORD.test(second + after) ? first : name;
+}
+
 export function parseRules(raw: string, today: string): BookingRequest {
   // Regression R26 (found by metamorphic testing): text pasted from Slack or email with doubled spaces or line breaks
   // lost allergies, the neighborhood, "Christmas Eve" and the kind of event. Whitespace is normalized first.
@@ -165,7 +174,9 @@ export function parseRules(raw: string, today: string): BookingRequest {
     : "client_dinner";
   const client = named.match(/\bwith (?:the )?([A-Z][\w&.'-]*(?:\s+[A-Z][\w&.'-]*)?)(?:\s+(?:team|folks|group|execs|leadership|crew))?/);
   // "with Acme. Thanks!" is Acme: a name ends at a full stop.
-  const clientName = client && !/^(Our|My|The|A|An|Some)$/.test(client[1]) ? client[1].replace(/\.(\s.*)?$/, "") || null : null;
+  const clientName = client && !/^(Our|My|The|A|An|Some)$/.test(client[1])
+    ? withoutDateWord(client[1], named.slice(client.index! + client[0].indexOf(client[1]) + client[1].length)).replace(/\.(\s.*)?$/, "") || null
+    : null;
   // Regression R20: "$60pp" and "100 per person" without "under" were ignored, so an over-budget venue got booked.
   // A per-head figure in a booking request is the booker's ceiling, so it reads as a cap with or without "under".
   const perHead = t.match(/(?:under|below|max(?:imum)?|no more than|up to)\s+\$?(\d{2,4})\s*(?:\/|a|per)?\s*(?:head|person|pp|guest)/)
