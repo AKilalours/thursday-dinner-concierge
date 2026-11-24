@@ -94,7 +94,9 @@ export function resolveDate(text: string, today: string): ResolvedDate {
     return { date: candidate, ambiguous, reason: ambiguous ? "weekday and day of month disagree" : "day of month" };
   }
 
-  const m = t.match(/\b(this|next|coming)?\s*(sun|mon|tue|wed|thu|fri|sat)(?:day|sday|nesday|rsday|urday|s|rs|r)?\b/);
+  const nextWeek = weekdayOfNextWeek(t, today);
+  if (nextWeek) return nextWeek;
+  const m = t.match(new RegExp(`\\b(this|next|coming)?\\s*${WEEKDAY}`));
   if (!m) return { date: null, ambiguous: true, reason: "no date given" };
   const target = DAYS.findIndex((d) => d.startsWith(m[2]));
   const now = weekday(today);
@@ -107,6 +109,19 @@ export function resolveDate(text: string, today: string): ResolvedDate {
   }
   if (delta === 0) delta = m[1] === "this" ? 0 : 7;
   return { date: addDays(today, delta), ambiguous: false, reason: m[1] ?? "bare weekday" };
+}
+
+const WEEKDAY = "(sun|mon|tue|wed|thu|fri|sat)(?:day|sday|nesday|rsday|urday|s|rs|r)?\\b";
+
+// Regression R44 (found by testing as a real user): "dinner for 3 next week Thursday" said on a Wednesday booked
+// tomorrow, because "next week" was skipped and the bare weekday won. Weeks start on Monday (as the calendar does),
+// so "Thursday next week" is the Thursday after the coming Monday, never this week's, and needs no confirming.
+function weekdayOfNextWeek(t: string, today: string): ResolvedDate | null {
+  const m = t.match(new RegExp(`\\bnext week,?\\s+(?:on\\s+)?${WEEKDAY}`)) ?? t.match(new RegExp(`\\b${WEEKDAY},?\\s+(?:of\\s+)?next week\\b`));
+  if (!m) return null;
+  const toMonday = (8 - weekday(today)) % 7 || 7;
+  const fromMonday = (DAYS.findIndex((d) => d.startsWith(m[1])) + 6) % 7;
+  return { date: addDays(today, toMonday + fromMonday), ambiguous: false, reason: "weekday of next week" };
 }
 
 const COUNTS: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };

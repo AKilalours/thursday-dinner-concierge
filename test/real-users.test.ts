@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -173,6 +173,19 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for 4 with acme corp on Friday", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.match(r.messagesToBooker.join("\n"), /4 guests with Acme Corp\./);
+  });
+  it("R44: \"next week Thursday\" is next week's Thursday, not this week's", async () => {
+    const d = (text: string, today = "2026-11-11") => resolveDate(text, today).date;
+    assert.equal(d("dinner for 3 next week Thursday"), "2026-11-19", "was Nov 12, tomorrow");
+    assert.equal(d("drinks Thursday next week"), "2026-11-19");
+    assert.equal(d("lunch next week, on Mon"), "2026-11-16");
+    assert.equal(d("dinner on Friday of next week at 8"), "2026-11-20");
+    assert.equal(d("thursday next week", "2026-11-15"), "2026-11-19", "on a Sunday the week starts tomorrow");
+    assert.equal(d("thursday next week", "2026-11-16"), "2026-11-26", "on a Monday it's a week out");
+    assert.equal(d("dinner for 6 next week"), null, "no weekday is still asked");
+    const r = await run("dinner for 3 next week Thursday", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.at(-1)!, /Thu Nov 19/);
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");

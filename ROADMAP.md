@@ -34,9 +34,13 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - A headcount range is now asked with a plain "How many guests?"; offer the range's numbers as one-tap choices.
 - "dinner Friday 4-6 people" (range after a day, no "for") keeps the default time but asks a plain "how many?"; a range followed by "people"/"guests" should be asked as a range.
 - "dinner for 2 with Sam on Friday" names a colleague "Sam" as the client; a first name alone could be read as a guest, not a company.
+- "dinner for 4 on Friday w/ Acme" drops the client; read "w/" as "with".
+- "dinner tonite for 2" asks which date (should be read as tonight, like "dinner for two tonight").
+- "dinner for 4 on thanksgiving" asks which date; add Thanksgiving (4th Thursday of November) next to Christmas Eve.
 
 ## Shipped
 
+- 2026-11-24: "dinner for 3 next week Thursday" (typed on a Wednesday) booked tomorrow, Thu Nov 12, and paid the deposit; "next week Thursday", "Thursday next week", "next week on Mon" and "Friday of next week" now book that weekday in the week starting next Monday, while "next week" alone is still asked (R44); real-user sentences 87 → 89.
 - 2026-11-24: "dinner for 4 with acme corp on Friday" dropped Acme Corp from the proposal and the venue email; a capitalised weekday or month no longer counts as a booker who capitalises names, and "with outdoor seating", "with live music" and similar amenities are never a client in any case (was "Outdoor Seating" when typed in lowercase) (R43); real-user sentences 85 → 87.
 - 2026-11-24: "Drinks for 6 with hooli friday" dropped Hooli from the proposal and the venue email; a sentence whose only capitals start a sentence (or are "I", "PM", "Dinner") is read as one-case, so the lowercase client is kept, while "with the team" and "with something" are never a client (R42); real-user sentences 83 → 85.
 - 2026-11-23: "Dinner for 4 with Initech Friday at 7" told the booker and the venue "4 guests with Initech Friday"; a weekday, month, "tmrw" or "two weeks" after a client name is now read as the date, not part of the name, in any case, while "Acme Corp" and "Capital One" stay whole (R41); real-user sentences 81 → 83.
