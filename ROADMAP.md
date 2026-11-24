@@ -33,10 +33,11 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "in a couple of days" and "a fortnight from Friday" still ask which date.
 - A headcount range is now asked with a plain "How many guests?"; offer the range's numbers as one-tap choices.
 - "dinner Friday 4-6 people" (range after a day, no "for") keeps the default time but asks a plain "how many?"; a range followed by "people"/"guests" should be asked as a range.
-- A lowercase client in a mixed-case sentence ("Drinks for 6 with hooli friday") is dropped; R27 only reads one-case sentences. Found by the metamorphic eval.
+- "Dinner for 4 with acme corp on Friday" still drops the client: a capitalised "Friday" is read as a booker who capitalises names. A capitalised weekday or month alone could be ignored, if "with outdoor seating on Friday" stays nameless.
 
 ## Shipped
 
+- 2026-11-24: "Drinks for 6 with hooli friday" dropped Hooli from the proposal and the venue email; a sentence whose only capitals start a sentence (or are "I", "PM", "Dinner") is read as one-case, so the lowercase client is kept, while "with the team" and "with something" are never a client (R42); real-user sentences 83 → 85.
 - 2026-11-23: "Dinner for 4 with Initech Friday at 7" told the booker and the venue "4 guests with Initech Friday"; a weekday, month, "tmrw" or "two weeks" after a client name is now read as the date, not part of the name, in any case, while "Acme Corp" and "Capital One" stay whole (R41); real-user sentences 81 → 83.
 - 2026-11-23: "drinks for 8 on Dec 3 6-8" booked the default 5:30 pm; a bare range right after a calendar date ("Dec 3 6-8", "December 3rd, 8-10", "3 Dec", "12/3", "the 19th") now books its start, and "for 4-6" stays a headcount (R40); real-user sentences 79 → 81.
 - 2026-11-23: "drinks for 10 friday 6-8" booked the default 5:30 pm; a bare range right after a day word ("friday 6-8", "Friday, 7-9", "tomorrow 7 to 9") now books its start, a word after a range ("6-8 please") no longer drops the time, and "for 4-6" stays a headcount (R39); real-user sentences 77 → 79.

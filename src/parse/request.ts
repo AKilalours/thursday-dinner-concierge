@@ -161,9 +161,13 @@ export function parseRules(raw: string, today: string): BookingRequest {
   const t = text.toLowerCase();
   // Regression R27 (found by metamorphic testing): a request typed in ALL CAPS or all lowercase lost the client, which
   // is read from a capitalised name. In a one-case sentence the word after "with" is the name, unless it's "a", "my"...
-  const named = /[a-z]/.test(text) && /[A-Z]/.test(text) ? text
-    : t.replace(/\bwith (the )?([a-z][\w&.'-]*)( [a-z][\w&.'-]*)?/, (_m, the: string | undefined, w: string, w2: string | undefined) => {
-      if (/^(a|an|our|my|some|me|us|them|you|everyone|clients?|colleagues|friends|family|kids|vegetarians|vegans|dietary|\d.*)$/.test(w)) return _m;
+  // Regression R42: "Drinks for 6 with hooli friday" lost Hooli. Capitals that start a sentence, "I", "PM" or "Dinner"
+  // say nothing about names; with no other capital the booker doesn't capitalise names, so read it as one-case.
+  const capitalisesNames = /[A-Z]/.test(text.replace(/(?:^|[.!?:])\s*[A-Z]/g, "")
+    .replace(/\bI\b|(?<=\d ?)[AP]M\b|\b(?:Dinner|Lunch|Drinks|Breakfast|Brunch|Happy|Hour|Team)\b/g, ""));
+  const named = /[a-z]/.test(text) && capitalisesNames ? text
+    : t.replace(/\bwith (the )?([a-z][\w&.'-]*)( [a-z][\w&.'-]*)?/g, (_m, the: string | undefined, w: string, w2: string | undefined) => {
+      if (/^(a|an|our|my|some|me|us|them|you|everyone|team|group|crew|something|someone|anything|it|this|that|clients?|colleagues|friends|family|kids|vegetarians|vegans|dietary|\d.*)$/.test(w)) return _m;
       const cap = (x: string) => x[0].toUpperCase() + x.slice(1);
       const second = w2 && !/[,.]$/.test(w) && !NOT_A_NAME.test(w2.trim()) ? ` ${cap(w2.trim())}` : (w2 ?? "");
       return `with ${the ?? ""}${cap(w)}${second}`;

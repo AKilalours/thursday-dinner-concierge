@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -150,6 +150,17 @@ describe("found by testing as real users", () => {
     const r = await run("Dinner for 4 with Initech Friday at 7", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.match(r.messagesToBooker.join("\n"), /4 guests with Initech\./);
+  });
+  it("R42: a lowercase client in a sentence capitalised only at the start is still the client", async () => {
+    const client = (s: string) => parseRules(s, "2026-11-11").clientName;
+    assert.equal(client("Drinks for 6 with hooli friday"), "Hooli", "was dropped");
+    assert.equal(client("I need dinner for 4 with globex at 7PM"), "Globex", "\"I\" and \"PM\" don't count as capitalising");
+    assert.equal(client("Dinner for 6 with the team friday"), null, "the team is not a client");
+    assert.equal(client("Dinner for 4 with outdoor seating on Friday"), null, "a booker who capitalises Friday would capitalise a name");
+    assert.equal(client("Dinner for 4 with my boss friday"), null);
+    const r = await run("Drinks for 6 with hooli friday", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.join("\n"), /6 guests with Hooli\./);
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");

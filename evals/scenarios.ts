@@ -155,6 +155,8 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg25", group: "regression", text: "drinks for 8 with Hooli on Dec 3 6-8", expect: { outcome: "booked", partySize: 8 } },
   // R41 (found testing as a real user): "with Initech Friday at 7" named the client "Initech Friday" in the proposal and the venue email.
   { id: "reg26", group: "regression", text: "Dinner for 4 with Initech Friday at 7", expect: { outcome: "booked", partySize: 4, clientName: "Initech" } },
+  // R42 (found by the metamorphic eval): "Drinks for 6 with hooli friday", capitalised only at the start, dropped the client.
+  { id: "reg27", group: "regression", text: "Drinks for 6 with hooli friday", expect: { outcome: "booked", partySize: 6, clientName: "Hooli" } },
   // Catering: food delivered to the office, from caterers, under the catering limit.
   { id: "cat01", group: "phrasing", text: "catered lunch for 30 at the office this Thursday", expect: { outcome: "booked", partySize: 30, date: THU, category: "catering" } },
   { id: "cat02", group: "venue_behavior", text: "boxed lunches for 40 delivered to the office on Thursday", order: ["decline"], expect: { outcome: "booked", partySize: 40, category: "catering" } },
