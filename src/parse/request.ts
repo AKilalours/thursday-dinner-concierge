@@ -163,11 +163,15 @@ export function parseRules(raw: string, today: string): BookingRequest {
   // is read from a capitalised name. In a one-case sentence the word after "with" is the name, unless it's "a", "my"...
   // Regression R42: "Drinks for 6 with hooli friday" lost Hooli. Capitals that start a sentence, "I", "PM" or "Dinner"
   // say nothing about names; with no other capital the booker doesn't capitalise names, so read it as one-case.
-  const capitalisesNames = /[A-Z]/.test(text.replace(/(?:^|[.!?:])\s*[A-Z]/g, "")
+  // Regression R43: "with acme corp on Friday" lost Acme Corp. English capitalises weekdays and months, so they say
+  // nothing about whether the booker capitalises names. They go first, so "Friday. Thanks" still ends a sentence.
+  const capitalisesNames = /[A-Z]/.test(text
+    .replace(/\b(?:Mon|Tue|Tues|Wed|Weds|Thu|Thur|Thurs|Fri|Sat|Sun)(?:day|nesday|sday|urday)?\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)(?:uary|ruary|ch|il|e|y|ust|tember|ober|ember)?\b/g, "")
+    .replace(/(?:^|[.!?:])\s*[A-Z]/g, "")
     .replace(/\bI\b|(?<=\d ?)[AP]M\b|\b(?:Dinner|Lunch|Drinks|Breakfast|Brunch|Happy|Hour|Team)\b/g, ""));
   const named = /[a-z]/.test(text) && capitalisesNames ? text
     : t.replace(/\bwith (the )?([a-z][\w&.'-]*)( [a-z][\w&.'-]*)?/g, (_m, the: string | undefined, w: string, w2: string | undefined) => {
-      if (/^(a|an|our|my|some|me|us|them|you|everyone|team|group|crew|something|someone|anything|it|this|that|clients?|colleagues|friends|family|kids|vegetarians|vegans|dietary|\d.*)$/.test(w)) return _m;
+      if (/^(a|an|our|my|some|me|us|them|you|everyone|team|group|crew|something|someone|anything|it|this|that|clients?|colleagues|friends|family|kids|vegetarians|vegans|dietary|outdoor|indoor|seating|patio|terrace|garden|views?|wine|live|music|parking|wheelchair|step-free|good|great|nice|quiet|\d.*)$/.test(w)) return _m;
       const cap = (x: string) => x[0].toUpperCase() + x.slice(1);
       const second = w2 && !/[,.]$/.test(w) && !NOT_A_NAME.test(w2.trim()) ? ` ${cap(w2.trim())}` : (w2 ?? "");
       return `with ${the ?? ""}${cap(w)}${second}`;

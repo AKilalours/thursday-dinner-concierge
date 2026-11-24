@@ -33,10 +33,11 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "in a couple of days" and "a fortnight from Friday" still ask which date.
 - A headcount range is now asked with a plain "How many guests?"; offer the range's numbers as one-tap choices.
 - "dinner Friday 4-6 people" (range after a day, no "for") keeps the default time but asks a plain "how many?"; a range followed by "people"/"guests" should be asked as a range.
-- "Dinner for 4 with acme corp on Friday" still drops the client: a capitalised "Friday" is read as a booker who capitalises names. A capitalised weekday or month alone could be ignored, if "with outdoor seating on Friday" stays nameless.
+- "dinner for 2 with Sam on Friday" names a colleague "Sam" as the client; a first name alone could be read as a guest, not a company.
 
 ## Shipped
 
+- 2026-11-24: "dinner for 4 with acme corp on Friday" dropped Acme Corp from the proposal and the venue email; a capitalised weekday or month no longer counts as a booker who capitalises names, and "with outdoor seating", "with live music" and similar amenities are never a client in any case (was "Outdoor Seating" when typed in lowercase) (R43); real-user sentences 85 → 87.
 - 2026-11-24: "Drinks for 6 with hooli friday" dropped Hooli from the proposal and the venue email; a sentence whose only capitals start a sentence (or are "I", "PM", "Dinner") is read as one-case, so the lowercase client is kept, while "with the team" and "with something" are never a client (R42); real-user sentences 83 → 85.
 - 2026-11-23: "Dinner for 4 with Initech Friday at 7" told the booker and the venue "4 guests with Initech Friday"; a weekday, month, "tmrw" or "two weeks" after a client name is now read as the date, not part of the name, in any case, while "Acme Corp" and "Capital One" stay whole (R41); real-user sentences 81 → 83.
 - 2026-11-23: "drinks for 8 on Dec 3 6-8" booked the default 5:30 pm; a bare range right after a calendar date ("Dec 3 6-8", "December 3rd, 8-10", "3 Dec", "12/3", "the 19th") now books its start, and "for 4-6" stays a headcount (R40); real-user sentences 79 → 81.
