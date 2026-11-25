@@ -161,6 +161,8 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg28", group: "regression", text: "dinner for 4 with acme corp on Friday", expect: { outcome: "booked", partySize: 4, clientName: "Acme Corp" } },
   // R44 (found testing as a real user): "next week Thursday" said early in the week booked this week's Thursday.
   { id: "reg29", group: "regression", text: "dinner for 6 with Globex next week Thursday", expect: { outcome: "booked", partySize: 6, date: "2026-11-19" } },
+  // R45 (found testing as a real user): "budget $80 each" was not read as a cap, so a pricier venue was booked.
+  { id: "reg30", group: "regression", text: "dinner for 12 with Acme next Thursday, private, $40 each", expect: { outcome: "needs_clarification" } },
   // Catering: food delivered to the office, from caterers, under the catering limit.
   { id: "cat01", group: "phrasing", text: "catered lunch for 30 at the office this Thursday", expect: { outcome: "booked", partySize: 30, date: THU, category: "catering" } },
   { id: "cat02", group: "venue_behavior", text: "boxed lunches for 40 delivered to the office on Thursday", order: ["decline"], expect: { outcome: "booked", partySize: 40, category: "catering" } },

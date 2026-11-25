@@ -189,7 +189,9 @@ export function parseRules(raw: string, today: string): BookingRequest {
   // A per-head figure in a booking request is the booker's ceiling, so it reads as a cap with or without "under".
   const perHead = t.match(/(?:under|below|max(?:imum)?|no more than|up to)\s+\$?(\d{2,4})\s*(?:\/|a|per)?\s*(?:head|person|pp|guest)/)
     ?? t.match(/\$(\d{2,4})\s*(?:\/|a|per)?\s*(?:head|person|pp|guest)\b/)
-    ?? t.match(/\b(\d{2,4})\s*(?:(?:\/|a|per)\s*(?:head|person|guest)|pp)\b/);
+    ?? t.match(/\b(\d{2,4})\s*(?:(?:\/|a|per)\s*(?:head|person|guest)|pp)\b/)
+    // Regression R45: "budget $80 each" booked $132 a head. "each" needs a "$" or "budget", so "for 10 each" is not a cap.
+    ?? t.match(/(?:\$|\bbudget\s*(?:of|is|:)?\s*\$?)(\d{2,4})\s*each\b/);
   const total = totalBudgetCents(text), party = partySizeFrom(text);
   const fromTotal = !perHead && total !== null && party ? Math.floor(total / party) : null;
   const d = resolveDate(text, today);

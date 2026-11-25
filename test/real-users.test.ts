@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44, R45). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -186,6 +186,16 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for 3 next week Thursday", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.match(r.messagesToBooker.at(-1)!, /Thu Nov 19/);
+  });
+  it("R45: \"budget $80 each\" is a per-head cap", async () => {
+    const cap = (s: string) => parseRules(s, "2026-11-11").maxPerHeadCents;
+    assert.equal(cap("dinner for 6 on Friday, budget $80 each"), 8000, "was null, so $132 a head got booked");
+    assert.equal(cap("lunch for 4 on Dec 3, $40 each"), 4000);
+    assert.equal(cap("dinner for 5 next fri, budget 90 each"), 9000);
+    assert.equal(cap("dinner for 10 each Friday"), null, "a bare number before \"each\" is not money");
+    const r = await run("dinner for 6 on Friday, budget $80 each", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.join("\n"), /within your \$80/);
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");
