@@ -191,7 +191,10 @@ export function parseRules(raw: string, today: string): BookingRequest {
     ?? t.match(/\$(\d{2,4})\s*(?:\/|a|per)?\s*(?:head|person|pp|guest)\b/)
     ?? t.match(/\b(\d{2,4})\s*(?:(?:\/|a|per)\s*(?:head|person|guest)|pp)\b/)
     // Regression R45: "budget $80 each" booked $132 a head. "each" needs a "$" or "budget", so "for 10 each" is not a cap.
-    ?? t.match(/(?:\$|\bbudget\s*(?:of|is|:)?\s*\$?)(\d{2,4})\s*each\b/);
+    ?? t.match(/(?:\$|\bbudget\s*(?:of|is|:)?\s*\$?)(\d{2,4})\s*each\b/)
+    // Regression R46: "80 bucks a head" and "$80 a pop" booked with no cap. Slang needs "bucks"/"dollars" or a "$".
+    ?? t.match(/\b(\d{2,4})\s*(?:bucks|dollars)\s*(?:(?:\/|a|per)\s*(?:head|person|guest|pop)|pp|each)\b/)
+    ?? t.match(/\$(\d{2,4})\s*a\s+pop\b/);
   const total = totalBudgetCents(text), party = partySizeFrom(text);
   const fromTotal = !perHead && total !== null && party ? Math.floor(total / party) : null;
   const d = resolveDate(text, today);
