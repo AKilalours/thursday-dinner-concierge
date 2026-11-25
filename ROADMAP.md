@@ -37,11 +37,12 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "dinner for 4 on Friday w/ Acme" drops the client; read "w/" as "with".
 - "dinner tonite for 2" asks which date (should be read as tonight, like "dinner for two tonight").
 - "dinner for 4 on thanksgiving" asks which date; add Thanksgiving (4th Thursday of November) next to Christmas Eve.
-- "$500 for the group" (a total written without "total" or "budget") is still not read as a budget, so nothing caps the spend.
+- "dinner for 6, $500 for the 6 of us" and "$500 between us" are still not read as a total.
 - "under 80 bucks a head" is read, but "8 bucks a head" (one digit) is not; decide whether a one-digit per-head figure should be asked about.
 
 ## Shipped
 
+- 2026-11-25: "dinner for 6 on Friday, $500 for the group" booked Lantern Row at about $791 all-in and paid the deposit; "$N for the group/table/team/party" and "$N for everyone" are now a total divided by the headcount ($83 a head here, Rue Margaux), while "for the group" with no money sets no cap (R47); real-user sentences 93 → 95.
 - 2026-11-25: "dinner for 6 on Friday, 80 bucks a head" booked with no spend cap (and "$80 a pop", "40 dollars per person", "30 bucks each" did the same); slang per-head figures with "bucks", "dollars" or "$ ... a pop" are now a per-head cap, while "dinner for 10 bucks" is not money (R46); real-user sentences 91 → 93.
 - 2026-11-25: "dinner for 6 on Friday, budget $80 each" booked $132 a head and paid the deposit; "$80 each" and "budget 80 each" are now a per-head cap, while "for 10 each" is not money (R45); real-user sentences 89 → 91.
 - 2026-11-24: "dinner for 3 next week Thursday" (typed on a Wednesday) booked tomorrow, Thu Nov 12, and paid the deposit; "next week Thursday", "Thursday next week", "next week on Mon" and "Friday of next week" now book that weekday in the week starting next Monday, while "next week" alone is still asked (R44); real-user sentences 87 → 89.

@@ -165,6 +165,8 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg30", group: "regression", text: "dinner for 12 with Acme next Thursday, private, $40 each", expect: { outcome: "needs_clarification" } },
   // R46 (found testing as a real user): "40 bucks a head" was not read as a cap, so a pricier venue was booked.
   { id: "reg31", group: "regression", text: "dinner for 12 with Acme next Thursday, private, 40 bucks a head", expect: { outcome: "needs_clarification" } },
+  // R47 (found testing as a real user): "$500 for the group" was not read as a total, so a pricier venue was booked.
+  { id: "reg32", group: "regression", text: "dinner for 12 with Acme next Thursday, private, $480 for the group", expect: { outcome: "needs_clarification" } },
   // Catering: food delivered to the office, from caterers, under the catering limit.
   { id: "cat01", group: "phrasing", text: "catered lunch for 30 at the office this Thursday", expect: { outcome: "booked", partySize: 30, date: THU, category: "catering" } },
   { id: "cat02", group: "venue_behavior", text: "boxed lunches for 40 delivered to the office on Thursday", order: ["decline"], expect: { outcome: "booked", partySize: 40, category: "catering" } },

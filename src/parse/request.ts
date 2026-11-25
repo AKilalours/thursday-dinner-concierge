@@ -86,7 +86,9 @@ export function totalBudgetCents(text: string): number | null {
   // After "total"/"all in" the figure needs a "$" or "k", so "dinner for 120 total" stays a headcount.
   const money = String.raw`(\$\d{1,3}(?:,\d{3})+|\$\d{3,6}|\$?\d{1,3}(?:\.\d)?k)(?![\d,])`;
   const bare = String.raw`\$?(\d{1,3}(?:,\d{3})+|\d{3,6}|\d{1,3}(?:\.\d)?k)(?![\d,])`;
-  const m = t.match(new RegExp(String.raw`${money}\s*(?:total|all[- ]in|in total|overall)\b`))
+  // Regression R47: "$500 for the group" booked $791 all-in; "for the group/table/team" and "for everyone" mark a total too.
+  const whole = String.raw`for (?:the (?:whole )?|our (?:whole )?)?(?:group|table|team|party)|for (?:all of us|everyone|everybody)`;
+  const m = t.match(new RegExp(String.raw`${money}\s*(?:total|all[- ]in|in total|overall|${whole})\b`))
     ?? t.match(new RegExp(String.raw`\b(?:total budget|budget|spend)\s*(?:of|is|:|around|about|max)?\s*${bare}(?!\s*(?:\/|a |per |pp|each))`));
   if (!m) return null;
   const k = m[1].endsWith("k");
