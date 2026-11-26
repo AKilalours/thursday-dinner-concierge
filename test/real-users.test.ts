@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R49). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R49, R50). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -239,6 +239,16 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for 4 on Friday w/ Acme", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.match(r.messagesToBooker.join("\n"), /4 guests with Acme\./);
+  });
+  it("R50: \"w/o nuts\" and \"without gluten\" reach the venue as dietary needs", async () => {
+    const diet = (s: string) => parseRules(s, "2026-11-11").dietary;
+    assert.deepEqual(diet("dinner for 4 on Friday w/o nuts"), ["nut-allergy"], "was [], so the venue was never told");
+    assert.deepEqual(diet("lunch for 6 on Dec 3 without gluten"), ["gluten-free"]);
+    assert.deepEqual(diet("dinner for 4 friday W/O dairy, one without any tree nuts"), ["dairy-free", "nut-allergy"]);
+    assert.deepEqual(diet("dinner for 4 on Friday without a view"), [], "without alone is not a diet");
+    const r = await run("dinner for 4 on Friday w/o nuts", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.join("\n"), /Dietary needs sent to .*nut/);
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");

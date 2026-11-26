@@ -4,7 +4,6 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Ideas
 
-- "dinner for 4 on Friday w/o nuts" books with no dietary need sent to the venue; read "w/o nuts", "without shellfish", "w/o gluten" as the allergy.
 - Real-user rows from the 15 named testers: run each person's own sentence under their sign-in (never invented), add any failure as a real-user row with their name.
 - Saved history across devices: today it lives in the browser; a signed-in server copy (the Worker plus a KV store) would follow a person to their phone.
 - Fresh classifier set: write the next 40 unseen emails before the next gate change, as was done for hybrid strict.
@@ -38,10 +37,12 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "dinner tonite for 2" asks which date (should be read as tonight, like "dinner for two tonight").
 - "dinner for 4 on thanksgiving" asks which date; add Thanksgiving (4th Thursday of November) next to Christmas Eve.
 - "dinner for 6, $500 for the 6 of us" and "$500 between us" are still not read as a total.
+- "w/o meat" and "without pork" are not read as vegetarian or a dietary need; decide which "without X" a venue should hear.
 - "under 80 bucks a head" is read, but "8 bucks a head" (one digit) is not; decide whether a one-digit per-head figure should be asked about.
 
 ## Shipped
 
+- 2026-11-26: "dinner for 4 on Friday w/o nuts" booked with no dietary need sent to the venue (and "without gluten", "W/O dairy" did the same); "w/o" and "without" before a diet word are now read as "no", so the nut allergy reaches the proposal and the venue email, while "without a view" is not a diet (R50); real-user sentences 97 → 99.
 - 2026-11-26: "dinner for 4 on Friday w/ Acme" dropped Acme from the proposal and the venue email (and "w/hooli", "W/ Initech" did the same); "w/" is now read as "with", while "w/o" is left alone (R49); real-user sentences 95 → 97.
 - 2026-11-26: "dinner for 12 with the Acme team next Thursday" typed on a Wednesday booked tomorrow, 21 h away, and was escalated for notice (it failed the site check); "next <weekday>" is now at least 2 days out (Wed "next Thursday" is the Thursday after, Mon "next Tuesday" is a week out), Mon-Wed readings stay flagged, and the confirmation names the other reading ("reject if you meant Thu Nov 26") (R48).
 - 2026-11-25: "dinner for 6 on Friday, $500 for the group" booked Lantern Row at about $791 all-in and paid the deposit; "$N for the group/table/team/party" and "$N for everyone" are now a total divided by the headcount ($83 a head here, Rue Margaux), while "for the group" with no money sets no cap (R47); real-user sentences 93 → 95.

@@ -71,7 +71,8 @@ function namedGuests(t: string): number | null {
 }
 
 export function dietaryFrom(text: string): string[] {
-  const t = text.toLowerCase();
+  // Regression R50: "w/o nuts" and "without gluten" booked with no dietary need sent to the venue; both mean "no".
+  const t = text.toLowerCase().replace(/\b(?:w\/o|without)\s+(?:any\s+)?/g, "no ");
   const known = DIETARY.filter(([, re]) => re.test(t)).map(([label]) => label);
   // Any other "allergic to X" is still passed on, so a venue hears about sesame even without a rule for it.
   const other = [...t.matchAll(/\ballergic to ([a-z]+)/g)].map((m) => m[1].replace(/s$/, ""))
