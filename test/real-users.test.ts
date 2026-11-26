@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44, R45, R46, R47). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -218,12 +218,24 @@ describe("found by testing as real users", () => {
     assert.equal(r.outcome, "booked");
     assert.match(r.messagesToBooker.join("\n"), /within your \$83/);
   });
+  it("R48: \"next Thursday\" typed on a Wednesday is next week's Thursday, not tomorrow", async () => {
+    const d = (text: string, today: string) => resolveDate(text, today);
+    assert.deepEqual(d("dinner for 4 next Thursday", "2026-11-25"), { date: "2026-12-03", ambiguous: true, reason: "'next' could mean this week or next" }, "was Nov 26, 21 h away");
+    assert.equal(d("lunch next sat", "2026-11-13").date, "2026-11-21", "Friday: the day after is \"tomorrow\"");
+    assert.equal(d("next Thursday", "2026-11-26").date, "2026-12-03", "same weekday stays a week out");
+    assert.equal(d("next Thursday", "2026-11-23").date, "2026-11-26", "Monday: this week's, still flagged");
+    assert.equal(d("next Thursday", "2026-11-23").ambiguous, true);
+    assert.equal(d("this Thursday", "2026-11-25").date, "2026-11-26", "\"this\" is unchanged");
+    const r = await run("dinner for 12 with the Acme team next Thursday, somewhere private", "2026-11-25");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.join("\n"), /as Thu Dec 3; reject if you meant Thu Nov 26/, "the other reading is the earlier one");
+  });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");
     assert.equal(d("dinner for 4 tmrw at 7").date, "2026-11-12");
     assert.equal(d("lunch for 6 on Wed").date, "2026-11-18");
     assert.equal(d("dinner for 4, sat at 8").date, "2026-11-14");
-    assert.equal(d("next thurs").date, "2026-11-12");
+    assert.equal(d("next thurs").date, "2026-11-19", "R48: was tomorrow (Nov 12); \"next\" on the day before means next week's");
     assert.deepEqual(d("team dinner for 9 on Thursday the 19th"), { date: "2026-11-19", ambiguous: false, reason: "day of month" });
     assert.equal(d("Friday the 19th").ambiguous, true, "a weekday that doesn't match the date is confirmed, not guessed");
     assert.equal(d("dinner on the 5th").date, "2026-12-05", "a day already past rolls to next month");

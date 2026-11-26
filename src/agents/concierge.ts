@@ -257,7 +257,7 @@ async function proposeAndExecute(ctx: Ctx, req: BookingRequest, opt: Option, inp
   const expiresAt = new Date(Math.min(Date.parse(ctx.world.now) + holdH * 3_600_000, Date.parse(startsAt(req.date!, req.time)))).toISOString();
   const caveats = [
     relaxedNote,
-    req.dateAmbiguous ? `I read "${text.match(/next \w+/i)?.[0] ?? "the date"}" as ${human(req.date!)}; reject if you meant ${human(addDays(req.date!, 7))}.` : "",
+    req.dateAmbiguous ? `I read "${text.match(/next \w+/i)?.[0] ?? "the date"}" as ${human(req.date!)}; reject if you meant ${human(addDays(req.date!, req.date! > addDays(ctx.today, 7) ? -7 : 7))}.` : "",
     opt.thread.injectionFlagged ? `${v.name}'s email contained instructions to change payment details; I ignored them and will only pay the venue's account on file.` : "",
     v.contractRequired ? `${v.name} requires its private dining agreement; approving authorizes signing it.` : "",
     opt.policy.requiredRoles.includes("manager") ? `Over ${usd(ctx.company.policy.managerApprovalAboveCents)}, so ${approverFor("manager", ctx.actor).name} also approves.` : "",

@@ -52,7 +52,7 @@ export const SCENARIOS: Scenario[] = [
   { id: "p11", group: "phrasing", text: "dinner for 12 with Acme next Thursday, private room, under $150 a head", expect: { outcome: "booked", partySize: 12, date: THU, privateRoom: true } },
   // No Japanese private room for 8 fits the cap in this network, so the right move is to ask (R7), not to book another cuisine.
   { id: "p12", group: "phrasing", text: "japanese dinner for 8 with Wayne Enterprises on 2026-11-24, private", expect: { outcome: "needs_clarification", partySize: 8, date: "2026-11-24", privateRoom: true } },
-  { id: "p13", group: "phrasing", text: "table for 4 with Pied Piper next Tuesday at 8pm", expect: { outcome: "booked", partySize: 4, date: "2026-11-10", privateRoom: false } },
+  { id: "p13", group: "phrasing", text: "table for 4 with Pied Piper next Tuesday at 8pm", expect: { outcome: "booked", partySize: 4, date: "2026-11-17", privateRoom: false } },
 
   // Missing information: ask, never guess.
   { id: "m01", group: "missing_info", text: "set up a client dinner with Acme next week", expect: { outcome: "needs_clarification" } },
@@ -167,6 +167,8 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg31", group: "regression", text: "dinner for 12 with Acme next Thursday, private, 40 bucks a head", expect: { outcome: "needs_clarification" } },
   // R47 (found testing as a real user): "$500 for the group" was not read as a total, so a pricier venue was booked.
   { id: "reg32", group: "regression", text: "dinner for 12 with Acme next Thursday, private, $480 for the group", expect: { outcome: "needs_clarification" } },
+  // R48 (found when the site check ran on a Wednesday): "next Thursday" typed on a Wednesday booked tomorrow.
+  { id: "reg33", group: "regression", text: "dinner for 12 with the Acme team next Thursday, somewhere private", today: "2026-11-11", expect: { outcome: "booked", partySize: 12, date: "2026-11-19" } },
   // Catering: food delivered to the office, from caterers, under the catering limit.
   { id: "cat01", group: "phrasing", text: "catered lunch for 30 at the office this Thursday", expect: { outcome: "booked", partySize: 30, date: THU, category: "catering" } },
   { id: "cat02", group: "venue_behavior", text: "boxed lunches for 40 delivered to the office on Thursday", order: ["decline"], expect: { outcome: "booked", partySize: 40, category: "catering" } },

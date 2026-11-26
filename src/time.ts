@@ -102,9 +102,11 @@ export function resolveDate(text: string, today: string): ResolvedDate {
   const now = weekday(today);
   let delta = (target - now + 7) % 7;
   if (m[1] === "next") {
-    if (delta === 0) delta = 7;
+    // Regression R48 (found when the site check ran on a Wednesday evening): "next Thursday" typed on a Wednesday
+    // booked tomorrow, under the 24 h notice, and escalated. Tomorrow is "tomorrow"; "next" is at least 2 days out.
     // "next Thursday" on Mon-Wed could mean this Thursday or the one after: take this week's, flag it.
-    const ambiguous = delta < 7 && now >= 1 && now < target;
+    const ambiguous = delta >= 1 && now >= 1 && now < target;
+    if (delta < 2) delta += 7;
     return { date: addDays(today, delta), ambiguous, reason: ambiguous ? "'next' could mean this week or next" : "next" };
   }
   if (delta === 0) delta = m[1] === "this" ? 0 : 7;

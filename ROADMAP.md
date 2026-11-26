@@ -26,7 +26,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - A total budget with no headcount ("dinner on Friday, $500 total") is dropped; keep it and apply it once the party size is answered.
 - `npm run build:web` on a fresh clone rewrites docs/app.js even with no source change; once esbuild is pinned, make site:check fail when the committed docs/app.js is stale.
 
-- "next Thursday" typed on a Wednesday books the next day (Nov 12 from Nov 11); many people mean the week after. Decide, then ask when it's ambiguous.
+- The site check's flows run on the real clock, so a sentence can pass on one weekday and fail on another (R48 was found that way); also run the flows once with ?today= pinned, and say which date failed.
 - "dinner with my boss on Friday" (no "for", booker implied) still asks how many; decide whether "with <one person>" means a party of 2.
 - Scenarios in evals/scenarios.ts grade party size and date but not the booked time; add an optional `time` expectation so a dropped time fails a scenario too.
 - "Feb 29" in a year that has none is now asked about; when the booker clearly means a leap year ("Feb 29, 2028"), check the year they typed is honoured.
@@ -42,6 +42,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Shipped
 
+- 2026-11-26: "dinner for 12 with the Acme team next Thursday" typed on a Wednesday booked tomorrow, 21 h away, and was escalated for notice (it failed the site check); "next <weekday>" is now at least 2 days out (Wed "next Thursday" is the Thursday after, Mon "next Tuesday" is a week out), Mon-Wed readings stay flagged, and the confirmation names the other reading ("reject if you meant Thu Nov 26") (R48).
 - 2026-11-25: "dinner for 6 on Friday, $500 for the group" booked Lantern Row at about $791 all-in and paid the deposit; "$N for the group/table/team/party" and "$N for everyone" are now a total divided by the headcount ($83 a head here, Rue Margaux), while "for the group" with no money sets no cap (R47); real-user sentences 93 → 95.
 - 2026-11-25: "dinner for 6 on Friday, 80 bucks a head" booked with no spend cap (and "$80 a pop", "40 dollars per person", "30 bucks each" did the same); slang per-head figures with "bucks", "dollars" or "$ ... a pop" are now a per-head cap, while "dinner for 10 bucks" is not money (R46); real-user sentences 91 → 93.
 - 2026-11-25: "dinner for 6 on Friday, budget $80 each" booked $132 a head and paid the deposit; "$80 each" and "budget 80 each" are now a per-head cap, while "for 10 each" is not money (R45); real-user sentences 89 → 91.
