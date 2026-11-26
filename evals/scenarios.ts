@@ -169,6 +169,8 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg32", group: "regression", text: "dinner for 12 with Acme next Thursday, private, $480 for the group", expect: { outcome: "needs_clarification" } },
   // R48 (found when the site check ran on a Wednesday): "next Thursday" typed on a Wednesday booked tomorrow.
   { id: "reg33", group: "regression", text: "dinner for 12 with the Acme team next Thursday, somewhere private", today: "2026-11-11", expect: { outcome: "booked", partySize: 12, date: "2026-11-19" } },
+  // R49 (found testing as a real user): "w/ Acme" dropped the client, so the venue never heard who was coming.
+  { id: "reg34", group: "regression", text: "dinner for 4 on Friday w/ Acme", expect: { outcome: "booked", partySize: 4, clientName: "Acme" } },
   // Catering: food delivered to the office, from caterers, under the catering limit.
   { id: "cat01", group: "phrasing", text: "catered lunch for 30 at the office this Thursday", expect: { outcome: "booked", partySize: 30, date: THU, category: "catering" } },
   { id: "cat02", group: "venue_behavior", text: "boxed lunches for 40 delivered to the office on Thursday", order: ["decline"], expect: { outcome: "booked", partySize: 40, category: "catering" } },

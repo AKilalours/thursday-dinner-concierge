@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R49). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -229,6 +229,16 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for 12 with the Acme team next Thursday, somewhere private", "2026-11-25");
     assert.equal(r.outcome, "booked");
     assert.match(r.messagesToBooker.join("\n"), /as Thu Dec 3; reject if you meant Thu Nov 26/, "the other reading is the earlier one");
+  });
+  it("R49: \"w/ Acme\" is \"with Acme\"; \"w/o\" is not", async () => {
+    const client = (s: string) => parseRules(s, "2026-11-11").clientName;
+    assert.equal(client("dinner for 4 on Friday w/ Acme"), "Acme", "was null, so the venue never heard who was coming");
+    assert.equal(client("Dinner for 4 W/ Initech on Friday"), "Initech");
+    assert.equal(client("drinks for 6 w/hooli friday"), "Hooli");
+    assert.equal(client("lunch for 3 w/o shellfish on Dec 3"), null, "without is not with");
+    const r = await run("dinner for 4 on Friday w/ Acme", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.join("\n"), /4 guests with Acme\./);
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");
