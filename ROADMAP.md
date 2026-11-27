@@ -34,7 +34,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - A headcount range is now asked with a plain "How many guests?"; offer the range's numbers as one-tap choices.
 - "dinner Friday 4-6 people" (range after a day, no "for") keeps the default time but asks a plain "how many?"; a range followed by "people"/"guests" should be asked as a range.
 - "dinner for 2 with Sam on Friday" names a colleague "Sam" as the client; a first name alone could be read as a guest, not a company.
-- "dinner tonite for 2" asks which date (should be read as tonight, like "dinner for two tonight").
+- "dinner tonight's fine, 4 of us" and "tonight-ish" are untested; check a possessive or suffixed "tonight" still reads as today.
 - "dinner for 4 on thanksgiving" asks which date; add Thanksgiving (4th Thursday of November) next to Christmas Eve.
 - "dinner for 6, $500 for the 6 of us" and "$500 between us" are still not read as a total.
 - "w/o meat" and "without pork" are not read as vegetarian or a dietary need; decide which "without X" a venue should hear.
@@ -42,6 +42,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Shipped
 
+- 2026-11-27: "dinner tonite for 2" asked "Which date should I book?" (and "2nite", "tnite" did the same); they are now read as tonight in the case typed, so the request is escalated for short notice like "dinner for two tonight", and an all-caps "DINNER TONITE ... WITH ACME" keeps Acme (R51); real-user sentences 99 → 101.
 - 2026-11-26: "dinner for 4 on Friday w/o nuts" booked with no dietary need sent to the venue (and "without gluten", "W/O dairy" did the same); "w/o" and "without" before a diet word are now read as "no", so the nut allergy reaches the proposal and the venue email, while "without a view" is not a diet (R50); real-user sentences 97 → 99.
 - 2026-11-26: "dinner for 4 on Friday w/ Acme" dropped Acme from the proposal and the venue email (and "w/hooli", "W/ Initech" did the same); "w/" is now read as "with", while "w/o" is left alone (R49); real-user sentences 95 → 97.
 - 2026-11-26: "dinner for 12 with the Acme team next Thursday" typed on a Wednesday booked tomorrow, 21 h away, and was escalated for notice (it failed the site check); "next <weekday>" is now at least 2 days out (Wed "next Thursday" is the Thursday after, Mon "next Tuesday" is a week out), Mon-Wed readings stay flagged, and the confirmation names the other reading ("reject if you meant Thu Nov 26") (R48).

@@ -161,7 +161,8 @@ export function parseRules(raw: string, today: string): BookingRequest {
   // Regression R26 (found by metamorphic testing): text pasted from Slack or email with doubled spaces or line breaks
   // lost allergies, the neighborhood, "Christmas Eve" and the kind of event. Whitespace is normalized first.
   // Regression R49: "dinner for 4 on Friday w/ Acme" lost Acme. "w/" is "with"; "w/o" (without) is left alone.
-  const text = raw.replace(/\bw\/(?!o\b)\s*/gi, "with ").replace(/\s+/g, " ").trim();
+  // Regression R51: "dinner tonite for 2" asked which date. "tonite", "2nite" and "tnite" are "tonight", in the case typed so a one-case sentence stays one-case.
+  const text = raw.replace(/\bw\/(?!o\b)\s*/gi, "with ").replace(/\b(?:tonite|2nite|tnite)\b/gi, (w) => w === w.toUpperCase() ? "TONIGHT" : w[0] === "T" ? "Tonight" : "tonight").replace(/\s+/g, " ").trim();
   const t = text.toLowerCase();
   // Regression R27 (found by metamorphic testing): a request typed in ALL CAPS or all lowercase lost the client, which
   // is read from a capitalised name. In a one-case sentence the word after "with" is the name, unless it's "a", "my"...
