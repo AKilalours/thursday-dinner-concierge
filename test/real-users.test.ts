@@ -1,4 +1,4 @@
-// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R49, R50, R52). Each has a test that fails on the old path.
+// Bugs found by using the app the way a real booker would (R12-R15, R18, R19, R29, R30, R33, R34, R35, R36, R37, R38, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R49, R50, R52, R53). Each has a test that fails on the old path.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildVenues, COMPANY, user } from "../data/seed.ts";
@@ -260,6 +260,18 @@ describe("found by testing as real users", () => {
     const r = await run("dinner for 6 on Friday, $500 between us", "2026-11-11");
     assert.equal(r.outcome, "booked");
     assert.match(r.messagesToBooker.join("\n"), /within your \$83/);
+  });
+  it("R53: \"on thanksgiving\" is the 4th Thursday of November; \"the day after thanksgiving\" is asked", async () => {
+    const d = (text: string, today = "2026-11-11") => resolveDate(text, today).date;
+    assert.equal(d("dinner for 4 on thanksgiving"), "2026-11-26", "was null, so the booker was asked which date");
+    assert.equal(d("thanksgiving dinner for 6", "2026-11-27"), "2027-11-25", "a past Thanksgiving rolls to next year's");
+    assert.equal(d("dinner on thanksgiving", "2028-11-01"), "2028-11-23");
+    assert.equal(d("dinner for 4 the day after thanksgiving"), null, "not Thanksgiving itself");
+    assert.equal(d("team dinner thanksgiving week"), null);
+    assert.equal(parseRules("dinner for 4 with acme thanksgiving", "2026-11-11").clientName, "Acme", "was \"Acme Thanksgiving\"");
+    const r = await run("dinner for 4 on thanksgiving", "2026-11-11");
+    assert.equal(r.outcome, "booked");
+    assert.match(r.messagesToBooker.join("\n"), /Thu Nov 26 at 7 pm, 4 guests/);
   });
   it("R18: short weekdays, \"tmrw\" and \"Thursday the 19th\" resolve to the day the person meant", () => {
     const d = (text: string) => resolveDate(text, "2026-11-11");

@@ -79,6 +79,13 @@ export function resolveDate(text: string, today: string): ResolvedDate {
     const candidate = `${year}-${holiday}` < today ? `${year + 1}-${holiday}` : `${year}-${holiday}`;
     return { date: candidate, ambiguous: false, reason: "holiday" };
   }
+  // Regression R53 (found by testing as a real user): "dinner for 4 on thanksgiving" asked which date. US Thanksgiving
+  // is the 4th Thursday of November. "The day after thanksgiving" or "thanksgiving week" is not that day, so it is asked.
+  if (/(?<!\b(?:after|before|of)\s)\bthanksgiving\b(?!\s+(?:eve|week|weekend|break))/.test(t)) {
+    const year = Number(today.slice(0, 4));
+    const day = thanksgiving(year) < today ? thanksgiving(year + 1) : thanksgiving(year);
+    return { date: day, ambiguous: false, reason: "holiday" };
+  }
   if (/\btonight\b|\btoday\b/.test(t)) return { date: today, ambiguous: false, reason: "today" };
   // Regression R18 (found by testing as a real user): "dinner for 4 tmrw at 7" and "lunch for 6 on Wed" asked which date.
   // Regression R35 (found by testing as a real user): "dinner for 6 the day after tomorrow" booked tomorrow.
@@ -145,6 +152,11 @@ function relativeDate(t: string, today: string): ResolvedDate | null {
 }
 
 /** The next date on or after today that falls on this day of the month (skipping months too short for it). */
+function thanksgiving(year: number): string {
+  const first = `${year}-11-01`;
+  return addDays(first, ((4 - weekday(first) + 7) % 7) + 21);
+}
+
 function nextDayOfMonth(day: number, today: string): string {
   const [y, m] = [Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1];
   for (let k = 0; ; k++) {

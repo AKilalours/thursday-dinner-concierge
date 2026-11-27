@@ -151,8 +151,8 @@ function timeFrom(text: string, kind: EventKind): string {
 const NOT_A_NAME = /^(on|next|this|the|a|an|at|in|for|tomorrow|tonight|team|folks|group|execs|leadership|crew|and|to|near|from|around|somewhere|private|under|people|guests)\b/;
 
 // Regression R41: "with Hooli Friday at 7" named the client "Hooli Friday" (and "with globex two weeks from ..." was
-// "Globex Two"). A weekday, month, "tmrw" or "two weeks" is when the dinner is, never the second word of a name.
-const DATE_WORD = /^(?:mon|monday|tue|tues|tuesday|wed|weds|wednesday|thu|thur|thurs|thursday|fri|friday|sat|saturday|sun|sunday|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december|today|tonight|tomorrow|tmrw|tmr|(?:two|three|four|five|six) (?:days?|weeks?))\b/i;
+// "Globex Two"). A weekday, month, "tmrw" or "two weeks" (or "thanksgiving", R53) is when the dinner is, never the second word of a name.
+const DATE_WORD = /^(?:mon|monday|tue|tues|tuesday|wed|weds|wednesday|thu|thur|thurs|thursday|fri|friday|sat|saturday|sun|sunday|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december|today|tonight|thanksgiving|tomorrow|tmrw|tmr|(?:two|three|four|five|six) (?:days?|weeks?))\b/i;
 
 function withoutDateWord(name: string, after: string): string {
   const [first, second] = name.split(/\s+/);
