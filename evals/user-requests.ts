@@ -109,6 +109,8 @@ const TYPED: UserRow[] = [
   ["drinks for 6 on Friday, $30 a pop", "booked", /within your \$30/],
   ["dinner for 6 on Friday, $500 for the group", "booked", /within your \$83/],
   ["lunch for 4 on Dec 3, $300 for everyone", "booked", /within your \$75/],
+  ["dinner for 6 on Friday, $500 between us", "booked", /within your \$83/],
+  ["dinner for 6, $500 for the 6 of us, Friday", "booked", /within your \$83/],
   ["dinner for 4 on Friday w/ Acme", "booked", /4 guests with Acme\./],
   ["drinks for 6 w/hooli friday", "booked", /6 guests with Hooli\./],
   ["dinner for 4 on Friday w/o nuts", "booked", /Dietary needs sent to .*nut/],

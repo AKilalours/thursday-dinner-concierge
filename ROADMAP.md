@@ -36,12 +36,13 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "dinner for 2 with Sam on Friday" names a colleague "Sam" as the client; a first name alone could be read as a guest, not a company.
 - "dinner tonight's fine, 4 of us" and "tonight-ish" are untested; check a possessive or suffixed "tonight" still reads as today.
 - "dinner for 4 on thanksgiving" asks which date; add Thanksgiving (4th Thursday of November) next to Christmas Eve.
-- "dinner for 6, $500 for the 6 of us" and "$500 between us" are still not read as a total.
+- "$500 split 6 ways" and "$500 to share" are untested as a total; check whether they should cap the spend too.
 - "w/o meat" and "without pork" are not read as vegetarian or a dietary need; decide which "without X" a venue should hear.
 - "under 80 bucks a head" is read, but "8 bucks a head" (one digit) is not; decide whether a one-digit per-head figure should be asked about.
 
 ## Shipped
 
+- 2026-11-27: "dinner for 6 on Friday, $500 between us" booked Lantern Row at about $791 all-in and paid the deposit (and "$500 for the 6 of us", "$300 between the four of us", "$400 for us all" did the same); these are now a total divided by the headcount ($83 a head here, Rue Margaux), while "for us" with no money sets no cap (R52); real-user sentences 101 → 103.
 - 2026-11-27: "dinner tonite for 2" asked "Which date should I book?" (and "2nite", "tnite" did the same); they are now read as tonight in the case typed, so the request is escalated for short notice like "dinner for two tonight", and an all-caps "DINNER TONITE ... WITH ACME" keeps Acme (R51); real-user sentences 99 → 101.
 - 2026-11-26: "dinner for 4 on Friday w/o nuts" booked with no dietary need sent to the venue (and "without gluten", "W/O dairy" did the same); "w/o" and "without" before a diet word are now read as "no", so the nut allergy reaches the proposal and the venue email, while "without a view" is not a diet (R50); real-user sentences 97 → 99.
 - 2026-11-26: "dinner for 4 on Friday w/ Acme" dropped Acme from the proposal and the venue email (and "w/hooli", "W/ Initech" did the same); "w/" is now read as "with", while "w/o" is left alone (R49); real-user sentences 95 → 97.
