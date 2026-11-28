@@ -136,7 +136,10 @@ function timeFrom(text: string, kind: EventKind): string {
   // dinner "8ish" booked 7 pm. "around/about/by" and a trailing "ish" mark a time, but never a headcount.
   const m = t.match(/\b(?:at\s+)?(\d{1,2})(?:[:.](\d{2}))?\s*(?:ish\s*)?(am|pm)\b/)
     ?? t.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*ish\b/)
-    ?? t.match(/\b(?:at|around|about|by)\s+(\d{1,2})(?:[:.](\d{2}))?\b(?!\s*(?:people|persons|guests|ppl|pax|folks|of\b|a head|each|pp|per\b|k\b|dollars|bucks|\/|%|[,.:]?\d))/);
+    ?? t.match(/\b(?:at|around|about|by)\s+(\d{1,2})(?:[:.](\d{2}))?\b(?!\s*(?:people|persons|guests|ppl|pax|folks|of\b|a head|each|pp|per\b|k\b|dollars|bucks|\/|%|[,.:]?\d))/)
+    // Regression R54: "dinner for 4 on Friday 19:30" (and a bare "Friday 7:30") booked the default 7 pm. Hours and
+    // minutes with a colon are a clock time even without "at"; a dot is left alone, since "$19.30" is money.
+    ?? t.match(/(?<![$\d:.\/])(\d{1,2}):([0-5]\d)\b(?!\s*(?:people|guests|ppl|pax))/);
   if (m) {
     let h = Number(m[1]);
     if (m[3] === "pm" && h < 12) h += 12;

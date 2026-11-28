@@ -39,9 +39,12 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "the day after thanksgiving" and "thanksgiving week" still ask which date; the day after could book the Friday.
 - "$500 split 6 ways" and "$500 to share" are untested as a total; check whether they should cap the spend too.
 - "w/o meat" and "without pork" are not read as vegetarian or a dietary need; decide which "without X" a venue should hear.
+- "friday 18h" and "Friday 1930" (24-hour without a colon) still book the default time; decide whether a 4-digit time after a day word is safe to read.
 - "under 80 bucks a head" is read, but "8 bucks a head" (one digit) is not; decide whether a one-digit per-head figure should be asked about.
 
 ## Shipped
+
+- 2026-11-28: "dinner for 4 on Friday 19:30" booked the default 7 pm (and "Friday 7:30", "Dec 3 12:45", "friday 17:45" did the same); a colon time with no "at" is now the time booked, while a dot ("$19.30") is still money (R54); real-user sentences 105 → 107.
 
 - 2026-11-27: "dinner for 4 on thanksgiving" asked "Which date should I book?"; Thanksgiving is now the 4th Thursday of November (Nov 26, 2026; next year's once it has passed), "with acme thanksgiving" keeps the client as Acme, and "the day after thanksgiving" is still asked (R53); real-user sentences 103 → 105.
 - 2026-11-27: "dinner for 6 on Friday, $500 between us" booked Lantern Row at about $791 all-in and paid the deposit (and "$500 for the 6 of us", "$300 between the four of us", "$400 for us all" did the same); these are now a total divided by the headcount ($83 a head here, Rue Margaux), while "for us" with no money sets no cap (R52); real-user sentences 101 → 103.

@@ -119,6 +119,8 @@ const TYPED: UserRow[] = [
   ["drinks for 6 2nite at 8", "escalated", /at 8 pm is \d+ h away/],
   ["dinner for 4 on thanksgiving", "booked", /Thu Nov 26 at 7 pm, 4 guests/],
   ["thanksgiving lunch with acme for 6", "booked", /6 guests with Acme\./],
+  ["dinner for 4 on Friday 19:30", "booked", /Fri Nov 13 at 7:30 pm, 4 guests/],
+  ["drinks for 6 friday 17:45", "booked", /Fri Nov 13 at 5:45 pm, 6 guests/],
 ];
 
 /** Typed by me and testers, plus every sentence real people reported from the app (evals/reported.ts). */
