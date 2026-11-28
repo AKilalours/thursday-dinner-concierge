@@ -179,6 +179,8 @@ export const SCENARIOS: Scenario[] = [
   { id: "reg37", group: "regression", text: "dinner for 12 with Acme next Thursday, private, $480 between us", expect: { outcome: "needs_clarification" } },
   // R53 (found testing as a real user): "dinner for 4 on thanksgiving" asked which date instead of booking the 4th Thursday of November.
   { id: "reg38", group: "regression", text: "dinner for 8 with Acme on Thanksgiving", today: "2026-11-11", expect: { outcome: "booked", partySize: 8, date: "2026-11-26", clientName: "Acme" } },
+  // R55 (found testing as a real user): all-caps "LUNCH W/ ACME FOR 6" named the client "ACME FOR" in the venue email.
+  { id: "reg39", group: "regression", text: "LUNCH W/ ACME FOR 6 ON FRIDAY", expect: { outcome: "booked", partySize: 6, clientName: "Acme" } },
   // Catering: food delivered to the office, from caterers, under the catering limit.
   { id: "cat01", group: "phrasing", text: "catered lunch for 30 at the office this Thursday", expect: { outcome: "booked", partySize: 30, date: THU, category: "catering" } },
   { id: "cat02", group: "venue_behavior", text: "boxed lunches for 40 delivered to the office on Thursday", order: ["decline"], expect: { outcome: "booked", partySize: 40, category: "catering" } },

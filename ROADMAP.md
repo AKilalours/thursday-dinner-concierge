@@ -35,7 +35,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "dinner Friday 4-6 people" (range after a day, no "for") keeps the default time but asks a plain "how many?"; a range followed by "people"/"guests" should be asked as a range.
 - "dinner for 2 with Sam on Friday" names a colleague "Sam" as the client; a first name alone could be read as a guest, not a company.
 - "dinner tonight's fine, 4 of us" and "tonight-ish" are untested; check a possessive or suffixed "tonight" still reads as today.
-- All caps "LUNCH W/ ACME FOR 6 ON FRIDAY" names the client "ACME FOR" (lowercase and "WITH" are fine); "for" after an all-caps name should end it.
+- "Hi! LUNCH WITH ACME FOR 6 ON FRIDAY" (all-caps body after a lowercase greeting) drops Acme, since a capital "WITH" is not read as "with"; the "W/" form keeps it.
 - "the day after thanksgiving" and "thanksgiving week" still ask which date; the day after could book the Friday.
 - "$500 split 6 ways" and "$500 to share" are untested as a total; check whether they should cap the spend too.
 - "w/o meat" and "without pork" are not read as vegetarian or a dietary need; decide which "without X" a venue should hear.
@@ -44,6 +44,7 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 
 ## Shipped
 
+- 2026-11-28: "LUNCH W/ ACME FOR 6 ON FRIDAY" named the client "ACME FOR" in the proposal and the venue email (and "DINNER FOR 4 W/HOOLI" was "HOOLI ON"); "W/" now keeps an all-caps sentence one-case, and "for", "on" or "at" never end a client name (R55); real-user sentences 107 → 109.
 - 2026-11-28: "dinner for 4 on Friday 19:30" booked the default 7 pm (and "Friday 7:30", "Dec 3 12:45", "friday 17:45" did the same); a colon time with no "at" is now the time booked, while a dot ("$19.30") is still money (R54); real-user sentences 105 → 107.
 
 - 2026-11-27: "dinner for 4 on thanksgiving" asked "Which date should I book?"; Thanksgiving is now the 4th Thursday of November (Nov 26, 2026; next year's once it has passed), "with acme thanksgiving" keeps the client as Acme, and "the day after thanksgiving" is still asked (R53); real-user sentences 103 → 105.

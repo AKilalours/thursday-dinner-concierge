@@ -157,9 +157,10 @@ const NOT_A_NAME = /^(on|next|this|the|a|an|at|in|for|tomorrow|tonight|team|folk
 // "Globex Two"). A weekday, month, "tmrw" or "two weeks" (or "thanksgiving", R53) is when the dinner is, never the second word of a name.
 const DATE_WORD = /^(?:mon|monday|tue|tues|tuesday|wed|weds|wednesday|thu|thur|thurs|thursday|fri|friday|sat|saturday|sun|sunday|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december|today|tonight|thanksgiving|tomorrow|tmrw|tmr|(?:two|three|four|five|six) (?:days?|weeks?))\b/i;
 
+// Regression R55: "LUNCH W/ ACME FOR 6" named the client "ACME FOR"; "for", "on" or "at" never end a name, in any case.
 function withoutDateWord(name: string, after: string): string {
   const [first, second] = name.split(/\s+/);
-  return second && DATE_WORD.test(second + after) ? first : name;
+  return second && (DATE_WORD.test(second + after) || NOT_A_NAME.test(second.toLowerCase())) ? first : name;
 }
 
 export function parseRules(raw: string, today: string): BookingRequest {
@@ -167,7 +168,8 @@ export function parseRules(raw: string, today: string): BookingRequest {
   // lost allergies, the neighborhood, "Christmas Eve" and the kind of event. Whitespace is normalized first.
   // Regression R49: "dinner for 4 on Friday w/ Acme" lost Acme. "w/" is "with"; "w/o" (without) is left alone.
   // Regression R51: "dinner tonite for 2" asked which date. "tonite", "2nite" and "tnite" are "tonight", in the case typed so a one-case sentence stays one-case.
-  const text = raw.replace(/\bw\/(?!o\b)\s*/gi, "with ").replace(/\b(?:tonite|2nite|tnite)\b/gi, (w) => w === w.toUpperCase() ? "TONIGHT" : w[0] === "T" ? "Tonight" : "tonight").replace(/\s+/g, " ").trim();
+  // Regression R55: in an all-caps sentence "W/" stays upper case, so the sentence is still read as one-case.
+  const text = raw.replace(/\bw\/(?!o\b)\s*/gi, /[a-z]/.test(raw) ? "with " : "WITH ").replace(/\b(?:tonite|2nite|tnite)\b/gi, (w) => w === w.toUpperCase() ? "TONIGHT" : w[0] === "T" ? "Tonight" : "tonight").replace(/\s+/g, " ").trim();
   const t = text.toLowerCase();
   // Regression R27 (found by metamorphic testing): a request typed in ALL CAPS or all lowercase lost the client, which
   // is read from a capitalised name. In a one-case sentence the word after "with" is the name, unless it's "a", "my"...
