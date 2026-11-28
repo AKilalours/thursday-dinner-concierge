@@ -37,13 +37,14 @@ One small, tested improvement at a time. Top of "Ideas" goes next.
 - "dinner tonight's fine, 4 of us" and "tonight-ish" are untested; check a possessive or suffixed "tonight" still reads as today.
 - "Hi! LUNCH WITH ACME FOR 6 ON FRIDAY" (all-caps body after a lowercase greeting) drops Acme, since a capital "WITH" is not read as "with"; the "W/" form keeps it.
 - "the day after thanksgiving" and "thanksgiving week" still ask which date; the day after could book the Friday.
-- "$500 split 6 ways" and "$500 to share" are untested as a total; check whether they should cap the spend too.
+- "dinner for 8, $500 split 6 ways" divides by the 8 booked, not the 6 ways typed; when the two disagree, ask which headcount is right.
 - "w/o meat" and "without pork" are not read as vegetarian or a dietary need; decide which "without X" a venue should hear.
 - "friday 18h" and "Friday 1930" (24-hour without a colon) still book the default time; decide whether a 4-digit time after a day word is safe to read.
 - "under 80 bucks a head" is read, but "8 bucks a head" (one digit) is not; decide whether a one-digit per-head figure should be asked about.
 
 ## Shipped
 
+- 2026-11-28: "dinner for 6 on Friday, $500 split 6 ways" booked Lantern Row at about $791 all-in and paid the deposit (and "$400 to share", "$600 split evenly", "$300 split between us" did the same); these are now a total divided by the headcount ($83 a head here, Rue Margaux), while "we'll split the bill" with no money sets no cap (R56); real-user sentences 109 → 111.
 - 2026-11-28: "LUNCH W/ ACME FOR 6 ON FRIDAY" named the client "ACME FOR" in the proposal and the venue email (and "DINNER FOR 4 W/HOOLI" was "HOOLI ON"); "W/" now keeps an all-caps sentence one-case, and "for", "on" or "at" never end a client name (R55); real-user sentences 107 → 109.
 - 2026-11-28: "dinner for 4 on Friday 19:30" booked the default 7 pm (and "Friday 7:30", "Dec 3 12:45", "friday 17:45" did the same); a colon time with no "at" is now the time booked, while a dot ("$19.30") is still money (R54); real-user sentences 105 → 107.
 

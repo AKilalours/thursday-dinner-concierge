@@ -90,7 +90,10 @@ export function totalBudgetCents(text: string): number | null {
   // Regression R47: "$500 for the group" booked $791 all-in; "for the group/table/team" and "for everyone" mark a total too.
   // Regression R52: "$500 between us" still booked $791; "between us", "for the 6 of us" and "for us all" mark it too.
   const us = String.raw`(?:(?:all |the |all the )?(?:\d{1,3}|two|three|four|five|six|seven|eight|nine|ten|twelve) of us|all of us|us(?: all)?)`;
-  const whole = String.raw`for (?:the (?:whole )?|our (?:whole )?)?(?:group|table|team|party)|for (?:${us}|everyone|everybody)|between ${us}`;
+  // Regression R56: "$500 split 6 ways" booked $791; "split N ways", "split evenly/between us" and "to share" mark a total too.
+  const ways = String.raw`(?:\d{1,3}|two|three|four|five|six|seven|eight|nine|ten|twelve) ways`;
+  const split = String.raw`(?:to )?split(?: ${ways}| evenly| (?:between|among) ${us})?|to share|shared(?: (?:between|among) ${us})?`;
+  const whole = String.raw`for (?:the (?:whole )?|our (?:whole )?)?(?:group|table|team|party)|for (?:${us}|everyone|everybody)|between ${us}|${split}`;
   const m = t.match(new RegExp(String.raw`${money}\s*(?:total|all[- ]in|in total|overall|${whole})\b`))
     ?? t.match(new RegExp(String.raw`\b(?:total budget|budget|spend)\s*(?:of|is|:|around|about|max)?\s*${bare}(?!\s*(?:\/|a |per |pp|each))`));
   if (!m) return null;
